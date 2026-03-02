@@ -1,57 +1,67 @@
-import { BASE_URL } from './config.js'
+import { api } from './api.js'
 import { getToken, setToken, clearToken } from './storage.js'
 
 /**
- * Cliente HTTP para la API QNT.
+ * Construye un objeto tipo Response compatible con la interfaz usada en el resto del código
+ * (ok, status, text(), blob(), data) a partir de la respuesta de axios.
+ */
+function toResponseLike(axiosRes) {
+  const data = axiosRes.data
+  return {
+    ok: axiosRes.status >= 200 && axiosRes.status < 300,
+    status: axiosRes.status,
+    get data() {
+      return data
+    },
+    text() {
+      if (typeof data === 'string') return Promise.resolve(data)
+      if (data == null) return Promise.resolve('')
+      return Promise.resolve(JSON.stringify(data))
+    },
+    blob() {
+      if (axiosRes.config.responseType === 'blob' && data instanceof Blob) {
+        return Promise.resolve(data)
+      }
+      return Promise.reject(new Error('Response is not a blob'))
+    },
+  }
+}
+
+/**
+ * Cliente HTTP para la API QNT (usa axios por debajo).
  * - Añade Authorization: Bearer <token> a todas las peticiones (salvo skipAuth).
- * - Todas las llamadas a la API (compras, proveedores, auth/me, etc.) deben usar request() para que el token se envíe.
- * - En 401: limpia token y dispara evento para redirigir a login.
+ * - En 401: el interceptor de api.js limpia token y dispara qnt:unauthorized.
  */
 async function request(path, options = {}, { skipAuth = false } = {}) {
-  const url = path.startsWith('http') ? path : `${BASE_URL}${path}`
-  const token = !skipAuth ? getToken() : null
-
-  if (!skipAuth && !token && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-    console.warn(`[API] Petición a ${path} sin token. Si el backend devuelve 403, revisar que el usuario esté logueado y que el token se guarde en localStorage (qnt_jwt).`)
+  const method = options.method || 'GET'
+  let data = options.body
+  if (data != null && typeof data === 'object' && !(data instanceof FormData)) {
+    // axios usa "data"; body ya es objeto, no hace falta stringify
   }
-
-  const headers = {
-    ...(options.headers || {}),
+  const config = {
+    url: path,
+    method,
+    data,
+    headers: options.headers || {},
+    skipAuth,
+    responseType: options.responseType,
   }
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
+  // Si es FormData, axios setea Content-Type con boundary; no forzar Content-Type
+  if (data instanceof FormData && config.headers['Content-Type']) {
+    delete config.headers['Content-Type']
   }
-
-  // Si no se fuerza Content-Type y hay body objeto, usar JSON
-  if (options.body != null && typeof options.body === 'object' && !(options.body instanceof FormData)) {
-    if (!headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json'
-    }
-  }
-
-  // Importante: no pasar options.headers a fetch; usamos solo nuestro objeto headers con Authorization
-  const { headers: _omit, ...restOptions } = options
-  const res = await fetch(url, {
-    ...restOptions,
-    headers,
-    body: options.body != null && typeof options.body === 'object' && !(options.body instanceof FormData)
-      ? JSON.stringify(options.body)
-      : options.body,
-  })
-
-  if (res.status === 401) {
-    clearToken()
-    window.dispatchEvent(new CustomEvent('qnt:unauthorized'))
-  }
-
-  return res
+  const res = await api.request(config)
+  return toResponseLike(res)
 }
 
 /**
  * Devuelve el cuerpo como JSON si la respuesta es OK.
- * Si no, lanza error con status y mensaje (cuerpo como texto si no es JSON).
+ * Compatible con el objeto tipo Response que devuelve request().
  */
 async function json(res) {
+  if (res.data !== undefined && res.data !== null && typeof res.data === 'object' && !(res.data instanceof Blob)) {
+    return res.data
+  }
   const text = await res.text()
   if (!res.ok) {
     let message = text

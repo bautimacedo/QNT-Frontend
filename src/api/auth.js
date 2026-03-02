@@ -9,6 +9,7 @@ export async function login(email, password) {
   const res = await request('/auth/login', {
     method: 'POST',
     body: { username: email, password },
+    responseType: 'text',
   }, { skipAuth: true })
 
   if (!res.ok) {

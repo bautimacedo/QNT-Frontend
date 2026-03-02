@@ -1,4 +1,5 @@
-export { BASE_URL } from './config.js'
+export { BASE_URL, apiBaseUrl } from './config.js'
+export { api } from './api.js'
 export { getToken, setToken, clearToken } from './storage.js'
 export { request, json } from './http.js'
 export { login, register, me, logout } from './auth.js'

@@ -34,7 +34,7 @@ export async function subirFotoPerfil(file) {
 }
 
 export async function obtenerFotoPerfil() {
-  const res = await request('/mi-perfil/foto-perfil', { method: 'GET' })
+  const res = await request('/mi-perfil/foto-perfil', { method: 'GET', responseType: 'blob' })
   if (!res.ok) {
     if (res.status === 404) return null
     throw new Error('Error al obtener foto de perfil')
@@ -87,7 +87,7 @@ export async function subirImagenCmaLicencia(licenciaId, file) {
 }
 
 export async function obtenerImagenCmaLicencia(licenciaId) {
-  const res = await request(`/mi-perfil/licencias/${licenciaId}/imagen-cma`, { method: 'GET' })
+  const res = await request(`/mi-perfil/licencias/${licenciaId}/imagen-cma`, { method: 'GET', responseType: 'blob' })
   if (!res.ok) {
     if (res.status === 404) return null
     throw new Error('Error al obtener imagen CMA de licencia')
@@ -106,7 +106,7 @@ export async function subirImagenCertIdoneidad(licenciaId, file) {
 }
 
 export async function obtenerImagenCertIdoneidad(licenciaId) {
-  const res = await request(`/mi-perfil/licencias/${licenciaId}/imagen-certificado-idoneidad`, { method: 'GET' })
+  const res = await request(`/mi-perfil/licencias/${licenciaId}/imagen-certificado-idoneidad`, { method: 'GET', responseType: 'blob' })
   if (!res.ok) {
     if (res.status === 404) return null
     throw new Error('Error al obtener imagen Cert. Idoneidad')

@@ -48,7 +48,7 @@ export async function subirImagenCompra(id, file) {
 }
 
 export async function obtenerImagenCompra(id) {
-  const res = await request(`/compras/${id}/imagen`, { method: 'GET' })
+  const res = await request(`/compras/${id}/imagen`, { method: 'GET', responseType: 'blob' })
   if (!res.ok) {
     if (res.status === 404) return null
     throw new Error('Error al obtener imagen')
