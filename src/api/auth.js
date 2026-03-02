@@ -5,16 +5,10 @@ import { request, json, setToken, clearToken } from './http.js'
  * Esto coincide con la prueba de Postman que devolvió 200.
  */
 export async function login(email, password) {
-  // 1. Creamos los parámetros de búsqueda
-  const params = new URLSearchParams({
-    username: email,
-    password: password
-  }).toString();
-
-  // 2. Adjuntamos los parámetros a la URL: /auth/login?username=...&password=...
-  const res = await request(`/auth/login?${params}`, {
+  const res = await request('/auth/login', {
     method: 'POST',
-    body: null,        // Eliminamos el cuerpo JSON ya que los datos van en la URL
+    // Mandamos los datos protegidos en el body
+    body: { username: email, password }, 
     responseType: 'text',
   }, { skipAuth: true })
 
