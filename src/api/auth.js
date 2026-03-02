@@ -1,14 +1,20 @@
 import { request, json, setToken, clearToken } from './http.js'
 
 /**
- * Login. No requiere token (skipAuth).
- * Backend: POST /auth/login, body { username, password } (username = email).
- * Respuesta 200: cuerpo en texto plano con el JWT.
+ * Login modificado para enviar credenciales por URL (Query Params).
+ * Esto coincide con la prueba de Postman que devolvió 200.
  */
 export async function login(email, password) {
-  const res = await request('/auth/login', {
+  // 1. Creamos los parámetros de búsqueda
+  const params = new URLSearchParams({
+    username: email,
+    password: password
+  }).toString();
+
+  // 2. Adjuntamos los parámetros a la URL: /auth/login?username=...&password=...
+  const res = await request(`/auth/login?${params}`, {
     method: 'POST',
-    body: { username: email, password },
+    body: null,        // Eliminamos el cuerpo JSON ya que los datos van en la URL
     responseType: 'text',
   }, { skipAuth: true })
 
@@ -23,7 +29,6 @@ export async function login(email, password) {
   setToken(token)
   return token
 }
-
 /**
  * Usuario actual. GET /auth/me.
  * Respuesta: { id, email, username, authorities: string[] } (ROLE_*).
