@@ -108,15 +108,19 @@ function irA(slug) {
 }
 
 .stock-card__image-wrap {
-  height: 140px;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   border-radius: 12px 12px 0 0;
-  background: #f1f5f9;
+  background: #e2e8f0;
 }
 .stock-card__image {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
 }
 .stock-card__title {
   margin: 1rem 1rem 0;
