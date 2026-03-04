@@ -25,6 +25,7 @@ Abrir `INFORME_BACKEND_PARA_FRONTEND.md` y usar como referencia:
   | Hélices          | `/helices`                | `GET /helices`   | `GET /helices/{id}`   |
   | Antenas RTK      | `/antenas-rtk`            | `GET /antenas-rtk` | `GET /antenas-rtk/{id}` |
   | Antenas Starlink | `/antenas-starlink`       | `GET /antenas-starlink` | `GET /antenas-starlink/{id}` |
+  | Accesorios       | `/accesorios`             | `GET /accesorios`       | `GET /accesorios/{id}`       |
 
 - **Licencias (software), sección 5.5:**  
   `GET /licencias` y `GET /licencias/{id}`.
@@ -37,6 +38,7 @@ Las rutas son **relativas al prefijo de la API** (ej. `/api/qnt/v1`). Por tanto,
 - `api.get('/helices')`, `api.get('/helices/' + id)`
 - `api.get('/antenas-rtk')`, `api.get('/antenas-rtk/' + id)`
 - `api.get('/antenas-starlink')`, `api.get('/antenas-starlink/' + id)`
+- `api.get('/accesorios')`, `api.get('/accesorios/' + id)`
 - `api.get('/licencias')`, `api.get('/licencias/' + id)`
 
 **Importante:** Escribir las rutas tal cual: `helices` (con 's'), `antenas-rtk` y `antenas-starlink` con guión. No usar `helice`, `antenas_rtk` ni rutas distintas a las del informe.
@@ -48,6 +50,7 @@ Las rutas son **relativas al prefijo de la API** (ej. `/api/qnt/v1`). Por tanto,
 3. Comprobar que las rutas usadas coinciden **exactamente** con la tabla anterior:
    - Lista de equipos: `api.get(\`/${tipo}\`)` donde `tipo` sea uno de: `drones`, `docks`, `baterias`, `helices`, `antenas-rtk`, `antenas-starlink`. No añadir barra final (evitar `/helices/`).
    - Detalle: `api.get(\`/${tipo}/${id}\`)` con el mismo `tipo`.
+   - **Accesorios:** `api.get('/accesorios')` y `api.get(\`/accesorios/${id}\`)` (recurso documentado en sección 5.4.9 del informe).
    - Licencias: `api.get('/licencias')` y `api.get(\`/licencias/${id}\`)`.
 4. Si existe un array o constante con los tipos de equipo (ej. `TIPOS_EQUIPO`), verificar que los valores sean exactamente: `'drones'`, `'docks'`, `'baterias'`, `'helices'`, `'antenas-rtk'`, `'antenas-starlink'` (sin otro formato).
 5. No duplicar el prefijo de la API en la ruta: el cliente `api` ya tiene `baseURL`; la ruta debe ser solo `/drones`, `/helices`, etc.
@@ -80,6 +83,7 @@ Todos los recursos de stock están documentados en `INFORME_BACKEND_PARA_FRONTEN
 
 - **Equipos (Drones, Docks, Baterías, Hélices, Antenas RTK, Antenas Starlink):** Secciones **5.4.3 a 5.4.8** (endpoints) y **6.21 a 6.26** (modelos). Rutas base: `/drones`, `/docks`, `/baterias`, `/helices`, `/antenas-rtk`, `/antenas-starlink`. Campos típicos: id, estado (enum Estado §10), marca, modelo, numeroSerie; si el backend devuelve más, mostrarlos.
 - **Licencias (software):** Secciones **5.5** (endpoints) y **6.16 / 6.18** (modelo). Rutas: `/licencias`, `/licencias/{id}`. Campos: id, nombre, numLicencia, compra, fechaCompra, caducidad, version, activo.
+- **Accesorios:** Sección **5.4.9** (endpoints) y **6.27** (modelo). Rutas: `/accesorios`, `/accesorios/{id}`. Campos según informe: id, nombre, marca, modelo, numeroSerie, estado (enum Estado §10), fechaCompra, cantidad, unidadMedida, descripcion, ubicacion, site.
 
 El **enum Estado** (equipos) está en la sección 10 del informe: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO`. Usar exactamente estos valores para filtros y visualización.
 
@@ -113,9 +117,10 @@ El **enum Estado** (equipos) está en la sección 10 del informe: `STOCK_ACTUAL`
   - `path: 'stock/antenas-rtk'`, `name: 'stock-antenas-rtk'`, `component: StockAntenasRtkView`
   - `path: 'stock/antenas-starlink'`, `name: 'stock-antenas-starlink'`, `component: StockAntenasStarlinkView`
   - `path: 'stock/licencias'`, `name: 'stock-licencias'`, `component: StockLicenciasView`
+  - `path: 'stock/accesorios'`, `name: 'stock-accesorios'`, `component: StockAccesoriosView`
 - Para el detalle de cada ítem (ej. un dron concreto):
   - `path: 'stock/drones/:id'`, `name: 'stock-dron-detalle'`, `component: StockDronDetalleView`
-  - Y análogo para: docks, baterias, helices, antenas-rtk, antenas-starlink, licencias (por ejemplo `stock/docks/:id`, `stock/baterias/:id`, etc.).
+  - Y análogo para: docks, baterias, helices, antenas-rtk, antenas-starlink, licencias, **accesorios** (por ejemplo `stock/accesorios/:id`, `name: 'stock-accesorio-detalle'`, `component: StockAccesorioDetalleView`).
 - Todas estas rutas deben ser **children** del mismo layout que ya tiene `path: '/'` (DashboardLayout), para que el sidebar siga visible.
 - Importar los componentes que se crearán en los siguientes pasos (StockView y las vistas de listado y detalle por tipo).
 
@@ -126,11 +131,11 @@ El **enum Estado** (equipos) está en la sección 10 del informe: `STOCK_ACTUAL`
 ### 2.1 Crear la vista
 
 - Crear `src/views/stock/StockView.vue`.
-- La vista debe mostrar un **título de página** (ej. "Stock" o "Gestión de stock") y una **rejilla de 7 tarjetas**.
+- La vista debe mostrar un **título de página** (ej. "Stock" o "Gestión de stock") y una **rejilla de 8 tarjetas** (7 tipos de equipo + licencias + accesorios; si ya existen 7, añadir la de Accesorios como se indica en PASO 9).
 
-### 2.2 Definición de las 7 tarjetas
+### 2.2 Definición de las tarjetas (7 existentes + Accesorios)
 
-Cada tarjeta representa un **tipo** de ítem. Datos fijos (no vienen del backend):
+Cada tarjeta representa un **tipo** de ítem. Datos fijos (no vienen del backend). La **octava tarjeta** es Accesorios; si el proyecto ya tiene 7, añadir la fila de Accesorios según PASO 9.
 
 | # | Tipo (slug interno) | Título en UI      | Descripción corta (ejemplo)                    | Imagen (ruta pública) |
 |---|---------------------|-------------------|--------------------------------------------------|------------------------|
@@ -141,6 +146,7 @@ Cada tarjeta representa un **tipo** de ítem. Datos fijos (no vienen del backend
 | 5 | antenas-rtk        | Antenas RTK       | Antenas de corrección RTK                       | `/Images/rtk.png` |
 | 6 | antenas-starlink   | Antenas Starlink  | Antenas Starlink                                | `/Images/starlink.png` |
 | 7 | licencias          | Licencias         | Licencias de software                           | `/Images/flighthub2.png` o `/Images/flytbase.png` (elegir una; si no existe, usar una imagen genérica bajo `public/Images/`) |
+| 8 | accesorios         | Accesorios        | Cables, tornillos y accesorios varios            | `/Images/Accesorios.jpg` |
 
 Las imágenes están en `public/Images/`. En el template usar rutas que empiecen por `/Images/...` para que resuelvan a `public/Images/...`.
 
@@ -162,13 +168,14 @@ Al hacer **click** en la tarjeta (o en un botón "Ver listado" dentro de ella), 
 - Antenas RTK → `/stock/antenas-rtk`
 - Antenas Starlink → `/stock/antenas-starlink`
 - Licencias → `/stock/licencias`
+- Accesorios → `/stock/accesorios`
 
 Usar `<router-link>` o `router.push()` según la convención del proyecto.
 
 ### 2.4 Maquetación
 
 - Rejilla responsive (por ejemplo CSS Grid o Flexbox): en desktop varias columnas (ej. 3 o 4), en móvil 1–2 columnas.
-- Misma estructura para las 7 tarjetas; solo cambian título, descripción e imagen.
+- Misma estructura para todas las tarjetas; solo cambian título, descripción e imagen.
 - Mantener el mismo estilo general que el resto del dashboard (tipografía, colores, bordes).
 
 ---
@@ -185,7 +192,7 @@ Recomendación: **Opción A** (`stock.js`) para centralizar y evitar muchos impo
 
 ### 3.2 Funciones a implementar
 
-Las rutas y métodos deben coincidir **exactamente** con las secciones 5.4.3 a 5.4.8 y 5.5 del `INFORME_BACKEND_PARA_FRONTEND.md`. Usar el cliente `api` de `src/api/api.js` (base URL y Bearer ya configurados). No duplicar base URL.
+Las rutas y métodos deben coincidir **exactamente** con las secciones 5.4.3 a 5.4.9 y 5.5 del `INFORME_BACKEND_PARA_FRONTEND.md`. Usar el cliente `api` de `src/api/api.js` (base URL y Bearer ya configurados). No duplicar base URL.
 
 Para **cada** tipo (drones, docks, baterias, helices, antenas-rtk, antenas-starlink):
 
@@ -195,6 +202,11 @@ Para **cada** tipo (drones, docks, baterias, helices, antenas-rtk, antenas-starl
 Para **licencias** (recurso ya documentado):
 
 - Usar los endpoints del informe: `GET /licencias` y `GET /licencias/{id}`. Si ya existe un módulo `licencias.js` o `compras.js` que exponga `getLicencias` y `getLicencia(id)`, reutilizarlo desde el módulo de stock; si no, implementar en `stock.js` (o en el módulo que corresponda) dos funciones que llamen a esos endpoints.
+
+Para **accesorios** (sección 5.4.9 del informe):
+
+- `getAccesorios()` → `GET /accesorios` → devuelve la lista (array).
+- `getAccesorio(id)` → `GET /accesorios/{id}` → devuelve un objeto. Implementar en `stock.js` usando el mismo cliente `api`.
 
 Manejo de errores: propagar el error (para que las vistas muestren mensaje o estado de error). No capturar silenciosamente; si el backend no existe aún, la petición fallará y la UI puede mostrar "Sin datos" o "Error al cargar".
 
@@ -213,6 +225,7 @@ Crear **7 vistas** de listado, una por tipo:
 - `src/views/stock/StockAntenasRtkView.vue`
 - `src/views/stock/StockAntenasStarlinkView.vue`
 - `src/views/stock/StockLicenciasView.vue`
+- `src/views/stock/StockAccesoriosView.vue`
 
 Cada vista debe:
 
@@ -221,6 +234,7 @@ Cada vista debe:
    - **Drones:** imagen genérica `/Images/Matrice 4td.jpg`.
    - **Docks, Baterías, Hélices, Antenas RTK, Antenas Starlink:** usar la misma imagen que en la pantalla principal de Stock para ese tipo (dock.png, baterias.jpg, helices.jpg, rtk.png, starlink.png).
    - **Licencias:** imagen genérica (ej. flighthub2.png o flytbase.png).
+   - **Accesorios:** imagen genérica `/Images/Accesorios.jpg` (la misma que la tarjeta de la pantalla principal).
 3. En cada tarjeta mostrar al menos: identificador (ej. número de serie o nombre), y si existe: marca, modelo, estado. Al hacer click en una tarjeta, navegar a la vista de **detalle** del ítem (ej. `/stock/drones/123`).
 
 ### 4.2 Filtros (listados de equipos: Dron, Dock, Batería, Hélice, Antena RTK, Antena Starlink)
@@ -235,6 +249,8 @@ En las vistas de **drones, docks, baterias, helices, antenas-rtk y antenas-starl
 Los filtros se aplican **en el frontend** sobre la lista completa devuelta por `GET /{recurso}`, salvo que el informe (o el backend) documente en el futuro query params (ej. `?estado=...&marca=...`); en ese caso, usar esos params y ajustar la capa API.
 
 Para **Licencias** (software): no hay "estado de equipo". Mostrar filtros que tengan sentido con el modelo del informe (ej. por nombre, activo sí/no si existe el campo). Si el informe solo tiene nombre y numLicencia, filtrar por nombre y/o número de licencia.
+
+Para **Accesorios:** el modelo (informe §6.27) incluye: nombre, marca, modelo, numeroSerie, estado (enum Estado §10), ubicacion, cantidad, unidadMedida. Implementar filtros en el front (sobre la lista completa) por: **estado**, **nombre**, **marca**, **modelo**, **numeroSerie**, **ubicacion**. Opción "Todos" para estado.
 
 ### 4.3 Breadcrumb / navegación contextual
 
@@ -255,6 +271,7 @@ Crear **7 vistas de detalle** (una por tipo), por ejemplo:
 - `src/views/stock/StockAntenaRtkDetalleView.vue`
 - `src/views/stock/StockAntenaStarlinkDetalleView.vue`
 - `src/views/stock/StockLicenciaDetalleView.vue`
+- `src/views/stock/StockAccesorioDetalleView.vue`
 
 Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
@@ -265,7 +282,8 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 3. Si hay datos, mostrar **todos los campos** que devuelva el backend para ese ítem, organizados en secciones o en una lista de pares etiqueta–valor (expandir todos los datos). No ocultar campos; si el backend añade más en el futuro, mostrarlos.
 4. Para equipos (dron, dock, batería, etc.): mostrar al menos id, estado, marca, modelo, numeroSerie y cualquier otro campo que venga en la respuesta.
 5. Para **Licencia:** mostrar los campos del informe §6.16: id, nombre, numLicencia, compra (o compraId), fechaCompra, caducidad, version, activo.
-6. Incluir un enlace o botón "Volver al listado" que navegue a la ruta del listado correspondiente (ej. `/stock/drones`).
+6. Para **Accesorio:** mostrar todos los campos del informe §6.27: id, nombre, marca, modelo, numeroSerie, estado, fechaCompra, cantidad, unidadMedida, descripcion, ubicacion, site (si viene anidado). Si el backend devuelve más campos, mostrarlos también.
+7. Incluir un enlace o botón "Volver al listado" que navegue a la ruta del listado correspondiente (ej. `/stock/drones`).
 
 ### 5.3 Presentación
 
@@ -278,10 +296,10 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 ### Crear
 
-- `src/views/stock/StockView.vue` — pantalla de las 7 tarjetas.
-- `src/views/stock/StockDronesView.vue`, `StockDocksView.vue`, `StockBateriasView.vue`, `StockHelicesView.vue`, `StockAntenasRtkView.vue`, `StockAntenasStarlinkView.vue`, `StockLicenciasView.vue` — listados.
-- `src/views/stock/StockDronDetalleView.vue`, `StockDockDetalleView.vue`, `StockBateriaDetalleView.vue`, `StockHeliceDetalleView.vue`, `StockAntenaRtkDetalleView.vue`, `StockAntenaStarlinkDetalleView.vue`, `StockLicenciaDetalleView.vue` — detalles.
-- `src/api/stock.js` — funciones de API para todos los tipos de stock (y licencias si no están en otro módulo).
+- `src/views/stock/StockView.vue` — pantalla de las tarjetas (8 incluyendo Accesorios).
+- `src/views/stock/StockDronesView.vue`, `StockDocksView.vue`, `StockBateriasView.vue`, `StockHelicesView.vue`, `StockAntenasRtkView.vue`, `StockAntenasStarlinkView.vue`, `StockLicenciasView.vue`, `StockAccesoriosView.vue` — listados.
+- `src/views/stock/StockDronDetalleView.vue`, `StockDockDetalleView.vue`, `StockBateriaDetalleView.vue`, `StockHeliceDetalleView.vue`, `StockAntenaRtkDetalleView.vue`, `StockAntenaStarlinkDetalleView.vue`, `StockLicenciaDetalleView.vue`, `StockAccesorioDetalleView.vue` — detalles.
+- `src/api/stock.js` — funciones de API para todos los tipos de stock (incluidas getAccesorios y getAccesorio según informe §5.4.9), y licencias si no están en otro módulo.
 
 ### Modificar
 
@@ -293,14 +311,73 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 ## PASO 8 — Verificación final
 
-- [ ] Al hacer click en "Stock" en el sidebar se muestra la pantalla con las 7 tarjetas.
-- [ ] Cada tarjeta lleva a su listado (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, licencias).
+- [ ] Al hacer click en "Stock" en el sidebar se muestra la pantalla con las **8 tarjetas** (incluida Accesorios).
+- [ ] Cada tarjeta lleva a su listado (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, licencias, **accesorios**).
 - [ ] En cada listado se muestran todos los ítems devueltos por la API; imagen genérica única por tipo en las tarjetas.
-- [ ] Filtros por estado, marca, modelo y número de serie funcionan en cliente para equipos; filtros coherentes para licencias.
+- [ ] Filtros por estado, marca, modelo y número de serie funcionan en cliente para equipos; filtros coherentes para licencias; para accesorios, filtros por estado, nombre, marca, modelo, numeroSerie, ubicacion.
 - [ ] Al hacer click en un ítem del listado se navega al detalle; en el detalle se muestran todos los campos del ítem.
 - [ ] "Volver a Stock" y "Volver al listado" funcionan correctamente.
-- [ ] Las rutas están protegidas (requieren auth); el cliente envía el token en todas las peticiones (interceptor de `api.js`). No debe aparecer **403 Forbidden** en las rutas de stock si el usuario está autenticado y el backend tiene los endpoints desplegados (secciones 5.4.3–5.4.8 y 5.5 del informe).
+- [ ] Las rutas están protegidas (requieren auth); el cliente envía el token en todas las peticiones (interceptor de `api.js`). No debe aparecer **403 Forbidden** en las rutas de stock si el usuario está autenticado y el backend tiene los endpoints desplegados (secciones 5.4.3–5.4.9 y 5.5 del informe).
 - [ ] Si un endpoint devuelve 404 o 500, la UI muestra un estado de error o "Sin datos" sin romper la aplicación.
+
+---
+
+## PASO 9 — Añadir tarjeta y flujo de Accesorios
+
+Este paso detalla **cómo incorporar la octava tarjeta (Accesorios)** en Stock y todo el flujo asociado. La API de Accesorios está documentada en `INFORME_BACKEND_PARA_FRONTEND.md`: sección **5.4.9** (endpoints) y **6.27** (modelo Accesorio). La imagen de la tarjeta debe ser **`/Images/Accesorios.jpg`** (archivo en `public/Images/Accesorios.jpg`).
+
+### 9.1 Tarjeta en la pantalla principal Stock
+
+1. Abrir `src/views/stock/StockView.vue`.
+2. En el array `tarjetas` (o equivalente), **añadir** un nuevo objeto como **último ítem**:
+   - **slug:** `'accesorios'`
+   - **titulo:** `'Accesorios'`
+   - **descripcion:** `'Cables, tornillos y accesorios varios'` (o texto similar que describa el tipo de ítem).
+   - **imagen:** `'/Images/Accesorios.jpg'`
+3. No modificar el resto de tarjetas. El click en esta tarjeta debe navegar a `/stock/accesorios` (igual que las demás con `router.push(\`/stock/${slug}\`)` o el mecanismo ya usado).
+
+### 9.2 Rutas
+
+1. Abrir `src/router/index.js`.
+2. **Añadir** la ruta del listado de accesorios (junto al resto de listados de stock):
+   - `path: 'stock/accesorios'`, `name: 'stock-accesorios'`, `component: StockAccesoriosView`
+3. **Añadir** la ruta de detalle de un accesorio:
+   - `path: 'stock/accesorios/:id'`, `name: 'stock-accesorio-detalle'`, `component: StockAccesorioDetalleView`
+4. Importar los componentes: `StockAccesoriosView` y `StockAccesorioDetalleView` (creados en 9.4 y 9.5).
+
+### 9.3 API (stock.js)
+
+1. Abrir `src/api/stock.js`.
+2. **Añadir** dos funciones que usen el cliente `api` (mismo que el resto):
+   - **getAccesorios():** `const { data } = await api.get('/accesorios')`; devolver `Array.isArray(data) ? data : []`.
+   - **getAccesorio(id):** `const { data } = await api.get(\`/accesorios/${id}\`)`; devolver `data`.
+3. Exportar ambas funciones. Si `src/api/index.js` re-exporta lo de stock, asegurar que getAccesorios y getAccesorio queden exportados para las vistas.
+
+### 9.4 Vista de listado: StockAccesoriosView.vue
+
+1. Crear `src/views/stock/StockAccesoriosView.vue`.
+2. Al montar, llamar a `getAccesorios()` y guardar el resultado en un ref (ej. `accesorios`). Mostrar todos los accesorios devueltos por la API (sin filtrar en backend).
+3. Mostrar cada ítem en una **tarjeta**. En todas las tarjetas usar la **misma imagen genérica:** `/Images/Accesorios.jpg` (misma que la tarjeta de la pantalla principal).
+4. En cada tarjeta mostrar al menos: **nombre** (obligatorio en el modelo), y si existen: marca, modelo, numeroSerie, estado, cantidad y unidadMedida, ubicacion. Al hacer click en una tarjeta, navegar a `/stock/accesorios/{id}`.
+5. **Filtros (en el front, sobre la lista completa):** implementar filtros por: **estado** (enum Estado §10: STOCK_ACTUAL, EN_PROCESO, STOCK_ACTIVO, EN_DESUSO; con opción "Todos"), **nombre**, **marca**, **modelo**, **numeroSerie**, **ubicacion**. Aplicar en cliente sobre el array devuelto por getAccesorios().
+6. Incluir enlace o botón "Volver a Stock" que lleve a `/stock`.
+
+### 9.5 Vista de detalle: StockAccesorioDetalleView.vue
+
+1. Crear `src/views/stock/StockAccesorioDetalleView.vue`.
+2. Obtener el `id` de la ruta (`route.params.id`). Al montar, llamar a `getAccesorio(id)`.
+3. Si hay error (404 u otro), mostrar mensaje "No encontrado" u similar y opción de volver al listado (`/stock/accesorios`).
+4. Si hay datos, mostrar **todos** los campos del modelo Accesorio según informe §6.27: id, nombre, marca, modelo, numeroSerie, estado, fechaCompra, cantidad, unidadMedida, descripcion, ubicacion, site (si viene anidado). Mostrarlos en formato legible (etiqueta + valor). Si el backend devuelve más campos, mostrarlos también.
+5. Incluir botón o enlace "Volver al listado" que navegue a `/stock/accesorios`. Opcional: usar la misma imagen genérica `/Images/Accesorios.jpg` en la parte superior del detalle.
+
+### 9.6 Verificación
+
+- [ ] En la pantalla Stock aparece la octava tarjeta "Accesorios" con la imagen `Accesorios.jpg` y la descripción acordada.
+- [ ] Click en Accesorios lleva a `/stock/accesorios` y se muestra el listado de accesorios (o "Sin datos" si la API devuelve array vacío).
+- [ ] Los filtros de estado, nombre, marca, modelo, numeroSerie y ubicacion funcionan en cliente.
+- [ ] Click en un accesorio del listado lleva a `/stock/accesorios/{id}` y se muestra el detalle con todos los campos.
+- [ ] "Volver a Stock" y "Volver al listado" funcionan correctamente.
+- [ ] Las peticiones a `/accesorios` y `/accesorios/{id}` usan el cliente `api` y llevan el header `Authorization: Bearer <token>` (no 403 con usuario autenticado).
 
 ---
 
@@ -308,4 +385,4 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 - **Imágenes:** Todas en `public/Images/`. Referenciar en el código como `/Images/nombre.jpg` (o .png). Para Licencias se puede usar `flighthub2.png` o `flytbase.png`; si falta una, usar la otra o una genérica.
 - **Estado (equipos):** Valores del informe §10: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO`. Traducir a etiquetas legibles en filtros y detalle.
-- **Endpoints:** Todos los recursos de stock (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, licencias) están documentados en `INFORME_BACKEND_PARA_FRONTEND.md` (secciones 5.4.3 a 5.4.8 y 5.5). Usar **exactamente** esas rutas y el cliente `api` que envía el Bearer token. Ante 403, revisar PASO 0.
+- **Endpoints:** Todos los recursos de stock (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, **accesorios**, licencias) están documentados en `INFORME_BACKEND_PARA_FRONTEND.md` (secciones 5.4.3 a 5.4.9 y 5.5). Usar **exactamente** esas rutas y el cliente `api` que envía el Bearer token. Ante 403, revisar PASO 0. Para añadir la tarjeta de Accesorios, seguir **PASO 9**.

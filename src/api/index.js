@@ -44,4 +44,6 @@ export {
   getById,
   getLicencias,
   getLicencia,
+  getAccesorios,
+  getAccesorio,
 } from './stock.js'

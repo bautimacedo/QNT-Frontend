@@ -11,6 +11,7 @@ const tarjetas = [
   { slug: 'antenas-rtk', titulo: 'Antenas RTK', descripcion: 'Antenas de corrección RTK', imagen: '/Images/rtk.png' },
   { slug: 'antenas-starlink', titulo: 'Antenas Starlink', descripcion: 'Antenas Starlink', imagen: '/Images/starlink.png' },
   { slug: 'licencias', titulo: 'Licencias', descripcion: 'Licencias de software', imagen: '/Images/flighthub2.png' },
+  { slug: 'accesorios', titulo: 'Accesorios', descripcion: 'Cables, tornillos y accesorios varios', imagen: '/Images/Accesorios.jpg' },
 ]
 
 function irA(slug) {

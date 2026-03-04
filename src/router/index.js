@@ -18,6 +18,7 @@ import StockHelicesView from '../views/stock/StockHelicesView.vue'
 import StockAntenasRtkView from '../views/stock/StockAntenasRtkView.vue'
 import StockAntenasStarlinkView from '../views/stock/StockAntenasStarlinkView.vue'
 import StockLicenciasView from '../views/stock/StockLicenciasView.vue'
+import StockAccesoriosView from '../views/stock/StockAccesoriosView.vue'
 import StockDronDetalleView from '../views/stock/StockDronDetalleView.vue'
 import StockDockDetalleView from '../views/stock/StockDockDetalleView.vue'
 import StockBateriaDetalleView from '../views/stock/StockBateriaDetalleView.vue'
@@ -25,6 +26,7 @@ import StockHeliceDetalleView from '../views/stock/StockHeliceDetalleView.vue'
 import StockAntenaRtkDetalleView from '../views/stock/StockAntenaRtkDetalleView.vue'
 import StockAntenaStarlinkDetalleView from '../views/stock/StockAntenaStarlinkDetalleView.vue'
 import StockLicenciaDetalleView from '../views/stock/StockLicenciaDetalleView.vue'
+import StockAccesorioDetalleView from '../views/stock/StockAccesorioDetalleView.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: LoginView, meta: { requiresAuth: false } },
@@ -60,6 +62,8 @@ const routes = [
       { path: 'stock/antenas-starlink/:id', name: 'stock-antena-starlink-detalle', component: StockAntenaStarlinkDetalleView },
       { path: 'stock/licencias', name: 'stock-licencias', component: StockLicenciasView },
       { path: 'stock/licencias/:id', name: 'stock-licencia-detalle', component: StockLicenciaDetalleView },
+      { path: 'stock/accesorios', name: 'stock-accesorios', component: StockAccesoriosView },
+      { path: 'stock/accesorios/:id', name: 'stock-accesorio-detalle', component: StockAccesorioDetalleView },
       { path: 'usuarios', name: 'usuarios', component: UsuariosView },
       { path: 'seguridad', name: 'seguridad', component: PlaceholderView },
       { path: 'licencias', name: 'licencias', component: PlaceholderView },
