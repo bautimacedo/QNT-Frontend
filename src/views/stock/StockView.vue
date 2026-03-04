@@ -10,7 +10,7 @@ const tarjetas = [
   { slug: 'helices', titulo: 'Hélices', descripcion: 'Hélices y repuestos', imagen: '/Images/helices.jpg' },
   { slug: 'antenas-rtk', titulo: 'Antenas RTK', descripcion: 'Antenas de corrección RTK', imagen: '/Images/rtk.png' },
   { slug: 'antenas-starlink', titulo: 'Antenas Starlink', descripcion: 'Antenas Starlink', imagen: '/Images/starlink.png' },
-  { slug: 'licencias', titulo: 'Licencias', descripcion: 'Licencias de software', imagen: '/Images/flighthub2.png' },
+  { slug: 'licencias', titulo: 'Licencias', descripcion: 'Licencias de software', imagen: '/Images/fhfb.jpg' },
   { slug: 'accesorios', titulo: 'Accesorios', descripcion: 'Cables, tornillos y accesorios varios', imagen: '/Images/Accesorios.jpg' },
 ]
 
