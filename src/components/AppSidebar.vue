@@ -18,11 +18,9 @@ const menuGroups = [
     ],
   },
   {
-    title: 'Inventario',
+    title: 'Stock',
     items: [
-      { label: 'RPAS', path: '/rpas', icon: 'rpas' },
-      { label: 'Baterías', path: '/baterias', icon: 'battery' },
-      { label: 'Ubicaciones', path: '/ubicaciones', icon: 'location' },
+      { label: 'Stock', path: '/stock', icon: 'box' },
     ],
   },
   {

@@ -39,3 +39,9 @@ export {
   eliminarProveedor,
   getProveedoresFromCompras,
 } from './proveedores.js'
+export {
+  getList,
+  getById,
+  getLicencias,
+  getLicencia,
+} from './stock.js'

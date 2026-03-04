@@ -12,7 +12,7 @@ Este documento describe el **contrato del backend** para que el proyecto fronten
 
 **Stack backend:** Spring Boot 3.x, Java 17+, Spring Security (JWT), JPA/Hibernate, PostgreSQL.
 
-**Última actualización del informe:** Tras v0.13.0 (método de pago y usuario de alta en Compras) y v0.17.0 (TipoEquipo en Compra). Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
+**Última actualización del informe:** Tras v0.13.0 (método de pago y usuario de alta en Compras), v0.17.0 (TipoEquipo en Compra) y la incorporación del recurso **Empresas** (CRUD + agregar Site a empresa). Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
 
 ---
 
@@ -209,6 +209,21 @@ Base: `/api/qnt/v1/proveedores`
 | PUT | `/proveedores/{id}` | Actualizar proveedor | Autenticado |
 | DELETE | `/proveedores/{id}` | Eliminar (409 si tiene compras asociadas) | ADMIN |
 
+### 5.4.2 Empresas
+
+Base: `/api/qnt/v1/empresas`
+
+| Método | Ruta | Descripción | Roles |
+|--------|------|-------------|--------|
+| GET | `/empresas` | Listar todas | ADMIN |
+| GET | `/empresas/{id}` | Obtener por ID | ADMIN |
+| POST | `/empresas` | Crear empresa (body: objeto Empresa) | ADMIN |
+| PUT | `/empresas` | Actualizar empresa (body: objeto Empresa con id) | ADMIN |
+| DELETE | `/empresas/{id}` | Eliminar empresa | ADMIN |
+| POST | `/empresas/{id}/sites` | Agregar un Site a una empresa existente (body: objeto Site) | ADMIN |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 400 Bad Request (validación/negocio), 404 Not Found (empresa o recurso no existe), 500 Internal Server Error.
+
 ### 5.5 Licencias
 
 Base: `/api/qnt/v1/licencias`
@@ -402,14 +417,48 @@ Mismos campos que CrearLicenciaMiPerfilRequest (fechaVencimientoCma, fechaEmisio
 
 Hay CRUD completo en `/api/qnt/v1/proveedores` (ver sección 5.4.1). También se crea/usa desde Compras (proveedorId o proveedorNombre).
 
-### 6.14 Site (anidado en Compra)
+### 6.14 Site (anidado en Compra y en Empresa)
 
 | Campo | Tipo |
 |-------|------|
 | id | number |
 | nombre | string |
 
-No hay CRUD dedicado de Site en la API actual; se referencia por `siteId` en CreateCompraRequest.
+Se referencia por `siteId` en CreateCompraRequest. Las empresas tienen una lista de Sites; para agregar un site a una empresa se usa `POST /empresas/{id}/sites` (ver sección 5.4.2).
+
+### 6.14.1 Empresa (entidad)
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long, generado por el backend |
+| nombre | string | Obligatorio |
+| sites | Array de Site | Lista de sitios de la empresa (OneToMany; la FK empresa_id está en la tabla sites). Puede venir vacío o poblado según el endpoint. |
+
+Al eliminar una empresa (DELETE), el backend aplica `cascade = CascadeType.ALL, orphanRemoval = true`: se eliminan en cascada los sites asociados.
+
+### 6.14.2 CreateEmpresaRequest / UpdateEmpresaRequest (POST/PUT /empresas)
+
+**POST /empresas** (crear):
+
+| Campo | Tipo | Obligatorio |
+|-------|------|-------------|
+| nombre | string | Sí |
+
+**PUT /empresas** (actualizar):
+
+| Campo | Tipo | Obligatorio |
+|-------|------|-------------|
+| id | number | Sí (ID de la empresa a actualizar) |
+| nombre | string | Sí |
+| sites | Array de Site \| null | Opcional; si se envía, típicamente con id y nombre de cada site existente. La gestión detallada de sites puede hacerse con POST /empresas/{id}/sites. |
+
+### 6.14.3 AddSiteToEmpresaRequest (POST /empresas/{id}/sites)
+
+Body: objeto **Site**. Para crear un site nuevo no se envía `id`; el backend lo genera.
+
+| Campo | Tipo | Obligatorio |
+|-------|------|-------------|
+| nombre | string | Sí |
 
 ### 6.15 CreateCompraRequest (POST/PUT compra)
 
@@ -661,4 +710,4 @@ Cuando el backend añada nuevos endpoints o cambie contratos, conviene actualiza
 
 ---
 
-*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 1.7 (v0.13.0 — método de pago y usuario de alta en Compras; v0.17.0 — TipoEquipo en Compra).*
+*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 1.8 (v0.13.0 — método de pago y usuario de alta en Compras; v0.17.0 — TipoEquipo en Compra; añadido recurso Empresas y relación OneToMany con Site).*
