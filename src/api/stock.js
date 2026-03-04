@@ -1,9 +1,11 @@
 /**
  * API de Stock: drones, docks, baterías, hélices, antenas RTK, antenas Starlink y licencias de software.
- * Usa el cliente api (base URL y Bearer ya configurados).
+ * Rutas y métodos según INFORME_BACKEND_PARA_FRONTEND.md secciones 5.4.3–5.4.8 (equipos) y 5.5 (licencias).
+ * Usa el cliente api de ./api.js (baseURL y Authorization: Bearer ya configurados); no duplicar prefijo ni usar otro cliente.
  */
 import { api } from './api.js'
 
+/** Valores exactos de tipo para rutas del informe: sin barra final, con guión en antenas-rtk y antenas-starlink. */
 const TIPOS_EQUIPO = ['drones', 'docks', 'baterias', 'helices', 'antenas-rtk', 'antenas-starlink']
 
 /**

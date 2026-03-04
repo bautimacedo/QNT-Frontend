@@ -1,8 +1,67 @@
 # Instrucciones para el agente programador — Módulo Stock
 
-**Objetivo:** Implementar la sección **Stock** en el frontend QNT-Frontend: pantalla principal con tarjetas por tipo de equipo, listados filtrados por tipo y vista de detalle por ítem. El programador debe seguir **exactamente** estos pasos y la estructura del proyecto existente.
+**Objetivo:** Revisar y corregir la integración con la API de Stock del backend y, si aplica, completar la sección **Stock** en el frontend QNT-Frontend (pantalla de tarjetas, listados por tipo, detalle por ítem). El programador debe seguir **exactamente** estos pasos y la estructura del proyecto existente.
 
-**Referencia obligatoria:** Contrato de API y modelos en `INFORME_BACKEND_PARA_FRONTEND.md` (base URL, auth JWT, roles, enums Estado y TipoEquipo, modelo Licencia en §6.16).
+**Referencia obligatoria:** Contrato de API y modelos en `INFORME_BACKEND_PARA_FRONTEND.md`. Todos los endpoints de stock están **documentados** en el informe; el frontend debe usarlos tal cual allí se indica.
+
+---
+
+## PASO 0 — Revisar y corregir endpoints de Stock (OBLIGATORIO)
+
+Este paso es **prioritario**. El backend ya expone todos los recursos de stock; el frontend debe llamarlos con las rutas exactas del informe y enviando siempre el token JWT. Un **403 Forbidden** suele indicar ruta incorrecta, token no enviado o backend rechazando la petición.
+
+### 0.1 Fuente de verdad: INFORME_BACKEND_PARA_FRONTEND.md
+
+Abrir `INFORME_BACKEND_PARA_FRONTEND.md` y usar como referencia:
+
+- **Base URL:** La misma que usa el resto de la app. En `src/api/config.js` está definida como `apiBaseUrl` (en desarrollo suele ser `/api/qnt/v1`, en producción puede ser por ejemplo `https://qnt.dronefieldoperation.cloud/api/qnt/v1` vía `VITE_API_BASE_URL`). **No** hardcodear otra base en el módulo de stock; el cliente `api` de `src/api/api.js` ya tiene configurada la base URL.
+- **Endpoints de equipos (secciones 5.4.3 a 5.4.8 del informe):**
+
+  | Recurso          | Ruta base (sin prefijo)   | GET lista        | GET por ID           |
+  |------------------|---------------------------|------------------|----------------------|
+  | Drones           | `/drones`                 | `GET /drones`    | `GET /drones/{id}`    |
+  | Docks            | `/docks`                  | `GET /docks`     | `GET /docks/{id}`     |
+  | Baterías         | `/baterias`               | `GET /baterias`  | `GET /baterias/{id}`  |
+  | Hélices          | `/helices`                | `GET /helices`   | `GET /helices/{id}`   |
+  | Antenas RTK      | `/antenas-rtk`            | `GET /antenas-rtk` | `GET /antenas-rtk/{id}` |
+  | Antenas Starlink | `/antenas-starlink`       | `GET /antenas-starlink` | `GET /antenas-starlink/{id}` |
+
+- **Licencias (software), sección 5.5:**  
+  `GET /licencias` y `GET /licencias/{id}`.
+
+Las rutas son **relativas al prefijo de la API** (ej. `/api/qnt/v1`). Por tanto, con el cliente `api` (baseURL = `/api/qnt/v1`), las peticiones deben ser exactamente:
+
+- `api.get('/drones')`, `api.get('/drones/' + id)`
+- `api.get('/docks')`, `api.get('/docks/' + id)`
+- `api.get('/baterias')`, `api.get('/baterias/' + id)`
+- `api.get('/helices')`, `api.get('/helices/' + id)`
+- `api.get('/antenas-rtk')`, `api.get('/antenas-rtk/' + id)`
+- `api.get('/antenas-starlink')`, `api.get('/antenas-starlink/' + id)`
+- `api.get('/licencias')`, `api.get('/licencias/' + id)`
+
+**Importante:** Escribir las rutas tal cual: `helices` (con 's'), `antenas-rtk` y `antenas-starlink` con guión. No usar `helice`, `antenas_rtk` ni rutas distintas a las del informe.
+
+### 0.2 Revisar src/api/stock.js
+
+1. Abrir `src/api/stock.js`.
+2. Comprobar que **todas** las peticiones usan el cliente **`api`** importado desde `./api.js` (el mismo que tiene el interceptor que añade `Authorization: Bearer <token>`). No usar `fetch`, `axios.create` ni otro cliente para estas rutas.
+3. Comprobar que las rutas usadas coinciden **exactamente** con la tabla anterior:
+   - Lista de equipos: `api.get(\`/${tipo}\`)` donde `tipo` sea uno de: `drones`, `docks`, `baterias`, `helices`, `antenas-rtk`, `antenas-starlink`. No añadir barra final (evitar `/helices/`).
+   - Detalle: `api.get(\`/${tipo}/${id}\`)` con el mismo `tipo`.
+   - Licencias: `api.get('/licencias')` y `api.get(\`/licencias/${id}\`)`.
+4. Si existe un array o constante con los tipos de equipo (ej. `TIPOS_EQUIPO`), verificar que los valores sean exactamente: `'drones'`, `'docks'`, `'baterias'`, `'helices'`, `'antenas-rtk'`, `'antenas-starlink'` (sin otro formato).
+5. No duplicar el prefijo de la API en la ruta: el cliente `api` ya tiene `baseURL`; la ruta debe ser solo `/drones`, `/helices`, etc.
+
+### 0.3 Revisar que el token se envía (evitar 403)
+
+1. En `src/api/api.js` debe existir un interceptor de request que añada el header `Authorization: Bearer <token>` usando el token obtenido de `getToken()` (o equivalente). No debe haber excepciones para las rutas de stock.
+2. Comprobar que las vistas de Stock (listados y detalle) **no** hacen peticiones con `fetch` o con otra instancia de axios que no use ese interceptor. Todas deben usar las funciones de `src/api/stock.js` (que a su vez usan `api`).
+3. Si en producción la base URL es distinta (ej. `https://qnt.dronefieldoperation.cloud/api/qnt/v1`), verificar que `src/api/config.js` use esa URL en producción (por ejemplo mediante `import.meta.env.VITE_API_BASE_URL`) para que las peticiones vayan al servidor correcto.
+
+### 0.4 Corregir y verificar
+
+- Aplicar las correcciones necesarias en `src/api/stock.js` (y, si aplica, en `config.js`) para que las rutas y el cliente coincidan con lo anterior.
+- Probar en navegador que al entrar a un listado de Stock (ej. Hélices) la petición se hace a la URL correcta (ej. `.../api/qnt/v1/helices`) y que en la pestaña Red del devtools el request lleve el header `Authorization: Bearer ...`. Si el backend ya está desplegado con estos endpoints y el usuario está autenticado, la respuesta debe ser 200 (o 404 si el recurso no existe), no 403.
 
 ---
 
@@ -15,47 +74,22 @@
 
 ---
 
-## PASO 0 — Entender la API de Stock (backend)
+## PASO 1 — Entender la API de Stock (referencia al informe)
 
-### Recursos documentados en el informe
+Todos los recursos de stock están documentados en `INFORME_BACKEND_PARA_FRONTEND.md`. **No asumir rutas ni modelos;** usar únicamente el informe.
 
-- **Licencias (software):** ya documentadas. Base `/api/qnt/v1/licencias`.  
-  - `GET /licencias` → lista; `GET /licencias/{id}` → uno.  
-  - Modelo: ver §6.16 y §6.18 del informe (id, nombre, numLicencia, compra, fechaCompra, caducidad, version, activo).
+- **Equipos (Drones, Docks, Baterías, Hélices, Antenas RTK, Antenas Starlink):** Secciones **5.4.3 a 5.4.8** (endpoints) y **6.21 a 6.26** (modelos). Rutas base: `/drones`, `/docks`, `/baterias`, `/helices`, `/antenas-rtk`, `/antenas-starlink`. Campos típicos: id, estado (enum Estado §10), marca, modelo, numeroSerie; si el backend devuelve más, mostrarlos.
+- **Licencias (software):** Secciones **5.5** (endpoints) y **6.16 / 6.18** (modelo). Rutas: `/licencias`, `/licencias/{id}`. Campos: id, nombre, numLicencia, compra, fechaCompra, caducidad, version, activo.
 
-### Recursos de equipos (no documentados en el informe; asumir REST estándar)
+El **enum Estado** (equipos) está en la sección 10 del informe: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO`. Usar exactamente estos valores para filtros y visualización.
 
-El informe menciona el **enum Estado** (§10) para equipos: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO`. No documenta controllers para Dron, Dock, Batería, Hélice, Antena RTK ni Antena Starlink. El agente debe **asumir** que el backend expone (o expondrá) REST bajo el mismo prefijo con la siguiente convención:
 
-- Base: `https://localhost:8080/api/qnt/v1` (o la que use el front vía proxy/env).
-- Rutas asumidas (todas requieren autenticación; roles según informe):
-  - `GET /drones` — listar todos; `GET /drones/{id}` — uno.
-  - `GET /docks` — listar todos; `GET /docks/{id}` — uno.
-  - `GET /baterias` — listar todos; `GET /baterias/{id}` — uno.
-  - `GET /helices` — listar todos; `GET /helices/{id}` — uno.
-  - `GET /antenas-rtk` — listar todos; `GET /antenas-rtk/{id}` — uno.
-  - `GET /antenas-starlink` — listar todos; `GET /antenas-starlink/{id}` — uno.
-
-Forma mínima asumida por entidad (si el backend devuelve más campos, mostrarlos también en detalle):
-
-| Recurso        | Campos mínimos asumidos (además de `id`) |
-|----------------|------------------------------------------|
-| Dron           | estado, marca, modelo, numeroSerie       |
-| Dock           | estado, marca, modelo, numeroSerie       |
-| Batería        | estado, marca, modelo, numeroSerie      |
-| Hélice         | estado, marca, modelo, numeroSerie      |
-| Antena RTK     | estado, marca, modelo, numeroSerie      |
-| Antena Starlink| estado, marca, modelo, numeroSerie     |
-
-`estado` debe ser uno de: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO` (según §10 del informe). Si el backend usa otros nombres, mapear en el front para mostrar y filtrar.
-
-Para **Licencia** (software) no hay campo `estado` de equipo; usar solo los campos del informe (§6.16). En listado/detalle de licencias no aplicar filtro por “estado de equipo”; si se quiere un filtro, usar por ejemplo “activo” o “nombre”.
 
 ---
 
-## PASO 1 — Cambiar la navegación: Stock como sección propia
+## PASO 2 — Cambiar la navegación: Stock como sección propia
 
-### 1.1 Sidebar
+### 2.1 Sidebar
 
 - Abrir `src/components/AppSidebar.vue`.
 - **Eliminar** el grupo completo "Inventario" que contiene: RPAS, Baterías, Ubicaciones (no mover esos ítems a otro grupo; se reemplazan por Stock).
@@ -66,11 +100,11 @@ Para **Licencia** (software) no hay campo `estado` de equipo; usar solo los camp
 - El orden de grupos queda a criterio del diseño; recomendación: poner "Stock" después de "Dashboard" y antes de "Operaciones" o "Administración", para que sea fácil de encontrar.
 - No añadir en el sidebar los 7 tipos (Drones, Docks, etc.); esos se acceden solo desde la pantalla Stock (tarjetas).
 
-### 1.2 Router
+### 2.2 Router
 
 - Abrir `src/router/index.js`.
 - Añadir la ruta para la pantalla principal de Stock (tarjetas):
-  - `path: 'stock'`, `name: 'stock'`, `component: StockView` (crear la vista en PASO 2).
+  - `path: 'stock'`, `name: 'stock'`, `component: StockView` (crear la vista en PASO 3).
 - Añadir rutas hijas (o rutas hermanas bajo el mismo layout) para listado por tipo y detalle:
   - `path: 'stock/drones'`, `name: 'stock-drones'`, `component: StockDronesView`
   - `path: 'stock/docks'`, `name: 'stock-docks'`, `component: StockDocksView`
@@ -87,7 +121,7 @@ Para **Licencia** (software) no hay campo `estado` de equipo; usar solo los camp
 
 ---
 
-## PASO 2 — Pantalla principal Stock (tarjetas)
+## PASO 3 — Pantalla principal Stock (tarjetas)
 
 ### 2.1 Crear la vista
 
@@ -139,7 +173,7 @@ Usar `<router-link>` o `router.push()` según la convención del proyecto.
 
 ---
 
-## PASO 3 — Capa API para Stock
+## PASO 4 — Capa API para Stock
 
 ### 3.1 Archivo de API por recurso (o uno unificado)
 
@@ -151,12 +185,12 @@ Recomendación: **Opción A** (`stock.js`) para centralizar y evitar muchos impo
 
 ### 3.2 Funciones a implementar
 
-Usar el cliente `api` de `src/api/api.js` (ya lleva base URL y Bearer). No duplicar base URL.
+Las rutas y métodos deben coincidir **exactamente** con las secciones 5.4.3 a 5.4.8 y 5.5 del `INFORME_BACKEND_PARA_FRONTEND.md`. Usar el cliente `api` de `src/api/api.js` (base URL y Bearer ya configurados). No duplicar base URL.
 
-Para **cada** tipo (drones, docks, baterias, helices, antenasRtk, antenasStarlink):
+Para **cada** tipo (drones, docks, baterias, helices, antenas-rtk, antenas-starlink):
 
-- `getList(tipo)` → `GET /api/qnt/v1/{tipo}` (ej. `GET /drones`) → devuelve la lista (array).
-- `getById(tipo, id)` → `GET /api/qnt/v1/{tipo}/{id}` (ej. `GET /drones/1`) → devuelve un objeto.
+- `getList(tipo)` → `GET /{tipo}` (ej. `GET /helices`) → devuelve la lista (array). El valor de `tipo` debe ser exactamente uno de: `drones`, `docks`, `baterias`, `helices`, `antenas-rtk`, `antenas-starlink`.
+- `getById(tipo, id)` → `GET /{tipo}/{id}` (ej. `GET /helices/1`) → devuelve un objeto.
 
 Para **licencias** (recurso ya documentado):
 
@@ -166,7 +200,7 @@ Manejo de errores: propagar el error (para que las vistas muestren mensaje o est
 
 ---
 
-## PASO 4 — Vistas de listado por tipo (ej. todos los drones)
+## PASO 5 — Vistas de listado por tipo (ej. todos los drones)
 
 ### 4.1 Patrón común para las 7 listas
 
@@ -208,7 +242,7 @@ En cada vista de listado, mostrar al menos un enlace tipo "Volver a Stock" que l
 
 ---
 
-## PASO 5 — Vistas de detalle por ítem
+## PASO 6 — Vistas de detalle por ítem
 
 ### 5.1 Una vista de detalle por tipo
 
@@ -240,7 +274,7 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 ---
 
-## PASO 6 — Resumen de archivos a crear/modificar
+## PASO 7 — Resumen de archivos a crear/modificar
 
 ### Crear
 
@@ -257,7 +291,7 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 ---
 
-## PASO 7 — Verificación final
+## PASO 8 — Verificación final
 
 - [ ] Al hacer click en "Stock" en el sidebar se muestra la pantalla con las 7 tarjetas.
 - [ ] Cada tarjeta lleva a su listado (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, licencias).
@@ -265,8 +299,8 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 - [ ] Filtros por estado, marca, modelo y número de serie funcionan en cliente para equipos; filtros coherentes para licencias.
 - [ ] Al hacer click en un ítem del listado se navega al detalle; en el detalle se muestran todos los campos del ítem.
 - [ ] "Volver a Stock" y "Volver al listado" funcionan correctamente.
-- [ ] Las rutas están protegidas (requieren auth); el cliente envía el token en todas las peticiones (ya cubierto por el interceptor de `api.js`).
-- [ ] Si algún endpoint no existe aún (ej. `/drones`), la UI muestra un estado de error o "Sin datos" sin romper la aplicación.
+- [ ] Las rutas están protegidas (requieren auth); el cliente envía el token en todas las peticiones (interceptor de `api.js`). No debe aparecer **403 Forbidden** en las rutas de stock si el usuario está autenticado y el backend tiene los endpoints desplegados (secciones 5.4.3–5.4.8 y 5.5 del informe).
+- [ ] Si un endpoint devuelve 404 o 500, la UI muestra un estado de error o "Sin datos" sin romper la aplicación.
 
 ---
 
@@ -274,4 +308,4 @@ Cada una recibe el **id** por la ruta (ej. `route.params.id`).
 
 - **Imágenes:** Todas en `public/Images/`. Referenciar en el código como `/Images/nombre.jpg` (o .png). Para Licencias se puede usar `flighthub2.png` o `flytbase.png`; si falta una, usar la otra o una genérica.
 - **Estado (equipos):** Valores del informe §10: `STOCK_ACTUAL`, `EN_PROCESO`, `STOCK_ACTIVO`, `EN_DESUSO`. Traducir a etiquetas legibles en filtros y detalle.
-- **Licencias:** Es el único recurso de stock ya documentado en el informe; el resto se asume con la convención REST indicada. Si el backend expone rutas o nombres distintos, ajustar solo las URLs y los nombres de propiedades en `stock.js` y en las vistas, manteniendo la misma estructura de pantallas y flujo descrito aquí.
+- **Endpoints:** Todos los recursos de stock (drones, docks, baterias, helices, antenas-rtk, antenas-starlink, licencias) están documentados en `INFORME_BACKEND_PARA_FRONTEND.md` (secciones 5.4.3 a 5.4.8 y 5.5). Usar **exactamente** esas rutas y el cliente `api` que envía el Bearer token. Ante 403, revisar PASO 0.

@@ -12,7 +12,7 @@ Este documento describe el **contrato del backend** para que el proyecto fronten
 
 **Stack backend:** Spring Boot 3.x, Java 17+, Spring Security (JWT), JPA/Hibernate, PostgreSQL.
 
-**Última actualización del informe:** Tras v0.13.0 (método de pago y usuario de alta en Compras), v0.17.0 (TipoEquipo en Compra) y la incorporación del recurso **Empresas** (CRUD + agregar Site a empresa). Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
+**Última actualización del informe:** Tras v0.13.0 (método de pago y usuario de alta en Compras), v0.17.0 (TipoEquipo en Compra), la incorporación del recurso **Empresas** (CRUD + agregar Site a empresa), los recursos de **equipos de stock** (Drones, Docks, Baterías, Hélices, Antenas RTK, Antenas Starlink) y la entidad **Accesorios** (CRUD completo). Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
 
 ---
 
@@ -223,6 +223,108 @@ Base: `/api/qnt/v1/empresas`
 | POST | `/empresas/{id}/sites` | Agregar un Site a una empresa existente (body: objeto Site) | ADMIN |
 
 **Códigos de respuesta:** 200 OK, 201 Created, 400 Bad Request (validación/negocio), 404 Not Found (empresa o recurso no existe), 500 Internal Server Error.
+
+### 5.4.3 Drones (equipos de stock)
+
+Base: `/api/qnt/v1/drones`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/drones` | Listar todos | Autenticado |
+| GET | `/drones/{id}` | Obtener por ID | Autenticado |
+| POST | `/drones` | Crear dron (body: objeto Dron) | Autenticado |
+| PUT | `/drones` | Actualizar dron (body: objeto Dron con id) | Autenticado |
+| DELETE | `/drones/{id}` | Eliminar dron | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.4 Docks (equipos de stock)
+
+Base: `/api/qnt/v1/docks`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/docks` | Listar todos | Autenticado |
+| GET | `/docks/{id}` | Obtener por ID | Autenticado |
+| POST | `/docks` | Crear dock (body: objeto Dock) | Autenticado |
+| PUT | `/docks` | Actualizar dock (body: objeto Dock con id) | Autenticado |
+| DELETE | `/docks/{id}` | Eliminar dock | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.5 Baterías (equipos de stock)
+
+Base: `/api/qnt/v1/baterias`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/baterias` | Listar todas | Autenticado |
+| GET | `/baterias/{id}` | Obtener por ID | Autenticado |
+| POST | `/baterias` | Crear batería (body: objeto Bateria) | Autenticado |
+| PUT | `/baterias` | Actualizar batería (body: objeto Bateria con id) | Autenticado |
+| DELETE | `/baterias/{id}` | Eliminar batería | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.6 Hélices (equipos de stock)
+
+Base: `/api/qnt/v1/helices`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/helices` | Listar todas | Autenticado |
+| GET | `/helices/{id}` | Obtener por ID | Autenticado |
+| POST | `/helices` | Crear hélice (body: objeto Helice) | Autenticado |
+| PUT | `/helices` | Actualizar hélice (body: objeto Helice con id) | Autenticado |
+| DELETE | `/helices/{id}` | Eliminar hélice | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.7 Antenas RTK (equipos de stock)
+
+Base: `/api/qnt/v1/antenas-rtk`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/antenas-rtk` | Listar todas | Autenticado |
+| GET | `/antenas-rtk/{id}` | Obtener por ID | Autenticado |
+| POST | `/antenas-rtk` | Crear antena RTK (body: objeto AntenaRtk) | Autenticado |
+| PUT | `/antenas-rtk` | Actualizar antena RTK (body: objeto AntenaRtk con id) | Autenticado |
+| DELETE | `/antenas-rtk/{id}` | Eliminar antena RTK | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.8 Antenas Starlink (equipos de stock)
+
+Base: `/api/qnt/v1/antenas-starlink`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/antenas-starlink` | Listar todas | Autenticado |
+| GET | `/antenas-starlink/{id}` | Obtener por ID | Autenticado |
+| POST | `/antenas-starlink` | Crear antena Starlink (body: objeto AntenaStarlink) | Autenticado |
+| PUT | `/antenas-starlink` | Actualizar antena Starlink (body: objeto AntenaStarlink con id) | Autenticado |
+| DELETE | `/antenas-starlink/{id}` | Eliminar antena Starlink | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+### 5.4.9 Accesorios
+
+Base: `/api/qnt/v1/accesorios`
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/accesorios` | Listar todos | Autenticado |
+| GET | `/accesorios/{id}` | Obtener por ID | Autenticado |
+| POST | `/accesorios` | Crear accesorio (body: objeto Accesorio) | Autenticado |
+| PUT | `/accesorios` | Actualizar accesorio (body: objeto Accesorio con id) | Autenticado |
+| DELETE | `/accesorios/{id}` | Eliminar accesorio | Autenticado |
+
+**Códigos de respuesta:** 200 OK, 201 Created, 204 No Content (DELETE), 400 Bad Request, 404 Not Found, 500 Internal Server Error.
+
+**Nota común a 5.4.3–5.4.9:** Los controladores no exponen `@PreAuthorize` en el código proporcionado; se asume que las rutas están protegidas por la configuración global de Spring Security. El frontend debe enviar siempre el header `Authorization: Bearer <token>`. El **PUT** de actualización no lleva `{id}` en la URL; el cuerpo debe incluir el objeto completo con su `id`.
 
 ### 5.5 Licencias
 
@@ -545,6 +647,115 @@ Solo licencias de software (SW); las licencias ANAC del piloto están en Licenci
 | observaciones | string \| null | |
 | compraId | number \| null | |
 
+### 6.21 Dron (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.3. La estructura exacta depende del modelo JPA del backend; a continuación se indican los campos típicos para equipos de stock. Si el backend devuelve más o distintos campos, el frontend debe reflejarlos.
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10): STOCK_ACTUAL, EN_PROCESO, STOCK_ACTIVO, EN_DESUSO |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.22 Dock (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.4. Campos típicos:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10) |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.23 Bateria (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.5. Campos típicos:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10) |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.24 Helice (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.6. Campos típicos:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10) |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.25 AntenaRtk (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.7. Campos típicos:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10) |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.26 AntenaStarlink (entidad — equipos de stock)
+
+Entidad expuesta por los endpoints de la sección 5.4.8. Campos típicos:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long |
+| estado | string \| null | Enum Estado (§10) |
+| marca | string \| null | |
+| modelo | string \| null | |
+| numeroSerie | string \| null | |
+
+**POST/PUT:** body con los mismos campos (id obligatorio en PUT).
+
+### 6.27 Accesorio (entidad)
+
+Entidad expuesta por los endpoints de la sección 5.4.9. Corresponde a la tabla `accesorios` y permite registrar accesorios genéricos (cables, tornillos, etc.) con nombre, marca, modelo, número de serie, estado, cantidad y unidad de medida.
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| id | number | Long, generado por el backend |
+| nombre | string | Obligatorio. Ej.: "Cable Ethernet Cat 6" |
+| marca | string \| null | Ej.: "Hikvision" |
+| modelo | string \| null | Ej.: "Prd551" |
+| numeroSerie | string \| null | Puede ser null (ej. para tornillos). En BD: `numero_serie` |
+| estado | string | Enum Estado (§10): STOCK_ACTUAL, EN_PROCESO, STOCK_ACTIVO, EN_DESUSO. Obligatorio |
+| fechaCompra | string (date) \| null | ISO-8601. En BD: `fecha_compra` |
+| cantidad | number \| null | Double. Ej.: 3.0 (metros), 50 (unidades) |
+| unidadMedida | string \| null | Ej.: "mts", "un", "kg". En BD: `unidad_medida` |
+| descripcion | string \| null | Texto largo. Ej.: "Tripolar 3 X 2,5 Mm" |
+| ubicacion | string \| null | Ej.: "Depósito A", "Caja de herramientas 1" |
+| site | Site \| null | Objeto anidado (ManyToOne, site_id). Puede venir como objeto Site con id y nombre o solo referencia. |
+
+**POST /accesorios (crear):** enviar objeto sin `id`. Los campos obligatorios son `nombre` y `estado`. El resto son opcionales.
+
+**PUT /accesorios (actualizar):** enviar objeto completo con `id`. Misma estructura que la respuesta de GET.
+
+**Nota:** Si las entidades del backend incluyen campos adicionales (observaciones, fecha de alta, compra asociada, etc.), el frontend debe mostrarlos en listado y detalle y enviarlos en PUT si son editables. Consultar la documentación del backend o la respuesta real de la API para ajustar los tipos/interfaces.
+
 ---
 
 ## 7. Imagen de factura (Compras)
@@ -710,4 +921,4 @@ Cuando el backend añada nuevos endpoints o cambie contratos, conviene actualiza
 
 ---
 
-*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 1.8 (v0.13.0 — método de pago y usuario de alta en Compras; v0.17.0 — TipoEquipo en Compra; añadido recurso Empresas y relación OneToMany con Site).*
+*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 2.0 (Empresas; CRUD equipos de stock; entidad Accesorios).*
