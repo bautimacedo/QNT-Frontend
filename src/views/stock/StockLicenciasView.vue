@@ -6,7 +6,7 @@ import { getLicencias } from '../../api'
 const router = useRouter()
 const TITULO = 'Licencias'
 const LISTA_ROUTE = '/stock/licencias'
-const IMAGEN = '/Images/flighthub2.png'
+const IMAGEN = '/Images/fhfb.png'
 
 const items = ref([])
 const loading = ref(true)
