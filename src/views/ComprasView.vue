@@ -27,6 +27,13 @@ const TIPO_COMPRA_COLORS = {
   OTRO:        { bg: '#f1f5f9', color: '#64748b' },
 }
 
+const METODO_PAGO_LABELS = {
+  EFECTIVO: 'Efectivo',
+  TRANSFERENCIA: 'Transferencia',
+  TARJETA: 'Tarjeta',
+  OTRO: 'Otro',
+}
+
 const compras = ref([])
 const tiposEquipo = ref([])
 const loading = ref(false)
@@ -53,10 +60,12 @@ const FORM_DEFAULTS = () => ({
   proveedorDropdownOpen: false,
   fechaCompra: '',
   fechaFactura: '',
-  numeroFactura: '',
   importe: '',
   moneda: 'ARS',
   tipoCompra: '',
+  metodoPago: 'EFECTIVO',
+  companiaTarjeta: '',
+  ultimos4Tarjeta: '',
   tipoEquipo: '',
   descripcionEquipo: '',
   descripcion: '',
@@ -101,7 +110,6 @@ const filteredCompras = computed(() => {
     list = list.filter(c =>
       (c.proveedor?.nombre || '').toLowerCase().includes(q) ||
       (c.descripcion || '').toLowerCase().includes(q) ||
-      (c.numeroFactura || '').toLowerCase().includes(q) ||
       (c.observaciones || '').toLowerCase().includes(q)
     )
   }
@@ -270,10 +278,12 @@ function openEdit(compra) {
     proveedorDropdownOpen: false,
     fechaCompra: compra.fechaCompra || '',
     fechaFactura: compra.fechaFactura || '',
-    numeroFactura: compra.numeroFactura || '',
     importe: compra.importe != null ? String(compra.importe) : '',
     moneda: compra.moneda || 'ARS',
     tipoCompra: compra.tipoCompra || '',
+    metodoPago: compra.metodoPago || 'EFECTIVO',
+    companiaTarjeta: compra.companiaTarjeta || '',
+    ultimos4Tarjeta: compra.ultimos4Tarjeta || '',
     tipoEquipo: compra.tipoEquipo || '',
     descripcionEquipo: compra.descripcionEquipo || '',
     descripcion: compra.descripcion || '',
@@ -320,6 +330,13 @@ watch(() => formModal.value.tipoCompra, (val) => {
   }
 })
 
+watch(() => formModal.value.metodoPago, (val) => {
+  if (val !== 'TARJETA') {
+    formModal.value.companiaTarjeta = ''
+    formModal.value.ultimos4Tarjeta = ''
+  }
+})
+
 function validateForm() {
   const errors = {}
   const f = formModal.value
@@ -335,6 +352,18 @@ function validateForm() {
   if (!f.tipoCompra) {
     errors.tipoCompra = 'Seleccioná un tipo de compra.'
   }
+  if (!f.metodoPago) {
+    errors.metodoPago = 'Seleccioná un método de pago.'
+  }
+  if (f.metodoPago === 'TARJETA') {
+    if (!f.companiaTarjeta?.trim()) {
+      errors.companiaTarjeta = 'La compañía de tarjeta es obligatoria cuando el método de pago es Tarjeta.'
+    }
+    const u4 = (f.ultimos4Tarjeta || '').trim()
+    if (!/^[0-9]{4}$/.test(u4)) {
+      errors.ultimos4Tarjeta = 'Ingresá exactamente 4 dígitos de la tarjeta.'
+    }
+  }
   if (f.tipoCompra === 'EQUIPO' && !f.tipoEquipo) {
     errors.tipoEquipo = 'Seleccioná un tipo de equipo.'
   }
@@ -347,12 +376,16 @@ function buildBody() {
   const body = {
     fechaCompra: f.fechaCompra,
     fechaFactura: f.fechaFactura || null,
-    numeroFactura: f.numeroFactura?.trim() || null,
     importe: parseFloat(f.importe),
     moneda: f.moneda || 'ARS',
     tipoCompra: f.tipoCompra,
+    metodoPago: f.metodoPago || 'EFECTIVO',
     descripcion: f.descripcion?.trim() || null,
     observaciones: f.observaciones?.trim() || null,
+  }
+  if (f.metodoPago === 'TARJETA') {
+    body.companiaTarjeta = f.companiaTarjeta?.trim() || null
+    body.ultimos4Tarjeta = (f.ultimos4Tarjeta || '').trim().replace(/\D/g, '').slice(0, 4) || null
   }
   if (f.proveedorId) {
     body.proveedorId = f.proveedorId
@@ -537,7 +570,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
       <!-- Filters -->
       <div class="filters">
-        <input v-model="searchText" type="text" placeholder="Buscar proveedor, descripción, factura…" class="filter-input" />
+        <input v-model="searchText" type="text" placeholder="Buscar proveedor, descripción, observaciones…" class="filter-input" />
         <select v-model="filtroTipo" class="filter-select">
           <option value="TODOS">Tipo: Todos</option>
           <option v-for="tipo in Object.keys(TIPO_COMPRA_LABELS)" :key="tipo" :value="tipo">
@@ -575,11 +608,12 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <th class="sortable" @click="toggleSort('fechaCompra')">
                 Fecha <span class="sort-arrow">{{ sortArrow('fechaCompra') }}</span>
               </th>
-              <th>Nº Factura</th>
+              <th>Método pago</th>
               <th class="sortable" @click="toggleSort('tipoCompra')">
                 Tipo <span class="sort-arrow">{{ sortArrow('tipoCompra') }}</span>
               </th>
               <th>Equipo</th>
+              <th>Alta por</th>
               <th class="sortable" @click="toggleSort('importe')">
                 Importe <span class="sort-arrow">{{ sortArrow('importe') }}</span>
               </th>
@@ -590,7 +624,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
             <tr v-for="c in sortedCompras" :key="c.id">
               <td>{{ c.proveedor?.nombre || '—' }}</td>
               <td>{{ formatDate(c.fechaCompra) }}</td>
-              <td>{{ c.numeroFactura || '—' }}</td>
+              <td>{{ METODO_PAGO_LABELS[c.metodoPago] || c.metodoPago || '—' }}</td>
               <td>
                 <span
                   class="badge-tipo"
@@ -603,6 +637,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span v-if="c.tipoCompra === 'EQUIPO' && c.tipoEquipo" class="badge badge--role">{{ c.tipoEquipo }}</span>
                 <span v-else class="text-muted">—</span>
               </td>
+              <td class="text-muted">{{ c.usuarioAlta ? (c.usuarioAlta.nombre || '') + (c.usuarioAlta.apellido ? ' ' + c.usuarioAlta.apellido : '') || c.usuarioAlta.email : '—' }}</td>
               <td class="td-importe">{{ formatCurrency(c.importe, c.moneda) }}</td>
               <td class="actions-cell">
                 <button class="btn-action" @click="openDetail(c)">Ver</button>
@@ -667,16 +702,43 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <input v-model="formModal.fechaFactura" type="date" :disabled="formModal.loading" />
               </div>
 
-              <!-- Nº Factura + Importe -->
+              <!-- Método de pago + Importe -->
               <div class="form-field">
-                <label>Nº Factura</label>
-                <input v-model="formModal.numeroFactura" type="text" :disabled="formModal.loading" />
+                <label>Método de pago <span class="required">*</span></label>
+                <select v-model="formModal.metodoPago" :disabled="formModal.loading">
+                  <option v-for="(label, key) in METODO_PAGO_LABELS" :key="key" :value="key">{{ label }}</option>
+                </select>
+                <p v-if="formModal.errors.metodoPago" class="field-error">{{ formModal.errors.metodoPago }}</p>
               </div>
               <div class="form-field">
                 <label>Importe <span class="required">*</span></label>
                 <input v-model="formModal.importe" type="number" step="0.01" min="0" :disabled="formModal.loading" />
                 <p v-if="formModal.errors.importe" class="field-error">{{ formModal.errors.importe }}</p>
               </div>
+
+              <!-- Condicional TARJETA: compañía y últimos 4 -->
+              <Transition name="slide">
+                <div v-if="formModal.metodoPago === 'TARJETA'" class="form-field">
+                  <label>Compañía de tarjeta <span class="required">*</span></label>
+                  <input v-model="formModal.companiaTarjeta" type="text" maxlength="50" placeholder="Ej. Visa, Mastercard" :disabled="formModal.loading" />
+                  <p v-if="formModal.errors.companiaTarjeta" class="field-error">{{ formModal.errors.companiaTarjeta }}</p>
+                </div>
+              </Transition>
+              <Transition name="slide">
+                <div v-if="formModal.metodoPago === 'TARJETA'" class="form-field">
+                  <label>Últimos 4 dígitos <span class="required">*</span></label>
+                  <input
+                    v-model="formModal.ultimos4Tarjeta"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="1234"
+                    :disabled="formModal.loading"
+                    @input="formModal.ultimos4Tarjeta = (formModal.ultimos4Tarjeta || '').replace(/\D/g, '').slice(0, 4)"
+                  />
+                  <p v-if="formModal.errors.ultimos4Tarjeta" class="field-error">{{ formModal.errors.ultimos4Tarjeta }}</p>
+                </div>
+              </Transition>
 
               <!-- Moneda + Tipo compra -->
               <div class="form-field">
@@ -808,9 +870,9 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               </div>
             </div>
 
-            <!-- Sección 2: Facturación -->
+            <!-- Sección 2: Facturación y pago -->
             <div class="detail-section">
-              <h4 class="detail-section__title">Facturación</h4>
+              <h4 class="detail-section__title">Facturación y pago</h4>
               <div class="detail-row">
                 <span class="detail-row__label">Fecha de compra</span>
                 <span class="detail-row__value">{{ formatDate(detailModal.compra?.fechaCompra) }}</span>
@@ -820,8 +882,19 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span class="detail-row__value">{{ formatDate(detailModal.compra?.fechaFactura) }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-row__label">Nº Factura</span>
-                <span class="detail-row__value">{{ detailModal.compra?.numeroFactura || '—' }}</span>
+                <span class="detail-row__label">Método de pago</span>
+                <span class="detail-row__value">{{ METODO_PAGO_LABELS[detailModal.compra?.metodoPago] || detailModal.compra?.metodoPago || '—' }}</span>
+              </div>
+              <div v-if="detailModal.compra?.metodoPago === 'TARJETA'" class="detail-row">
+                <span class="detail-row__label">Tarjeta</span>
+                <span class="detail-row__value">
+                  {{ detailModal.compra?.companiaTarjeta || '—' }}
+                  <span v-if="detailModal.compra?.ultimos4Tarjeta"> **** {{ detailModal.compra.ultimos4Tarjeta }}</span>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__label">Alta por</span>
+                <span class="detail-row__value">{{ detailModal.compra?.usuarioAlta ? (detailModal.compra.usuarioAlta.nombre || '') + (detailModal.compra.usuarioAlta.apellido ? ' ' + detailModal.compra.usuarioAlta.apellido : '') || detailModal.compra.usuarioAlta.email : '—' }}</span>
               </div>
             </div>
 
