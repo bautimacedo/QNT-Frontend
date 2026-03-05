@@ -10,6 +10,12 @@ export async function getUsuariosPendientes() {
   return json(res)
 }
 
+/** GET /usuarios/pilotos — solo ADMIN. Devuelve PilotoResumenResponse[] (v0.20.0) */
+export async function getPilotos() {
+  const res = await request('/usuarios/pilotos', { method: 'GET' })
+  return json(res)
+}
+
 export async function searchUsuario(email) {
   const res = await request(`/usuarios/search?email=${encodeURIComponent(email)}`, { method: 'GET' })
   return json(res)

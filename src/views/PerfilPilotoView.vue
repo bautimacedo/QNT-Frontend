@@ -337,6 +337,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <tr>
                 <th>Vto. CMA</th>
                 <th>Emisión</th>
+                <th>Caducidad</th>
                 <th>Estado</th>
                 <th>Imágenes</th>
                 <th>Acciones</th>
@@ -353,6 +354,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   </span>
                 </td>
                 <td>{{ lic.fechaEmision ? formatDate(lic.fechaEmision) : '—' }}</td>
+                <td>{{ lic.caducidad ? formatDate(lic.caducidad) : '—' }}</td>
                 <td>
                   <span class="badge" :class="lic.activo ? 'badge--green' : 'badge--gray'">
                     {{ lic.activo ? 'Activa' : 'Inactiva' }}

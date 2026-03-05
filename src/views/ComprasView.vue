@@ -5,6 +5,7 @@ import {
   getCompras, crearCompra, actualizarCompra, eliminarCompra,
   subirImagenCompra, obtenerImagenCompra, getTiposEquipo,
 } from '../api'
+import { TIPOS_EQUIPO_INVENTARIO_AUTO } from '../constants/enums.js'
 
 const route = useRoute()
 const TIPO_COMPRA_LABELS = {
@@ -776,6 +777,20 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 </div>
               </Transition>
 
+              <!-- Aviso inventario automático (solo DRON, BATERIA, HELICE) — v0.18.0 -->
+              <Transition name="slide">
+                <div
+                  v-if="formModal.tipoCompra === 'EQUIPO' && formModal.tipoEquipo && TIPOS_EQUIPO_INVENTARIO_AUTO.includes(formModal.tipoEquipo)"
+                  class="form-field span-2 form-notice form-notice--info"
+                >
+                  <span class="form-notice__icon" aria-hidden="true">ℹ</span>
+                  <p class="form-notice__text">
+                    Se creará automáticamente un ítem en inventario con estado <strong>Pendiente de llegada</strong>.
+                    Completá los datos del equipo cuando llegue físicamente.
+                  </p>
+                </div>
+              </Transition>
+
               <!-- Descripción (span 2) -->
               <div class="form-field span-2">
                 <label>Descripción</label>
@@ -1447,6 +1462,20 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .slide-enter-active, .slide-leave-active { transition: all 0.25s ease; }
 .slide-enter-from { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-8px); }
 .slide-leave-to { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-8px); }
+
+/* Aviso inventario (NO_LLEGO) */
+.form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+.form-notice__icon { font-size: 1.1rem; color: #d97706; flex-shrink: 0; }
+.form-notice__text { margin: 0; font-size: 0.9rem; color: #92400e; line-height: 1.45; }
+.form-notice__text strong { font-weight: 600; }
 
 /* Responsive */
 @media (max-width: 768px) {

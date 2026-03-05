@@ -6,6 +6,7 @@ export { login, register, me, logout } from './auth.js'
 export {
   getUsuarios,
   getUsuariosPendientes,
+  getPilotos,
   searchUsuario,
   aprobarUsuario,
   disableUsuario,

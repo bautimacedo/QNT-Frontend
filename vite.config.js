@@ -6,9 +6,10 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     proxy: {
-      // En desarrollo, /api/qnt/v1 se reenvía al backend (mismo puerto que en docker: 8081)
+      // En desarrollo, /api/qnt/v1 se reenvía al backend.
+      // Si tu backend corre en 8080, usa target: 'http://localhost:8080'
       '/api/qnt/v1': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

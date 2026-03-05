@@ -5,7 +5,9 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
+import InventarioPlaceholderView from '../views/InventarioPlaceholderView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
+import PilotosView from '../views/PilotosView.vue'
 import MiPerfilView from '../views/MiPerfilView.vue'
 import PerfilPilotoView from '../views/PerfilPilotoView.vue'
 import ComprasView from '../views/ComprasView.vue'
@@ -21,13 +23,13 @@ const routes = [
     children: [
       { path: '', name: 'home', component: HomeView },
       { path: 'tareas', name: 'tareas', component: PlaceholderView },
-      { path: 'rpas', name: 'rpas', component: PlaceholderView },
-      { path: 'baterias', name: 'baterias', component: PlaceholderView },
+      { path: 'rpas', name: 'rpas', component: InventarioPlaceholderView },
+      { path: 'baterias', name: 'baterias', component: InventarioPlaceholderView },
       { path: 'ubicaciones', name: 'ubicaciones', component: PlaceholderView },
       { path: 'misiones', name: 'misiones', component: PlaceholderView },
       { path: 'pozos', name: 'pozos', component: PlaceholderView },
       { path: 'logs', name: 'logs', component: PlaceholderView },
-      { path: 'pilotos', name: 'pilotos', component: PlaceholderView },
+      { path: 'pilotos', name: 'pilotos', component: PilotosView },
       { path: 'proveedores', name: 'proveedores', component: ProveedoresView },
       { path: 'compras', name: 'compras', component: ComprasView },
       { path: 'usuarios', name: 'usuarios', component: UsuariosView },

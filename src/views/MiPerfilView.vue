@@ -1,12 +1,19 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil } from '../api'
 
 const perfil = ref(null)
 const loading = ref(true)
 const loadError = ref('')
 
-const form = ref({ nombre: '', apellido: '', dni: '', passwordMission: '' })
+const form = ref({
+  nombre: '',
+  apellido: '',
+  dni: '',
+  passwordMission: '',
+  horasVuelo: '',
+  cantidadVuelos: '',
+})
 const saving = ref(false)
 const saveError = ref('')
 
@@ -25,8 +32,22 @@ function showToast(msg) {
 
 function formatRoles(roles) {
   if (!roles?.length) return []
-  return roles.map(r => r.nombre || r.codigo.replace('ROLE_', ''))
+  return roles.map(r => r.nombre || r.codigo?.replace('ROLE_', '') || r)
 }
+
+function formatDateShort(iso) {
+  if (!iso) return '—'
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+/** Usuario actual del perfil (GET /mi-perfil devuelve { usuario, roles, tieneFotoPerfil, licencias }) */
+const userData = computed(() => perfil.value?.usuario || perfil.value || {})
+
+const esPilotoOAdmin = computed(() => {
+  const roles = perfil.value?.roles || []
+  return roles.some(r => (r.codigo || r) === 'ROLE_PILOTO' || (r.codigo || r) === 'ROLE_ADMIN')
+})
 
 async function loadPerfil() {
   loading.value = true
@@ -34,11 +55,14 @@ async function loadPerfil() {
   try {
     const data = await getMiPerfil()
     perfil.value = data
+    const user = data.usuario || data
     form.value = {
-      nombre: data.nombre || '',
-      apellido: data.apellido || '',
-      dni: data.dni || '',
-      passwordMission: data.passwordMission || '',
+      nombre: user.nombre || '',
+      apellido: user.apellido || '',
+      dni: user.dni || '',
+      passwordMission: user.passwordMission ?? '',
+      horasVuelo: user.horasVuelo != null ? String(user.horasVuelo) : '',
+      cantidadVuelos: user.cantidadVuelos != null ? String(user.cantidadVuelos) : '',
     }
   } catch (e) {
     loadError.value = e.message || 'Error al cargar el perfil.'
@@ -56,6 +80,12 @@ async function onSaveProfile() {
       apellido: form.value.apellido.trim() || null,
       dni: form.value.dni.trim() || null,
       passwordMission: form.value.passwordMission || null,
+    }
+    if (esPilotoOAdmin.value) {
+      const hv = form.value.horasVuelo?.trim()
+      const cv = form.value.cantidadVuelos?.trim()
+      body.horasVuelo = hv !== '' && !Number.isNaN(Number(hv)) ? Number(hv) : null
+      body.cantidadVuelos = cv !== '' && !Number.isNaN(Number(cv)) ? Number(cv) : null
     }
     const updated = await actualizarMiPerfil(body)
     if (updated) perfil.value = updated
@@ -121,7 +151,7 @@ onMounted(loadPerfil)
           </div>
           <div class="field">
             <label for="pf-email">Email</label>
-            <input id="pf-email" :value="perfil.email" type="email" readonly disabled class="input--readonly" />
+            <input id="pf-email" :value="userData.email" type="email" readonly disabled class="input--readonly" />
           </div>
           <div class="field">
             <label for="pf-dni">DNI</label>
@@ -134,6 +164,29 @@ onMounted(loadPerfil)
               <span v-if="!perfil.roles?.length" class="text-muted">Sin rol asignado</span>
             </div>
           </div>
+
+          <!-- Datos del piloto (solo lectura cuando no se edita; para PILOTO/ADMIN también editables abajo) -->
+          <div v-if="esPilotoOAdmin" class="field field-block">
+            <label class="field-block__label">Datos del piloto</label>
+            <div class="piloto-readonly">
+              <span><strong>Horas de vuelo:</strong> {{ userData.horasVuelo != null ? userData.horasVuelo : '—' }}</span>
+              <span><strong>Cantidad de vuelos:</strong> {{ userData.cantidadVuelos != null ? userData.cantidadVuelos : '—' }}</span>
+              <span><strong>Vto. CMA:</strong> {{ userData.cmaVencimiento ? formatDateShort(userData.cmaVencimiento) : '—' }}</span>
+              <span><strong>Password misión:</strong> {{ userData.passwordMission ? 'Configurado' : 'No configurado' }}</span>
+            </div>
+          </div>
+
+          <div v-if="esPilotoOAdmin" class="field-row">
+            <div class="field">
+              <label for="pf-horasvuelo">Horas de vuelo</label>
+              <input id="pf-horasvuelo" v-model="form.horasVuelo" type="number" min="0" step="0.1" :disabled="saving" />
+            </div>
+            <div class="field">
+              <label for="pf-cantidadvuelos">Cantidad de vuelos</label>
+              <input id="pf-cantidadvuelos" v-model="form.cantidadVuelos" type="number" min="0" step="1" :disabled="saving" />
+            </div>
+          </div>
+
           <div class="field">
             <label for="pf-pwmission">Contraseña de Misión</label>
             <input
@@ -202,6 +255,22 @@ onMounted(loadPerfil)
 
 .field-helper { margin: 0.3rem 0 0; font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
 .field-error { color: #dc2626; font-size: 0.85rem; margin: 0; }
+
+.field-block { margin-top: 0.5rem; }
+.field-block__label { display: block; margin-bottom: 0.35rem; }
+.piloto-readonly {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+.piloto-readonly span { white-space: nowrap; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.field-row .field { margin-bottom: 0; }
 
 .badges-row { display: flex; gap: 0.4rem; flex-wrap: wrap; padding-top: 0.25rem; }
 .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }

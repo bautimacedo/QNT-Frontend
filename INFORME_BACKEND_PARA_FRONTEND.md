@@ -12,7 +12,7 @@ Este documento describe el **contrato del backend** para que el proyecto fronten
 
 **Stack backend:** Spring Boot 3.x, Java 17+, Spring Security (JWT), JPA/Hibernate, PostgreSQL.
 
-**Última actualización del informe:** Tras v0.13.0 (método de pago y usuario de alta en Compras) y v0.17.0 (TipoEquipo en Compra). Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
+**Última actualización del informe:** v0.20.0 (vista pilotos con datos completos). Cubre: v0.13.0 — método de pago y usuario de alta en Compras; v0.17.0 — TipoEquipo en Compra; v0.18.0 — estado NO_LLEGO e inventario automático al comprar equipo; v0.19.0 — horasVuelo/cantidadVuelos y restricción de campos piloto en mi-perfil; v0.20.0 — GET /usuarios/pilotos con PilotoResumenResponse. Este documento se actualiza **al finalizar cada tarea** del backend que afecte la API (endpoints, modelos, auth o convenciones).
 
 ---
 
@@ -157,7 +157,7 @@ Base: `/api/qnt/v1/usuarios`
 |--------|------|-------------|--------|
 | GET | `/usuarios` | Listar todos | ADMIN |
 | GET | `/usuarios/pendientes` | Listar usuarios pendientes de aprobación (estado PENDIENTE_APROBACION) | ADMIN |
-| GET | `/usuarios/pilotos` | Listar usuarios con rol ROLE_PILOTO | ADMIN |
+| GET | `/usuarios/pilotos` | Listar pilotos con datos completos (PilotoResumenResponse) | ADMIN |
 | GET | `/usuarios/search?email=` | Buscar por email | ADMIN |
 | POST | `/usuarios` | Crear usuario | ADMIN |
 | PUT | `/usuarios/{id}` | Actualizar usuario | ADMIN |
@@ -167,6 +167,37 @@ Base: `/api/qnt/v1/usuarios`
 | PUT | `/usuarios/enable?email=` | Activar usuario | ADMIN |
 | PUT | `/usuarios/assign-role` | Asignar rol a usuario | ADMIN |
 | PUT | `/usuarios/remove-role` | Quitar rol a usuario | ADMIN |
+
+#### 5.2.1 Respuesta de GET /usuarios/pilotos (PilotoResumenResponse) — v0.20.0
+
+Cada objeto en el array:
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| id | number | |
+| nombre | string | |
+| apellido | string \| null | |
+| email | string | |
+| horasVuelo | number \| null | |
+| cantidadVuelos | number \| null | |
+| cmaVencimiento | string (date) \| null | ISO-8601 (yyyy-MM-dd) |
+| estado | string | EstadoUsuario: PENDIENTE_APROBACION, ACTIVO, DESACTIVADO |
+| tieneFotoPerfil | boolean | |
+| licencias | LicenciaANACResumen[] | Licencias ANAC del piloto (vacío si no tiene) |
+
+Cada objeto en `licencias`:
+
+| Campo | Tipo |
+|-------|------|
+| id | number |
+| fechaVencimientoCma | string (date) \| null |
+| fechaEmision | string (date) \| null |
+| caducidad | string (date) \| null |
+| tieneImagenCma | boolean |
+| tieneImagenCertificadoIdoneidad | boolean |
+| activo | boolean \| null |
+
+> Sin exposición de password, imagenCma ni imagenPerfil en la respuesta.
 
 ### 5.3 Roles
 
@@ -189,8 +220,8 @@ Base: `/api/qnt/v1/compras`
 |--------|------|-------------|--------|
 | GET | `/compras` | Listar todas (opc. ?tipoCompra=&proveedorId=) | Autenticado |
 | GET | `/compras/{id}` | Obtener por ID | ADMIN, USER |
-| POST | `/compras` | Crear compra (usuario de alta = usuario del token; no se envía en body) | ADMIN, USER |
-| PUT | `/compras/{id}` | Actualizar compra (usuarioAlta no se modifica) | ADMIN, USER |
+| POST | `/compras` | Crear compra | ADMIN, USER |
+| PUT | `/compras/{id}` | Actualizar compra | ADMIN, USER |
 | DELETE | `/compras/{id}` | Eliminar compra | ADMIN |
 | PUT | `/compras/{id}/imagen` | Subir imagen factura (multipart) | ADMIN, USER |
 | GET | `/compras/{id}/imagen` | Descargar imagen factura | ADMIN, USER |
@@ -240,7 +271,7 @@ Base: `/api/qnt/v1/mi-perfil`. Todos los endpoints operan sobre el **usuario aut
 | Método | Ruta | Descripción | Roles |
 |--------|------|-------------|--------|
 | GET | `/mi-perfil` | Datos del usuario + tieneFotoPerfil + licencias ANAC (si piloto) | Autenticado |
-| PUT | `/mi-perfil` | Actualizar nombre, apellido, dni, passwordMission | Autenticado |
+| PUT | `/mi-perfil` | Actualizar nombre, apellido, dni; campos de piloto (passwordMission, horasVuelo, cantidadVuelos) solo para PILOTO/ADMIN | Autenticado |
 | PUT | `/mi-perfil/cambio-password` | Cambiar contraseña | Autenticado |
 | PUT | `/mi-perfil/foto-perfil` | Subir foto de perfil (multipart, parte `file`) | Autenticado |
 | GET | `/mi-perfil/foto-perfil` | Obtener foto de perfil | Autenticado |
@@ -321,12 +352,14 @@ El usuario debe estar en estado `PENDIENTE_APROBACION`. Tras aprobar, pasa a `AC
 
 ### 6.6 ActualizarMiPerfilRequest (PUT /mi-perfil)
 
-| Campo | Tipo | Obligatorio |
-|-------|------|-------------|
-| nombre | string \| null | No; solo los enviados se actualizan |
-| apellido | string \| null | No |
-| dni | string \| null | No |
-| passwordMission | string \| null | No; máx. 30 caracteres. Dato del piloto (clave para misiones), no es la contraseña de login. |
+| Campo | Tipo | Obligatorio | Notas |
+|-------|------|-------------|-------|
+| nombre | string \| null | No | Solo se actualiza si no es blank. |
+| apellido | string \| null | No | |
+| dni | string \| null | No | |
+| passwordMission | string \| null | No | Solo ROLE_PILOTO o ROLE_ADMIN. Máx. 30 caracteres. Ignorado para otros roles. |
+| horasVuelo | number \| null | No | Solo ROLE_PILOTO o ROLE_ADMIN. Ignorado para otros roles. (v0.19.0) |
+| cantidadVuelos | number \| null | No | Solo ROLE_PILOTO o ROLE_ADMIN. Ignorado para otros roles. (v0.19.0) |
 
 ### 6.7 CambioPasswordMiPerfilRequest (PUT /mi-perfil/cambio-password)
 
@@ -368,7 +401,7 @@ Mismos campos que CrearLicenciaMiPerfilRequest (fechaVencimientoCma, fechaEmisio
 | Campo | Tipo | Notas |
 |-------|------|--------|
 | id | number | Long |
-| proveedor | Proveedor | Objeto anidado |
+| proveedor | Proveedor | Objeto anidado (id, nombre, cuit, ...) |
 | fechaCompra | string (date) | ISO-8601 |
 | fechaFactura | string (date) \| null | |
 | importe | number | BigDecimal (ej. 1234.56) |
@@ -377,15 +410,15 @@ Mismos campos que CrearLicenciaMiPerfilRequest (fechaVencimientoCma, fechaEmisio
 | metodoPago | string | Enum MetodoPago: EFECTIVO, TRANSFERENCIA, TARJETA, OTRO |
 | companiaTarjeta | string \| null | Solo cuando metodoPago = TARJETA (máx. 50 chars) |
 | ultimos4Tarjeta | string \| null | Solo cuando metodoPago = TARJETA; exactamente 4 dígitos |
-| tipoEquipo | string \| null | Enum TipoEquipo. **Solo presente cuando `tipoCompra = "EQUIPO"`**; ver sección Enums. |
+| tipoEquipo | string \| null | Enum TipoEquipo. **Solo presente cuando `tipoCompra = "EQUIPO"`**. Cuando se crea una compra de tipo EQUIPO, el backend genera automáticamente el ítem en inventario con estado NO_LLEGO. |
 | descripcionEquipo | string \| null | Texto libre, máx. 255 chars. Solo aplica cuando `tipoCompra = "EQUIPO"`. |
 | descripcion | string \| null | |
 | site | Site \| null | Objeto anidado |
 | observaciones | string \| null | |
-| usuarioAlta | Usuario \| null | Usuario que dio de alta la compra (id, email, nombre, apellido; sin password). En compras nuevas viene del token. |
+| usuarioAlta | Usuario \| null | Usuario que dio de alta la compra (id, email, nombre, apellido; sin password). Se asigna desde el token en el backend; no enviarlo en el body. |
 | imagenFactura | — | No se serializa; usar GET .../imagen |
 
-**Nota:** El campo `numeroFactura` fue **eliminado** del modelo Compra (v0.13.0). No existe en la API.
+> **Nota:** El campo `numeroFactura` fue **eliminado** en v0.13.0. No existe en la API ni en la BD.
 
 ### 6.13 Proveedor (anidado en Compra)
 
@@ -413,25 +446,25 @@ No hay CRUD dedicado de Site en la API actual; se referencia por `siteId` en Cre
 
 ### 6.15 CreateCompraRequest (POST/PUT compra)
 
-| Campo | Tipo | Obligatorio |
-|-------|------|-------------|
-| proveedorId | number \| null | Uno de proveedorId o proveedorNombre |
-| proveedorNombre | string \| null | Si no hay proveedorId, se crea proveedor con este nombre |
-| fechaCompra | string (date) | Sí |
-| fechaFactura | string (date) \| null | |
-| importe | number | Sí, > 0 |
-| moneda | string \| null | Default backend "ARS" |
-| tipoCompra | string | Sí (enum TipoCompra) |
-| metodoPago | string | **Sí** (enum MetodoPago: EFECTIVO, TRANSFERENCIA, TARJETA, OTRO). |
-| companiaTarjeta | string \| null | **Obligatorio si metodoPago = "TARJETA"** (no vacío, máx. 50). Ignorado si metodoPago ≠ TARJETA. |
-| ultimos4Tarjeta | string \| null | **Obligatorio si metodoPago = "TARJETA"** (exactamente 4 dígitos `[0-9]{4}`). Ignorado si metodoPago ≠ TARJETA. |
-| tipoEquipo | string \| null | **Obligatorio si `tipoCompra = "EQUIPO"`** (enum TipoEquipo). Ignorado en otro caso. |
-| descripcionEquipo | string \| null | Texto libre, máx. 255 chars. Solo aplica cuando `tipoCompra = "EQUIPO"`. |
-| descripcion | string \| null | |
-| siteId | number \| null | |
-| observaciones | string \| null | |
+| Campo | Tipo | Obligatorio | Notas |
+|-------|------|-------------|-------|
+| proveedorId | number \| null | Uno de los dos | ID del proveedor existente |
+| proveedorNombre | string \| null | Uno de los dos | Si no hay proveedorId, se crea proveedor con este nombre |
+| fechaCompra | string (date) | Sí | ISO-8601 |
+| fechaFactura | string (date) \| null | No | |
+| importe | number | Sí | > 0 |
+| moneda | string \| null | No | Default backend "ARS" |
+| tipoCompra | string | Sí | Enum TipoCompra |
+| metodoPago | string | **Sí** | Enum MetodoPago: EFECTIVO, TRANSFERENCIA, TARJETA, OTRO |
+| companiaTarjeta | string \| null | Cond. | **Obligatorio si metodoPago = "TARJETA"** (no vacío, máx. 50). Ignorado si metodoPago ≠ TARJETA. |
+| ultimos4Tarjeta | string \| null | Cond. | **Obligatorio si metodoPago = "TARJETA"** (exactamente 4 dígitos `[0-9]{4}`). Ignorado si metodoPago ≠ TARJETA. |
+| tipoEquipo | string \| null | Cond. | **Obligatorio si `tipoCompra = "EQUIPO"`** (enum TipoEquipo). Ignorado en otro caso. Al crear con EQUIPO, el backend crea automáticamente el ítem en inventario con estado NO_LLEGO. |
+| descripcionEquipo | string \| null | No | Texto libre, máx. 255 chars. Solo aplica cuando `tipoCompra = "EQUIPO"`. Se usa como nombre inicial del ítem en inventario. |
+| descripcion | string \| null | No | |
+| siteId | number \| null | No | |
+| observaciones | string \| null | No | |
 
-**Importante:** El usuario que da de alta la compra **no se envía en el body**. El backend lo toma del token JWT (usuario autenticado). El campo `numeroFactura` **ya no existe**; no enviarlo.
+> **Importante:** El usuario de alta **no se envía en el body**. El backend lo toma del token JWT. No enviar `numeroFactura` (campo eliminado en v0.13.0).
 
 ### 6.16 Licencia (entidad)
 
@@ -560,16 +593,16 @@ Usar exactamente estos valores en los JSON (strings).
 - `EQUIPO`
 - `OTRO`
 
-### MetodoPago (compras) — v0.13.0
+### MetodoPago (compras)
 
-**Obligatorio** en toda compra (crear y actualizar). Valores:
+Obligatorio en toda compra (POST y PUT). Valores:
 
 - `EFECTIVO`
 - `TRANSFERENCIA`
-- `TARJETA`
+- `TARJETA` — requiere además `companiaTarjeta` (no vacío) y `ultimos4Tarjeta` (exactamente 4 dígitos). El backend responde **400** si faltan o tienen formato incorrecto.
 - `OTRO`
 
-Si `metodoPago = "TARJETA"`, el backend exige en el mismo request: `companiaTarjeta` (no vacío) y `ultimos4Tarjeta` (exactamente 4 dígitos). Si falta alguno o el formato es incorrecto, responde **400 Bad Request** con mensaje en el cuerpo (ej. "Cuando el metodoPago es TARJETA, companiaTarjeta es obligatorio"). Si `metodoPago ≠ TARJETA`, los campos de tarjeta se ignoran y se guardan como null.
+Si `metodoPago ≠ TARJETA`, los campos `companiaTarjeta` y `ultimos4Tarjeta` se ignoran y se guardan como `null`.
 
 ### TipoEquipo (compras de tipo EQUIPO)
 
@@ -590,10 +623,12 @@ Solo aplica cuando `tipoCompra = "EQUIPO"`. Se obtiene dinámicamente con `GET /
 
 ### Estado (equipos: Dock, Dron, Batería, etc.)
 
-- `STOCK_ACTUAL`
-- `EN_PROCESO`
-- `STOCK_ACTIVO`
-- `EN_DESUSO`
+- `NO_LLEGO` — Comprado, pendiente de llegada física; el admin debe completar los datos al recibirlo. (v0.18.0)
+- `STOCK_ACTUAL` — En oficina/almacén, disponible para enviar.
+- `EN_PROCESO` — En camino al site o en reparación/servicio.
+- `STOCK_ACTIVO` — Desplegado y en uso en el site.
+- `EN_DESUSO` — Retirado definitivamente (baja).
+- `EN_MANTENIMIENTO` — Retirado temporalmente por reparación.
 
 ### EstadoMision (misiones)
 
@@ -621,44 +656,105 @@ Solo aplica cuando `tipoCompra = "EQUIPO"`. Se obtiene dinámicamente con `GET /
 
 ---
 
-## 12. Instrucciones para el agente programador del frontend
+## 12. Changelog de contratos para el frontend
 
-Cuando el backend actualiza el contrato (como en v0.13.0 — método de pago y usuario de alta en Compras), el **agente programador del frontend** debe aplicar los siguientes cambios para mantener la alineación con la API.
+Historial de cambios que impactan al frontend, ordenado por versión. Cada entrada describe qué cambió y qué debe adaptar el frontend.
 
-### 12.1 Cambios obligatorios por versión (v0.13.0 — Compras)
+---
 
-- [ ] **Eliminar todo uso de `numeroFactura`**
-  - Quitar el campo del tipo/interfaz de **Compra** (respuesta de GET /compras y GET /compras/{id}).
-  - Quitar el campo del formulario y del payload de **crear/editar compra** (POST/PUT). No enviar `numeroFactura` en el body.
+### v0.13.0 — Método de pago y usuario de alta en Compras
 
-- [ ] **Añadir método de pago al formulario y al contrato**
-  - Incluir en el tipo de **Compra**: `metodoPago` (string, enum), `companiaTarjeta` (string | null), `ultimos4Tarjeta` (string | null).
-  - Incluir en el payload de **crear/editar compra**: `metodoPago` (obligatorio), `companiaTarjeta` (opcional salvo si metodoPago = TARJETA), `ultimos4Tarjeta` (opcional salvo si metodoPago = TARJETA).
-  - Mostrar en el formulario un selector de **metodoPago** (EFECTIVO, TRANSFERENCIA, TARJETA, OTRO). Si el usuario elige TARJETA, mostrar campos **companiaTarjeta** y **ultimos4Tarjeta** (este último restringido a 4 dígitos). Validar en frontend antes de enviar para evitar 400.
+**Qué cambió en el backend:**
+- Campo `numeroFactura` **eliminado** de la entidad `Compra` y de `CreateCompraRequest`. No existe en BD ni en API.
+- Campos nuevos en `Compra`: `metodoPago`, `companiaTarjeta`, `ultimos4Tarjeta`.
+- Campo nuevo en `Compra`: `usuarioAlta` (Usuario que dio de alta; viene del token, no del body).
+- Nuevo enum `MetodoPago`: EFECTIVO, TRANSFERENCIA, TARJETA, OTRO.
 
-- [ ] **Manejar validaciones 400 en compras**
-  - En POST /compras y PUT /compras/{id}, el backend puede devolver **400 Bad Request** con mensaje en el cuerpo (texto plano) cuando falle la validación de negocio (ej. metodoPago = TARJETA sin companiaTarjeta o sin ultimos4Tarjeta de 4 dígitos). Mostrar ese mensaje al usuario en lugar de un genérico.
+**Checklist frontend:**
+- [ ] Eliminar `numeroFactura` del tipo `Compra` y del formulario de crear/editar compra.
+- [ ] Añadir al tipo `Compra`: `metodoPago`, `companiaTarjeta` (null si no TARJETA), `ultimos4Tarjeta` (null si no TARJETA).
+- [ ] Añadir `metodoPago` (obligatorio) al payload de POST/PUT compras.
+- [ ] En el formulario de compra, mostrar selector `metodoPago`. Si elige TARJETA → mostrar `companiaTarjeta` y `ultimos4Tarjeta` (4 dígitos exactos). Validar antes de enviar.
+- [ ] Ante 400 en POST/PUT compras, mostrar el mensaje del cuerpo al usuario.
+- [ ] Mostrar `usuarioAlta` en listado/detalle como solo lectura. No enviar en body.
 
-- [ ] **Usuario de alta: solo lectura en UI**
-  - En las respuestas de GET /compras y GET /compras/{id}, la compra incluye **usuarioAlta** (objeto Usuario: id, email, nombre, apellido; sin password). Usarlo solo para **mostrar** quién dio de alta la compra (ej. en listado o detalle). No enviar `usuarioAlta` ni `usuarioAltaId` en el body de POST/PUT: el backend lo asigna desde el token.
+---
 
-### 12.2 Checklist genérico al recibir una nueva versión del informe
+### v0.17.0 — TipoEquipo en Compra
 
-1. Comparar la **sección 6 (Modelos)** del informe con los tipos/interfaces del frontend y ajustar campos añadidos, eliminados o renombrados.
-2. Revisar la **sección 10 (Enums)** y añadir o actualizar los valores que se envían en los JSON (ej. MetodoPago, TipoEquipo).
-3. Revisar **sección 5 (Recursos y endpoints)** por nuevos endpoints o cambios de comportamiento (ej. “usuario de alta = token”).
-4. Asegurar que los formularios que envían a la API incluyan todos los campos obligatorios y respeten las reglas condicionales (ej. tipoEquipo si tipoCompra = EQUIPO; companiaTarjeta y ultimos4Tarjeta si metodoPago = TARJETA).
-5. Probar flujos afectados (crear/editar compra, listado/detalle) contra el backend actual y corregir hasta que coincidan con este informe.
+**Qué cambió en el backend:**
+- Campos nuevos en `Compra` y `CreateCompraRequest`: `tipoEquipo` (enum TipoEquipo), `descripcionEquipo` (string).
+- Nuevo endpoint `GET /compras/tipos-equipo` → devuelve array de TipoEquipo.
+- Nuevo enum `TipoEquipo`: DRON, DOCK, BATERIA, HELICE, ANTENA_RTK, ANTENA_STARLINK, OTRO.
+
+**Checklist frontend:**
+- [ ] Añadir al tipo `Compra`: `tipoEquipo` (string | null), `descripcionEquipo` (string | null).
+- [ ] En el formulario de compra: si `tipoCompra == "EQUIPO"` → mostrar selector `tipoEquipo` (poblar con `GET /compras/tipos-equipo`) y campo `descripcionEquipo`. Si no → ocultar ambos.
+- [ ] `tipoEquipo` es **obligatorio** cuando `tipoCompra == "EQUIPO"`. Validar antes de enviar.
+
+---
+
+### v0.18.0 — Estado NO_LLEGO e inventario automático al comprar equipo
+
+**Qué cambió en el backend:**
+- Nuevo valor en enum `Estado` (equipos): `NO_LLEGO` — equipo comprado, pendiente de llegada física.
+- **Comportamiento nuevo:** cuando se registra una compra con `tipoCompra = "EQUIPO"` y `tipoEquipo` ∈ {DRON, BATERIA, HELICE}, el backend crea automáticamente el ítem en inventario con `estado = NO_LLEGO` y `nombre = descripcionEquipo`. Para DOCK, ANTENA_RTK, ANTENA_STARLINK no se crea automáticamente (requieren datos adicionales).
+
+**Checklist frontend:**
+- [ ] Añadir `NO_LLEGO` al tipo/enum `Estado` del frontend con descripción "Pendiente de llegada".
+- [ ] En vistas de inventario (Drones, Baterías, Hélices): mostrar ítems con `estado = NO_LLEGO` con badge diferenciado (ej. "Pendiente de llegada"). Permitir al admin editarlos para completar datos.
+- [ ] En el formulario de nueva compra, cuando `tipoCompra = "EQUIPO"` y `tipoEquipo` ∈ {DRON, BATERIA, HELICE}: informar al usuario que se creará un ítem en inventario automáticamente. El campo `descripcionEquipo` se usará como nombre inicial del ítem.
+- [ ] Actualizar filtros/badges de estado de equipos para incluir `NO_LLEGO`.
+
+---
+
+### v0.19.0 — Campos de piloto en PUT /mi-perfil (horasVuelo, cantidadVuelos)
+
+**Qué cambió en el backend:**
+- `ActualizarMiPerfilRequest` (PUT /mi-perfil) ahora acepta `horasVuelo` (number | null) y `cantidadVuelos` (number | null).
+- **Restricción por rol:** `passwordMission`, `horasVuelo` y `cantidadVuelos` solo se aplican si el usuario tiene ROLE_PILOTO o ROLE_ADMIN. Para ROLE_USER se ignoran silenciosamente.
+- Los campos generales (`nombre`, `apellido`, `dni`) siguen siendo editables por cualquier usuario autenticado.
+
+**Checklist frontend:**
+- [ ] Actualizar tipo `ActualizarMiPerfilRequest`: añadir `horasVuelo?: number | null` y `cantidadVuelos?: number | null`.
+- [ ] En la vista "Perfil Piloto" (ROLE_PILOTO): añadir campos editables `horasVuelo` y `cantidadVuelos` al formulario de edición. Incluirlos en el body de PUT /mi-perfil.
+- [ ] Para usuarios con ROLE_USER: no mostrar estos campos como editables en la UI.
+
+---
+
+### v0.20.0 — GET /usuarios/pilotos con datos completos (PilotoResumenResponse)
+
+**Qué cambió en el backend:**
+- `GET /usuarios/pilotos` ya **no devuelve** `Usuario` completo. Devuelve un array de `PilotoResumenResponse`.
+- El nuevo response incluye: id, nombre, apellido, email, horasVuelo, cantidadVuelos, cmaVencimiento, estado, tieneFotoPerfil, y array `licencias` con resumen de licencias ANAC de cada piloto.
+- La entidad `LicenciaANAC` ahora tiene el campo `caducidad` (LocalDate). Aparece en el response de `GET /mi-perfil/licencias` y en `PilotoResumenResponse`.
+
+**Checklist frontend:**
+- [ ] Crear/actualizar tipo `PilotoResumenResponse` (ver sección 5.2.1 de este informe para el contrato completo).
+- [ ] Actualizar la vista "Pilotos" (ADMIN): consumir el nuevo formato. Mostrar `horasVuelo`, `cantidadVuelos`, `cmaVencimiento`, badge de `estado`, e ícono de foto si `tieneFotoPerfil = true`.
+- [ ] Para cada piloto en la vista, mostrar sus licencias ANAC: `fechaVencimientoCma`, `fechaEmision`, `caducidad`, íconos de imagen CMA / certificado de idoneidad.
+- [ ] Actualizar tipo de respuesta de `GET /mi-perfil/licencias` para incluir el campo `caducidad` (string date | null).
+- [ ] La foto del piloto se obtiene por separado: `GET /mi-perfil/foto-perfil` con el token del piloto.
+
+---
+
+### Checklist genérico al recibir una nueva versión del informe
+
+1. Comparar **sección 6 (Modelos)** con los tipos/interfaces del frontend y ajustar campos añadidos, eliminados o renombrados.
+2. Revisar **sección 10 (Enums)** y añadir o actualizar los valores enviados en los JSON.
+3. Revisar **sección 5 (Recursos y endpoints)** por nuevos endpoints o cambios de comportamiento.
+4. Asegurar que los formularios incluyan todos los campos obligatorios y respeten reglas condicionales.
+5. Probar los flujos afectados contra el backend y corregir hasta que coincidan con este informe.
 
 ---
 
 ## 13. Documentos de referencia en este repo
 
-- **AGENTE_CEO.md / README.md** (Importante-main/AgenteCEO): orquestación y flujo de trabajo de agentes (planificación, ejecución, estado del proyecto).
-- **ROADMAP.md** (raíz): versiones y backlog del producto; incluye ideas de controllers para Proveedor, Site, Dock, Dron, etc., y filtros/búsquedas.
+- **AGENTE_CEO.md / README.md** (Importante-main/AgenteCEO): orquestación y flujo de trabajo de agentes.
+- **ROADMAP.md** (raíz): versiones y backlog del producto.
 
-Cuando el backend añada nuevos endpoints o cambie contratos, conviene actualizar este informe y la documentación del front para mantener la alineación.
+Cuando el backend añada nuevos endpoints o cambie contratos, actualizar este informe antes de hacer merge.
 
 ---
 
-*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 1.7 (v0.13.0 — método de pago y usuario de alta en Compras; v0.17.0 — TipoEquipo en Compra).*
+*Documento generado para sincronizar backend (QNT-Gestion-Spring) con el proyecto frontend. Versión del informe: 2.0 (cubre v0.13.0 → v0.20.0 inclusive).*

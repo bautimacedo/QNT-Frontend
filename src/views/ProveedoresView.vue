@@ -462,7 +462,7 @@ onMounted(() => {
                 <p class="text-muted">{{ detailModal.compras.length }} compra(s)</p>
                 <ul class="compras-list">
                   <li v-for="c in detailModal.compras.slice(0, 5)" :key="c.id" class="compras-list__item">
-                    {{ formatDate(c.fechaCompra) }} — {{ c.numeroFactura || 'Sin nº' }} — {{ formatCurrency(c.importe, c.moneda) }}
+                    {{ formatDate(c.fechaCompra) }} — {{ formatCurrency(c.importe, c.moneda) }}
                   </li>
                 </ul>
                 <p v-if="detailModal.compras.length > 5" class="text-muted">y {{ detailModal.compras.length - 5 }} más…</p>
