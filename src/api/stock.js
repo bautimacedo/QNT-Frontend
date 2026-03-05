@@ -74,6 +74,16 @@ export async function getAccesorio(id) {
 }
 
 /**
+ * Obtiene los equipos con coordenadas para el mapa.
+ * GET /mapa/equipos — solo equipos con latitud y longitud no nulas.
+ * @returns {Promise<Array>} Array de { tipoEquipo, id, nombre, latitud, longitud, altitud, estado, ultimoMantenimiento, siteNombre, numeroSerie }
+ */
+export async function getMapaEquipos() {
+  const { data } = await api.get('/mapa/equipos')
+  return Array.isArray(data) ? data : []
+}
+
+/**
  * Actualiza un ítem de equipo enviando el objeto completo con id.
  * @param {string} tipo - drones | baterias | helices (y otros en el futuro)
  * @param {Object} body - objeto completo del ítem incluyendo id

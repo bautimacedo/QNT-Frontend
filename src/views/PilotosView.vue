@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getPilotos } from '../api'
 
 const pilotos = ref([])
@@ -13,6 +14,16 @@ const detailModal = ref({ open: false, piloto: null })
 
 const user = inject('dashboardUser')
 const isAdmin = computed(() => user.value?.authorities?.includes('ROLE_ADMIN'))
+
+const router = useRouter()
+
+function verPerfil(piloto) {
+  router.push({
+    name: 'piloto-perfil-detalle',
+    params: { id: piloto.id },
+    state: { piloto: JSON.parse(JSON.stringify(piloto)) },
+  })
+}
 
 const filteredPilotos = computed(() => {
   if (!searchText.value.trim()) return pilotos.value
@@ -75,13 +86,24 @@ function estadoBadgeLabel(estado) {
   return map[estado] || estado
 }
 
-function cmaBadgeInfo(cmaVencimiento) {
-  if (!cmaVencimiento) return { label: 'Sin CMA', cls: 'badge--gray' }
+function getCmaFechaEfectiva(piloto) {
+  if (piloto.cmaVencimiento) return piloto.cmaVencimiento
+  const fechas = (piloto.licencias || [])
+    .filter(l => l.activo !== false && l.fechaVencimientoCma)
+    .map(l => l.fechaVencimientoCma)
+    .sort()
+    .reverse()
+  return fechas[0] || null
+}
+
+function cmaBadgeInfo(piloto) {
+  const fecha = getCmaFechaEfectiva(piloto)
+  if (!fecha) return { label: 'Sin CMA', cls: 'badge--gray' }
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  const venc = new Date(cmaVencimiento)
+  const venc = new Date(fecha)
   const diffDias = Math.floor((venc - hoy) / (1000 * 60 * 60 * 24))
-  const label = formatFecha(cmaVencimiento)
+  const label = formatFecha(fecha)
   if (diffDias < 0) return { label, cls: 'badge--red' }
   if (diffDias <= 30) return { label, cls: 'badge--yellow' }
   return { label, cls: 'badge--green' }
@@ -174,15 +196,16 @@ onMounted(fetchPilotos)
               <span class="badge" :class="estadoBadgeClass(p.estado)">{{ estadoBadgeLabel(p.estado) }}</span>
             </td>
             <td>
-              <span class="badge" :class="cmaBadgeInfo(p.cmaVencimiento).cls">
-                {{ cmaBadgeInfo(p.cmaVencimiento).label }}
+              <span class="badge" :class="cmaBadgeInfo(p).cls">
+                {{ cmaBadgeInfo(p).label }}
               </span>
             </td>
             <td>{{ p.horasVuelo ?? '—' }}</td>
             <td>{{ p.cantidadVuelos ?? '—' }}</td>
             <td>{{ p.licencias?.length || '—' }}</td>
             <td>
-              <button class="btn-action" @click="openDetail(p)">Ver detalle</button>
+              <button class="btn-action" @click="verPerfil(p)">Ver perfil</button>
+              <button class="btn-action" @click="openDetail(p)">Detalle rápido</button>
             </td>
           </tr>
         </tbody>
@@ -205,8 +228,8 @@ onMounted(fetchPilotos)
                     <span class="badge" :class="estadoBadgeClass(detailModal.piloto.estado)">
                       {{ estadoBadgeLabel(detailModal.piloto.estado) }}
                     </span>
-                    <span class="badge" :class="cmaBadgeInfo(detailModal.piloto.cmaVencimiento).cls">
-                      {{ cmaBadgeInfo(detailModal.piloto.cmaVencimiento).label }}
+                    <span class="badge" :class="cmaBadgeInfo(detailModal.piloto).cls">
+                      {{ cmaBadgeInfo(detailModal.piloto).label }}
                     </span>
                   </div>
                 </div>
@@ -243,7 +266,6 @@ onMounted(fetchPilotos)
                       <tr>
                         <th>Emisión</th>
                         <th>Venc. CMA</th>
-                        <th>Caducidad</th>
                         <th>Activa</th>
                         <th>Img. CMA</th>
                         <th>Cert. Idoneidad</th>
@@ -253,7 +275,6 @@ onMounted(fetchPilotos)
                       <tr v-for="lic in detailModal.piloto.licencias" :key="lic.id">
                         <td>{{ formatFecha(lic.fechaEmision) }}</td>
                         <td>{{ formatFecha(lic.fechaVencimientoCma) }}</td>
-                        <td>{{ formatFecha(lic.caducidad) }}</td>
                         <td>
                           <span class="badge" :class="lic.activo ? 'badge--green' : 'badge--gray'">
                             {{ lic.activo ? 'Sí' : 'No' }}

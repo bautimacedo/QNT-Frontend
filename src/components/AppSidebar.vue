@@ -21,6 +21,7 @@ const menuGroups = [
     title: 'Stock',
     items: [
       { label: 'Stock', path: '/stock', icon: 'box' },
+      { label: 'Mapa de equipos', path: '/mapa', icon: 'map' },
     ],
   },
   {

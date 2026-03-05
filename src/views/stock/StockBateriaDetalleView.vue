@@ -1,22 +1,28 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getById, updateItem } from '../../api'
+import StockDetalleLayout from '../../components/stock/StockDetalleLayout.vue'
 
 const route = useRoute()
 const TIPO = 'baterias'
 const TITULO = 'Batería'
+const TITULO_LISTA = 'Baterías'
 const LISTA_ROUTE = '/stock/baterias'
-const IMAGEN = '/Images/baterias.jpg'
 
 const ESTADO_LABELS = {
-  NO_LLEGO:         'Pendiente de llegada',
-  STOCK_ACTUAL:     'En stock',
-  EN_PROCESO:       'En proceso',
-  STOCK_ACTIVO:     'En operación',
+  NO_LLEGO: 'Pendiente de llegada',
+  STOCK_ACTUAL: 'En stock',
+  EN_PROCESO: 'En proceso',
+  STOCK_ACTIVO: 'En operación',
   EN_MANTENIMIENTO: 'En mantenimiento',
-  EN_DESUSO:        'En desuso',
+  EN_DESUSO: 'En desuso',
 }
+
+const item = ref(null)
+const loading = ref(true)
+const error = ref('')
+const notFound = ref(false)
 
 const editModal = ref({
   open: false,
@@ -28,6 +34,9 @@ const editModal = ref({
   numeroSerie: '',
   garantia: '',
   estado: '',
+  latitud: '',
+  longitud: '',
+  altitud: '',
 })
 
 const toast = ref('')
@@ -50,6 +59,9 @@ function openEdit() {
     numeroSerie: o.numeroSerie || '',
     garantia: o.garantia || '',
     estado: o.estado || '',
+    latitud: o.latitud != null ? String(o.latitud) : '',
+    longitud: o.longitud != null ? String(o.longitud) : '',
+    altitud: o.altitud != null ? String(o.altitud) : '',
   }
 }
 
@@ -61,6 +73,7 @@ async function saveEdit() {
   editModal.value.loading = true
   editModal.value.apiError = ''
   try {
+    const parseCoord = (v) => (v === '' || v == null ? null : parseFloat(v))
     const body = {
       ...item.value,
       nombre: editModal.value.nombre || item.value.nombre,
@@ -69,161 +82,124 @@ async function saveEdit() {
       numeroSerie: editModal.value.numeroSerie || null,
       garantia: editModal.value.garantia || null,
       estado: editModal.value.estado,
+      latitud: parseCoord(editModal.value.latitud),
+      longitud: parseCoord(editModal.value.longitud),
+      altitud: parseCoord(editModal.value.altitud),
     }
     item.value = await updateItem(TIPO, body)
     closeEdit()
     showToast('Ítem actualizado correctamente.')
   } catch (e) {
-    editModal.value.apiError = e.message || 'Error al guardar. Intentá de nuevo.'
+    editModal.value.apiError = (e.response?.status === 400 && e.response?.data)
+      ? (typeof e.response.data === 'string' ? e.response.data : (e.response.data?.message || e.message))
+      : (e.message || 'Error al guardar. Intentá de nuevo.')
   } finally {
     editModal.value.loading = false
   }
 }
 
-const item = ref(null)
-const loading = ref(true)
-const error = ref('')
-
-function labelEstado(estado) { return ESTADO_LABELS[estado] || estado || '—' }
-
-const camposDetalle = computed(() => {
-  if (!item.value) return []
-  const o = item.value
-  const list = [
-    { label: 'ID', value: o.id },
-    { label: 'Estado', value: labelEstado(o.estado) },
-    { label: 'Marca', value: o.marca },
-    { label: 'Modelo', value: o.modelo },
-    { label: 'Nº de serie', value: o.numeroSerie },
-  ]
-  Object.keys(o).forEach((k) => {
-    if (!['id', 'estado', 'marca', 'modelo', 'numeroSerie'].includes(k)) {
-      const v = o[k]
-      const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())
-      list.push({ label, value: v !== null && v !== undefined ? String(v) : '—' })
-    }
-  })
-  return list
-})
-
 async function load() {
   loading.value = true
   error.value = ''
-  try { item.value = await getById(TIPO, route.params.id) } catch (e) {
-    if (e.response?.status === 404) error.value = 'No encontrado.'
-    else error.value = e.message || 'Error al cargar.'
+  notFound.value = false
+  try {
+    item.value = await getById(TIPO, route.params.id)
+  } catch (e) {
     item.value = null
-  } finally { loading.value = false }
+    if (e.response?.status === 404) {
+      notFound.value = true
+      error.value = ''
+    } else {
+      error.value = e.message || 'Error al cargar.'
+    }
+  } finally {
+    loading.value = false
+  }
 }
+
 onMounted(load)
 </script>
 
 <template>
   <div class="stock-detail-page">
-    <nav class="breadcrumb">
-      <router-link to="/stock">Volver a Stock</router-link>
-      <span class="breadcrumb__sep">/</span>
-      <router-link :to="LISTA_ROUTE">Volver al listado</router-link>
-    </nav>
-    <div v-if="loading" class="state-msg"><span class="spinner" /> Cargando…</div>
-    <div v-else-if="error" class="state-msg state-msg--error">
-      {{ error }}
-      <button class="btn-retry" @click="load">Reintentar</button>
-      <router-link :to="LISTA_ROUTE" class="btn-back">Volver al listado</router-link>
-    </div>
-    <template v-else-if="item">
-      <header class="page-header"><h1 class="page-title">Detalle de {{ TITULO }}</h1></header>
-      <div class="detail-card">
-        <div class="detail-card__image-wrap"><img :src="IMAGEN" :alt="TITULO" class="detail-card__image" /></div>
-        <div class="detail-fields">
-          <div v-for="f in camposDetalle" :key="f.label" class="detail-row">
-            <span class="detail-row__label">{{ f.label }}</span>
-            <span class="detail-row__value">{{ f.value || '—' }}</span>
+    <StockDetalleLayout
+      :item="item"
+      :loading="loading"
+      :error="error"
+      :not-found="notFound"
+      :tipo="TIPO"
+      :titulo="TITULO"
+      :titulo-lista="TITULO_LISTA"
+      :lista-route="LISTA_ROUTE"
+      :estado-labels="ESTADO_LABELS"
+      placeholder-type="bateria"
+      :show-edit-button="true"
+      @retry="load"
+      @editar="openEdit"
+    />
+
+    <Teleport to="body">
+      <div v-if="editModal.open" class="modal-overlay" @click.self="closeEdit">
+        <div class="modal-card">
+          <h2 class="modal-title">{{ item?.estado === 'NO_LLEGO' ? 'Completar datos del ítem' : 'Editar ítem' }}</h2>
+          <div v-if="item?.estado === 'NO_LLEGO'" class="modal-banner modal-banner--info">
+            Este ítem fue generado automáticamente al registrar la compra.
+            Completá los datos cuando el equipo llegue físicamente.
+          </div>
+          <div class="form-group">
+            <label>Nombre</label>
+            <input v-model="editModal.nombre" type="text" class="form-input" placeholder="Nombre del equipo" />
+          </div>
+          <div class="form-group">
+            <label>Marca</label>
+            <input v-model="editModal.marca" type="text" class="form-input" placeholder="Ej: DJI" />
+          </div>
+          <div class="form-group">
+            <label>Modelo</label>
+            <input v-model="editModal.modelo" type="text" class="form-input" placeholder="Modelo" />
+          </div>
+          <div class="form-group">
+            <label>Nº de serie</label>
+            <input v-model="editModal.numeroSerie" type="text" class="form-input" placeholder="Nº de serie" />
+          </div>
+          <div class="form-group">
+            <label>Garantía</label>
+            <input v-model="editModal.garantia" type="text" class="form-input" placeholder="Ej: 12 meses" />
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select v-model="editModal.estado" class="form-input">
+              <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+            </select>
+          </div>
+          <div class="form-group form-group--coords">
+            <label>Ubicación (para el mapa)</label>
+            <div class="coords-row">
+              <input v-model="editModal.latitud" type="number" step="any" placeholder="Latitud (-90 a 90)" class="form-input" />
+              <input v-model="editModal.longitud" type="number" step="any" placeholder="Longitud (-180 a 180)" class="form-input" />
+              <input v-model="editModal.altitud" type="number" step="any" placeholder="Altitud (m, opcional)" class="form-input" />
+            </div>
+            <p class="form-hint">Opcional. Si cargás latitud y longitud, el equipo aparecerá en el Mapa de equipos.</p>
+          </div>
+          <div v-if="editModal.apiError" class="modal-banner modal-banner--error">{{ editModal.apiError }}</div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" :disabled="editModal.loading" @click="closeEdit">Cancelar</button>
+            <button type="button" class="btn-primary" :disabled="editModal.loading" @click="saveEdit">
+              {{ editModal.loading ? 'Guardando…' : 'Guardar' }}
+            </button>
           </div>
         </div>
       </div>
-      <div class="actions">
-        <router-link :to="LISTA_ROUTE" class="btn-secondary">Volver al listado</router-link>
-        <button class="btn-primary" @click="openEdit">
-          {{ item.estado === 'NO_LLEGO' ? 'Completar datos' : 'Editar' }}
-        </button>
-      </div>
-    </template>
+    </Teleport>
 
-    <!-- Modal de edición -->
-    <div v-if="editModal.open" class="modal-overlay" @click.self="closeEdit">
-      <div class="modal-card">
-        <h2 class="modal-title">{{ item.estado === 'NO_LLEGO' ? 'Completar datos del ítem' : 'Editar ítem' }}</h2>
-        <div v-if="item.estado === 'NO_LLEGO'" class="modal-banner modal-banner--info">
-          Este ítem fue generado automáticamente al registrar la compra.
-          Completá los datos cuando el equipo llegue físicamente.
-        </div>
-        <div class="form-group">
-          <label>Nombre</label>
-          <input v-model="editModal.nombre" type="text" class="form-input" placeholder="Nombre del equipo" />
-        </div>
-        <div class="form-group">
-          <label>Marca</label>
-          <input v-model="editModal.marca" type="text" class="form-input" placeholder="Ej: DJI" />
-        </div>
-        <div class="form-group">
-          <label>Modelo</label>
-          <input v-model="editModal.modelo" type="text" class="form-input" placeholder="Modelo" />
-        </div>
-        <div class="form-group">
-          <label>Nº de serie</label>
-          <input v-model="editModal.numeroSerie" type="text" class="form-input" placeholder="Nº de serie" />
-        </div>
-        <div class="form-group">
-          <label>Garantía</label>
-          <input v-model="editModal.garantia" type="text" class="form-input" placeholder="Ej: 12 meses" />
-        </div>
-        <div class="form-group">
-          <label>Estado</label>
-          <select v-model="editModal.estado" class="form-input">
-            <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
-          </select>
-        </div>
-        <div v-if="editModal.apiError" class="modal-banner modal-banner--error">{{ editModal.apiError }}</div>
-        <div class="modal-actions">
-          <button class="btn-secondary" :disabled="editModal.loading" @click="closeEdit">Cancelar</button>
-          <button class="btn-primary" :disabled="editModal.loading" @click="saveEdit">
-            {{ editModal.loading ? 'Guardando…' : 'Guardar' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="toast" class="toast">{{ toast }}</div>
+    <Transition name="toast">
+      <div v-if="toast" class="toast">{{ toast }}</div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-.stock-detail-page { padding: 1.5rem; flex: 1; min-height: 0; overflow-y: auto; }
-.breadcrumb { margin-bottom: 1rem; font-size: 0.9rem; }
-.breadcrumb a { color: #0d7377; text-decoration: none; }
-.breadcrumb a:hover { text-decoration: underline; }
-.breadcrumb__sep { color: #94a3b8; margin: 0 0.35rem; }
-.page-header { margin-bottom: 1rem; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
-.state-msg { text-align: center; padding: 2rem; color: #64748b; }
-.state-msg--error { color: #dc2626; }
-.btn-retry, .btn-back { margin: 0 0.5rem; padding: 0.5rem 1rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; text-decoration: none; font-size: 0.9rem; display: inline-block; }
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e2e8f0; border-top-color: #0d7377; border-radius: 50%; animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.detail-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 1rem; }
-.detail-card__image-wrap { height: 180px; background: #f1f5f9; }
-.detail-card__image { width: 100%; height: 100%; object-fit: cover; }
-.detail-fields { padding: 1.25rem; }
-.detail-row { display: flex; gap: 1rem; margin-bottom: 0.6rem; font-size: 0.9rem; }
-.detail-row__label { color: #64748b; min-width: 140px; }
-.detail-row__value { color: #1e293b; font-weight: 500; }
-.actions { margin-top: 1rem; }
-.btn-secondary { display: inline-block; padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; font-size: 0.9rem; cursor: pointer; }
-.btn-secondary:hover { background: #e2e8f0; }
-.btn-primary { padding: 0.6rem 1.25rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
-.btn-primary:hover:not(:disabled) { background: #0a5c60; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.stock-detail-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-card { background: #fff; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
 .modal-title { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: #1e293b; }
@@ -234,5 +210,12 @@ onMounted(load)
 .form-group label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem; }
 .form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
-.toast { position: fixed; top: 1.5rem; right: 1.5rem; background: #1e293b; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; z-index: 2000; }
+.coords-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+.form-group--coords .form-hint { font-size: 0.8rem; color: #64748b; margin-top: 0.35rem; }
+.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-primary { padding: 0.6rem 1.25rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.toast { position: fixed; top: 1.5rem; right: 1.5rem; background: #166534; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; z-index: 2000; }
+.toast-enter-active, .toast-leave-active { transition: opacity 0.2s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; }
 </style>

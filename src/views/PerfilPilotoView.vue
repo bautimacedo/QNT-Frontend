@@ -198,6 +198,12 @@ async function openLicImageModal(lic) {
 }
 
 function closeLicImageModal() {
+  if (licImageModal.value.cmaUrl) {
+    URL.revokeObjectURL(licImageModal.value.cmaUrl)
+  }
+  if (licImageModal.value.certUrl) {
+    URL.revokeObjectURL(licImageModal.value.certUrl)
+  }
   licImageModal.value = {
     open: false, licencia: null,
     cmaUrl: null, certUrl: null,
@@ -368,7 +374,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 </td>
                 <td class="actions-cell">
                   <button class="btn-action" @click="openLicModal('editar', lic)">Editar</button>
-                  <button class="btn-action" @click="openLicImageModal(lic)">Imágenes</button>
+                  <button class="btn-action" @click="openLicImageModal(lic)">Ver imágenes</button>
                   <button class="btn-action btn-action--danger" @click="openLicConfirm(lic)">Eliminar</button>
                 </td>
               </tr>

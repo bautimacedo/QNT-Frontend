@@ -13,6 +13,8 @@ export {
   assignRole,
   removeRole,
   getPilotos,
+  obtenerImagenCmaLicenciaPiloto,
+  obtenerImagenCertIdoneidadLicenciaPiloto,
 } from './usuarios.js'
 export { getRoles } from './roles.js'
 export {
@@ -48,4 +50,5 @@ export {
   getLicencia,
   getAccesorios,
   getAccesorio,
+  getMapaEquipos,
 } from './stock.js'

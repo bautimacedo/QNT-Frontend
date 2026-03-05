@@ -65,6 +65,8 @@ const FORM_DEFAULTS = () => ({
   moneda: 'ARS',
   tipoCompra: '',
   metodoPago: 'EFECTIVO',
+  tieneIva: false,
+  ivaPorcentaje: '',
   companiaTarjeta: '',
   ultimos4Tarjeta: '',
   tipoEquipo: '',
@@ -283,6 +285,8 @@ function openEdit(compra) {
     moneda: compra.moneda || 'ARS',
     tipoCompra: compra.tipoCompra || '',
     metodoPago: compra.metodoPago || 'EFECTIVO',
+    tieneIva: compra.tieneIva ?? false,
+    ivaPorcentaje: compra.ivaPorcentaje != null ? String(compra.ivaPorcentaje) : '',
     companiaTarjeta: compra.companiaTarjeta || '',
     ultimos4Tarjeta: compra.ultimos4Tarjeta || '',
     tipoEquipo: compra.tipoEquipo || '',
@@ -368,6 +372,12 @@ function validateForm() {
   if (f.tipoCompra === 'EQUIPO' && !f.tipoEquipo) {
     errors.tipoEquipo = 'Seleccioná un tipo de equipo.'
   }
+  if (f.tieneIva) {
+    const pct = parseFloat(f.ivaPorcentaje)
+    if (f.ivaPorcentaje === '' || f.ivaPorcentaje === null || f.ivaPorcentaje === undefined || isNaN(pct) || pct < 0 || pct > 100) {
+      errors.ivaPorcentaje = 'Ingresá el porcentaje de IVA (0–100).'
+    }
+  }
   formModal.value.errors = errors
   return Object.keys(errors).length === 0
 }
@@ -396,6 +406,12 @@ function buildBody() {
   if (f.tipoCompra === 'EQUIPO') {
     body.tipoEquipo = f.tipoEquipo
     body.descripcionEquipo = f.descripcionEquipo?.trim() || null
+  }
+  body.tieneIva = !!f.tieneIva
+  if (body.tieneIva) {
+    body.ivaPorcentaje = parseFloat(f.ivaPorcentaje)
+  } else {
+    body.ivaPorcentaje = null
   }
   return body
 }
@@ -657,7 +673,10 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span v-else class="text-muted">—</span>
               </td>
               <td class="text-muted">{{ c.usuarioAlta ? (c.usuarioAlta.nombre || '') + (c.usuarioAlta.apellido ? ' ' + c.usuarioAlta.apellido : '') || c.usuarioAlta.email : '—' }}</td>
-              <td class="td-importe">{{ formatCurrency(c.importe, c.moneda) }}</td>
+              <td class="td-importe">
+                {{ formatCurrency(c.importe, c.moneda) }}
+                <span v-if="c.tieneIva" class="text-muted" title="Incluye IVA"> (incl. IVA)</span>
+              </td>
               <td class="actions-cell">
                 <button class="btn-action" @click="openDetail(c)">Ver</button>
                 <button class="btn-action" @click="openEdit(c)">Editar</button>
@@ -760,6 +779,27 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               </Transition>
 
               <!-- Moneda + Tipo compra -->
+              <div class="form-field">
+                <label class="form-field__checkbox-label">
+                  <input v-model="formModal.tieneIva" type="checkbox" :disabled="formModal.loading" />
+                  Incluye IVA en el total
+                </label>
+              </div>
+              <Transition name="slide">
+                <div v-if="formModal.tieneIva" class="form-field">
+                  <label>Porcentaje IVA <span class="required">*</span></label>
+                  <input
+                    v-model="formModal.ivaPorcentaje"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="21"
+                    :disabled="formModal.loading"
+                  />
+                  <p v-if="formModal.errors.ivaPorcentaje" class="field-error">{{ formModal.errors.ivaPorcentaje }}</p>
+                </div>
+              </Transition>
               <div class="form-field">
                 <label>Moneda</label>
                 <select v-model="formModal.moneda" :disabled="formModal.loading">
@@ -876,7 +916,14 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <div class="detail-row">
                 <span class="detail-row__label">Importe</span>
                 <span class="detail-row__value detail-row__value--highlight">
-                  {{ formatCurrency(detailModal.compra?.importe, detailModal.compra?.moneda) }}
+                  <template v-if="detailModal.compra?.tieneIva && detailModal.compra?.subtotal != null">
+                    Subtotal {{ formatCurrency(detailModal.compra.subtotal, detailModal.compra?.moneda) }}
+                    + IVA {{ detailModal.compra.ivaPorcentaje }}% {{ formatCurrency((detailModal.compra?.importe || 0) - (detailModal.compra?.subtotal || 0), detailModal.compra?.moneda) }}
+                    = Total {{ formatCurrency(detailModal.compra?.importe, detailModal.compra?.moneda) }}
+                  </template>
+                  <template v-else>
+                    {{ formatCurrency(detailModal.compra?.importe, detailModal.compra?.moneda) }}
+                  </template>
                 </span>
               </div>
               <div class="detail-row">
@@ -1347,6 +1394,17 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   margin-bottom: 0.35rem;
 }
 .form-field label .required { color: #dc2626; }
+.form-field__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.form-field__checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
 .form-field input,
 .form-field select,
 .form-field textarea {

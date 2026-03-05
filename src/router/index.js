@@ -6,12 +6,14 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
 import PilotosView from '../views/PilotosView.vue'
+import PilotoPerfilDetalleView from '../views/PilotoPerfilDetalleView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
 import MiPerfilView from '../views/MiPerfilView.vue'
 import PerfilPilotoView from '../views/PerfilPilotoView.vue'
 import ComprasView from '../views/ComprasView.vue'
 import ProveedoresView from '../views/ProveedoresView.vue'
 import StockView from '../views/stock/StockView.vue'
+import MapaEquiposView from '../views/MapaEquiposView.vue'
 import StockDronesView from '../views/stock/StockDronesView.vue'
 import StockDocksView from '../views/stock/StockDocksView.vue'
 import StockBateriasView from '../views/stock/StockBateriasView.vue'
@@ -46,9 +48,11 @@ const routes = [
       { path: 'pozos', name: 'pozos', component: PlaceholderView },
       { path: 'logs', name: 'logs', component: PlaceholderView },
       { path: 'pilotos', name: 'pilotos', component: PilotosView },
+      { path: 'pilotos/:id', name: 'piloto-perfil-detalle', component: PilotoPerfilDetalleView },
       { path: 'proveedores', name: 'proveedores', component: ProveedoresView },
       { path: 'compras', name: 'compras', component: ComprasView },
       { path: 'stock', name: 'stock', component: StockView },
+      { path: 'mapa', name: 'mapa-equipos', component: MapaEquiposView },
       { path: 'stock/drones', name: 'stock-drones', component: StockDronesView },
       { path: 'stock/drones/:id', name: 'stock-dron-detalle', component: StockDronDetalleView },
       { path: 'stock/docks', name: 'stock-docks', component: StockDocksView },

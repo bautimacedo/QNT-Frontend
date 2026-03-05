@@ -57,3 +57,30 @@ export async function getPilotos() {
   const res = await request('/usuarios/pilotos', { method: 'GET' })
   return json(res)
 }
+
+/**
+ * Obtener imagen CMA de una licencia ANAC de un piloto (admin).
+ * Endpoint esperado: GET /usuarios/{pilotoId}/licencias-anac/{licenciaId}/imagen-cma
+ * Si el backend no expone este endpoint, devolverá 404 y se debe mostrar "Sin imagen cargada".
+ */
+export async function obtenerImagenCmaLicenciaPiloto(pilotoId, licenciaId) {
+  const res = await request(`/usuarios/${pilotoId}/licencias-anac/${licenciaId}/imagen-cma`, { method: 'GET', responseType: 'blob' })
+  if (!res.ok) {
+    if (res.status === 404) return null
+    throw new Error('Error al obtener imagen CMA de la licencia')
+  }
+  return res.blob()
+}
+
+/**
+ * Obtener imagen Certificado de Idoneidad de una licencia ANAC de un piloto (admin).
+ * Endpoint esperado: GET /usuarios/{pilotoId}/licencias-anac/{licenciaId}/imagen-certificado-idoneidad
+ */
+export async function obtenerImagenCertIdoneidadLicenciaPiloto(pilotoId, licenciaId) {
+  const res = await request(`/usuarios/${pilotoId}/licencias-anac/${licenciaId}/imagen-certificado-idoneidad`, { method: 'GET', responseType: 'blob' })
+  if (!res.ok) {
+    if (res.status === 404) return null
+    throw new Error('Error al obtener imagen Cert. Idoneidad de la licencia')
+  }
+  return res.blob()
+}
