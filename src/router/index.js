@@ -5,6 +5,7 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
+import PilotosView from '../views/PilotosView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
 import MiPerfilView from '../views/MiPerfilView.vue'
 import PerfilPilotoView from '../views/PerfilPilotoView.vue'
@@ -44,7 +45,7 @@ const routes = [
       { path: 'misiones', name: 'misiones', component: PlaceholderView },
       { path: 'pozos', name: 'pozos', component: PlaceholderView },
       { path: 'logs', name: 'logs', component: PlaceholderView },
-      { path: 'pilotos', name: 'pilotos', component: PlaceholderView },
+      { path: 'pilotos', name: 'pilotos', component: PilotosView },
       { path: 'proveedores', name: 'proveedores', component: ProveedoresView },
       { path: 'compras', name: 'compras', component: ComprasView },
       { path: 'stock', name: 'stock', component: StockView },

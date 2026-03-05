@@ -12,6 +12,7 @@ export {
   enableUsuario,
   assignRole,
   removeRole,
+  getPilotos,
 } from './usuarios.js'
 export { getRoles } from './roles.js'
 export {

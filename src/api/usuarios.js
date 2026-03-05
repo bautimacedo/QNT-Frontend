@@ -52,3 +52,8 @@ export async function removeRole(email, roleCodigo) {
   })
   return json(res)
 }
+
+export async function getPilotos() {
+  const res = await request('/usuarios/pilotos', { method: 'GET' })
+  return json(res)
+}
