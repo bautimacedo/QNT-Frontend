@@ -17,6 +17,11 @@ export const api = axios.create({
 
 // Añadir Bearer Token a todas las peticiones (salvo las que marcan skipAuth)
 api.interceptors.request.use((config) => {
+  // Para FormData: eliminar Content-Type para que axios setee multipart/form-data + boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   if (config.skipAuth) {
     delete config.skipAuth
     return config
