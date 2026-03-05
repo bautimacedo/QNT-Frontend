@@ -72,3 +72,14 @@ export async function getAccesorio(id) {
   const { data } = await api.get(`/accesorios/${id}`)
   return data
 }
+
+/**
+ * Actualiza un ítem de equipo enviando el objeto completo con id.
+ * @param {string} tipo - drones | baterias | helices (y otros en el futuro)
+ * @param {Object} body - objeto completo del ítem incluyendo id
+ * @returns {Promise<Object>}
+ */
+export async function updateItem(tipo, body) {
+  const { data } = await api.put(`/${tipo}`, body)
+  return data
+}

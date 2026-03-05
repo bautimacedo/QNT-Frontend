@@ -1,12 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   getCompras, crearCompra, actualizarCompra, eliminarCompra,
   subirImagenCompra, obtenerImagenCompra, getTiposEquipo,
 } from '../api'
 
 const route = useRoute()
+const router = useRouter()
 const TIPO_COMPRA_LABELS = {
   LICENCIA_SW: 'Licencia SW',
   REPUESTO: 'Repuesto',
@@ -409,8 +410,26 @@ async function saveCompra() {
       await actualizarCompra(formModal.value.editing.id, body)
       showToast('Compra actualizada exitosamente.')
     } else {
-      await crearCompra(body)
-      showToast('Compra creada exitosamente.')
+      const compraCreada = await crearCompra(body)
+      if (body.tipoCompra === 'EQUIPO') {
+        const rutasStock = {
+          DRON:    '/stock/drones',
+          BATERIA: '/stock/baterias',
+          HELICE:  '/stock/helices',
+        }
+        const destino = rutasStock[body.tipoEquipo]
+        if (destino) {
+          showToast(`Equipo agregado al stock con estado "Pendiente de llegada". Podés completar los datos desde el stock.`)
+          closeFormModal()
+          fetchCompras()
+          setTimeout(() => router.push(destino), 1500)
+          return
+        } else {
+          showToast(`Compra registrada. El equipo de tipo ${body.tipoEquipo} debe crearse manualmente en el inventario.`)
+        }
+      } else {
+        showToast('Compra creada exitosamente.')
+      }
     }
     closeFormModal()
     fetchCompras()

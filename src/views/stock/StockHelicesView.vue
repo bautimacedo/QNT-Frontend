@@ -9,7 +9,27 @@ const TITULO = 'Hélices'
 const LISTA_ROUTE = '/stock/helices'
 const IMAGEN = '/Images/helices.jpg'
 
-const ESTADO_LABELS = { STOCK_ACTUAL: 'En stock actual', EN_PROCESO: 'En proceso', STOCK_ACTIVO: 'Stock activo', EN_DESUSO: 'En desuso' }
+const ESTADO_LABELS = {
+  NO_LLEGO:         'Pendiente de llegada',
+  STOCK_ACTUAL:     'En stock',
+  EN_PROCESO:       'En proceso',
+  STOCK_ACTIVO:     'En operación',
+  EN_MANTENIMIENTO: 'En mantenimiento',
+  EN_DESUSO:        'En desuso',
+}
+
+const ESTADO_CLASES = {
+  NO_LLEGO:         'badge--yellow',
+  STOCK_ACTUAL:     'badge--blue',
+  EN_PROCESO:       'badge--blue',
+  STOCK_ACTIVO:     'badge--green',
+  EN_MANTENIMIENTO: 'badge--orange',
+  EN_DESUSO:        'badge--gray',
+}
+
+function claseEstado(estado) {
+  return ESTADO_CLASES[estado] || 'badge--gray'
+}
 
 const items = ref([])
 const loading = ref(true)
@@ -68,7 +88,7 @@ onMounted(load)
             <div class="item-card__id">{{ item.numeroSerie || item.id }}</div>
             <div v-if="item.marca" class="item-card__meta">{{ item.marca }}</div>
             <div v-if="item.modelo" class="item-card__meta">{{ item.modelo }}</div>
-            <div v-if="item.estado" class="item-card__estado">{{ labelEstado(item.estado) }}</div>
+            <div v-if="item.estado" :class="['item-card__badge', claseEstado(item.estado)]">{{ labelEstado(item.estado) }}</div>
           </div>
         </button>
       </div>
@@ -100,5 +120,10 @@ onMounted(load)
 .item-card__body { padding: 1rem; }
 .item-card__id { font-weight: 600; color: #1e293b; }
 .item-card__meta { font-size: 0.85rem; color: #64748b; margin-top: 0.25rem; }
-.item-card__estado { font-size: 0.8rem; color: #0d7377; margin-top: 0.5rem; }
+.item-card__badge { display: inline-block; margin-top: 0.5rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge--yellow  { background: #fef9c3; color: #854d0e; }
+.badge--blue    { background: #dbeafe; color: #1e40af; }
+.badge--green   { background: #dcfce7; color: #166534; }
+.badge--orange  { background: #ffedd5; color: #9a3412; }
+.badge--gray    { background: #f1f5f9; color: #475569; }
 </style>

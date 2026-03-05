@@ -43,6 +43,7 @@ export {
 export {
   getList,
   getById,
+  updateItem,
   getLicencias,
   getLicencia,
   getAccesorios,
