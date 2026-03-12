@@ -126,7 +126,7 @@ onUnmounted(() => clearInterval(climaInterval))
             <div class="stat__sub">Área total monitoreada</div>
           </div>
           <div class="stat">
-            <div class="stat__number">12</div>
+            <div class="stat__number">3</div>
             <div class="stat__label">Drones Desplegados</div>
             <div class="stat__sub">Flota activa DJI Enterprise</div>
           </div>
