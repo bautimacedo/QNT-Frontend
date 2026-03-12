@@ -7,7 +7,7 @@ defineProps({
 
 <template>
   <div class="logo-qnt" :class="[`logo-qnt--${variant}`]">
-    <img src="/src/assets/Qnt_Logo.png" alt="QNT Drones" class="logo-qnt__img" />
+    <img src="/Qnt_Logo.png" alt="QNT Drones" class="logo-qnt__img" />
   </div>
 </template>
 

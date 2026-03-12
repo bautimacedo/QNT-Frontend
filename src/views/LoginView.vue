@@ -65,10 +65,7 @@ async function onForgotSubmit() {
       <div class="relative z-10 flex flex-col justify-between w-full p-12">
         <!-- Top: Brand -->
         <div class="flex items-center gap-4">
-          <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#113e4c,#2b555b);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.3);">
-            <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:.05em;line-height:1;">QNT</span>
-            <span style="font-size:7px;color:rgba(255,255,255,.75);letter-spacing:.05em;">DRONES</span>
-          </div>
+          <img src="/Qnt_Logo.png" alt="QNT Drones" style="width:56px;height:56px;border-radius:14px;object-fit:contain;" />
           <div>
             <div style="color:#fff;font-weight:700;letter-spacing:.1em;font-size:1.1rem;">QNT DRONES</div>
             <div style="color:#8fb8b5;font-size:.7rem;letter-spacing:.08em;">SISTEMA DE GESTIÓN DE FLOTA</div>

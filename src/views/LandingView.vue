@@ -18,7 +18,7 @@ const capabilities = [
 const sites = [
   { code: 'EFO', name: 'Estación Fernandez Oro', desc: 'Vigilancia activa y operaciones de inspección' },
   { code: 'CL',  name: 'Cañadón León',            desc: 'Monitoreo de infraestructura y soporte'        },
-  { code: 'CS',  name: 'Cañadón Seco',             desc: 'Inspecciones regulares y patrullaje'           },
+  { code: 'CAM', name: 'Cañadón Amarillo',           desc: 'Inspecciones regulares y patrullaje'           },
 ]
 
 const climaMap = ref({})
@@ -65,10 +65,7 @@ onUnmounted(() => clearInterval(climaInterval))
     <nav class="navbar">
       <div class="navbar__inner">
         <div class="navbar__logo">
-          <div class="logo-mark">
-            <span class="logo-mark__qnt">QNT</span>
-            <span class="logo-mark__sub">DRONES</span>
-          </div>
+          <img src="/Qnt_Logo.png" alt="QNT Drones" style="width:40px;height:40px;border-radius:8px;object-fit:contain;" />
           <div>
             <div class="navbar__brand">QNT DRONES</div>
             <div class="navbar__subbrand">Quintana Energy</div>
@@ -111,7 +108,7 @@ onUnmounted(() => clearInterval(climaInterval))
                 autoplay loop muted playsinline
                 class="hero__video"
               >
-                <source src="/src/assets/aib-landing.mp4" type="video/mp4" />
+                <source src="/aib-landing.mp4" type="video/mp4" />
               </video>
             </div>
           </div>
@@ -170,7 +167,7 @@ onUnmounted(() => clearInterval(climaInterval))
       <div class="container">
         <div class="capabilities-grid">
           <div class="capabilities-img">
-            <img src="/src/assets/capacidades-operativas.png" alt="Capacidades Operativas" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" />
+            <img src="/capacidades-operativas.png" alt="Capacidades Operativas" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" />
           </div>
           <div class="capabilities-content">
             <h2 class="section__title">Capacidades Operativas</h2>
@@ -319,10 +316,7 @@ onUnmounted(() => clearInterval(climaInterval))
       <div class="container">
         <div class="footer__grid">
           <div class="footer__brand">
-            <div class="logo-mark logo-mark--sm">
-              <span class="logo-mark__qnt">QNT</span>
-              <span class="logo-mark__sub">DRONES</span>
-            </div>
+            <img src="/Qnt_Logo.png" alt="QNT Drones" style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
             <div>
               <div class="footer__name">QNT DRONES</div>
               <div class="footer__division">Quintana Energy</div>
