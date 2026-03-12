@@ -1,22 +1,65 @@
 <script setup>
-import { onMounted, ref, computed, provide } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, provide, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { me } from '../api'
-import AppSidebar from '../components/AppSidebar.vue'
+import AppHeader from '../components/AppHeader.vue'
+import ContextualSidebar from '../components/ContextualSidebar.vue'
 
 const router = useRouter()
-const user = ref(null)
+const route  = useRoute()
 
-const userInitials = computed(() => {
-  if (!user.value?.email) return '?'
-  const parts = user.value.email.split('@')[0].split(/[._-]/)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return (parts[0]?.[0] || '?').toUpperCase()
+const user            = ref(null)
+const sidebarCollapsed = ref(false)
+const isMobile        = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 1024
+}
+
+// Mapa de ruta → tab activo
+const routeToTab = {
+  '':              'dashboard',
+  'home':          'dashboard',
+  'tareas':        'dashboard',
+  'misiones':      'operaciones',
+  'reportes':      'operaciones',
+  'cobertura':     'operaciones',
+  'emergencias':   'operaciones',
+  'stock':         'operaciones',
+  'mantenimiento': 'operaciones',
+  'logs':          'operaciones',
+  'mi-perfil':     'administracion',
+  'perfil-piloto': 'administracion',
+  'pilotos':       'administracion',
+  'proveedores':   'administracion',
+  'compras':       'administracion',
+  'usuarios':      'administracion',
+  'licencias':     'administracion',
+  'seguros':       'administracion',
+  'mapa':          'operaciones',
+}
+
+const activeSegment = computed(() => {
+  const parts = route.path.replace(/^\/home\/?/, '').split('/')
+  return parts[0] || 'home'
 })
 
-const displayName = computed(() => user.value?.nombre || user.value?.email || '')
+const activeTab = computed(() => routeToTab[activeSegment.value] || 'dashboard')
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+function closeSidebarOnNavigate() {
+  if (isMobile.value) sidebarCollapsed.value = true
+}
 
 onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  // Auto-colapsar en mobile al iniciar
+  if (isMobile.value) sidebarCollapsed.value = true
+
   try {
     user.value = await me()
   } catch (_) {
@@ -24,23 +67,37 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
 provide('dashboardUser', user)
+provide('toggleSidebar', toggleSidebar)
 </script>
 
 <template>
   <div class="dashboard-layout">
-    <AppSidebar :user="user" />
-    <div class="dashboard-main">
-      <header class="topbar">
-        <div class="topbar__left"></div>
-        <div class="topbar__right">
-          <router-link to="/mi-perfil" class="topbar__profile" :title="user?.email">
-            <span class="topbar__avatar">{{ userInitials }}</span>
-            <span class="topbar__username">{{ displayName }}</span>
-          </router-link>
-        </div>
-      </header>
-      <router-view />
+    <AppHeader
+      :active-tab="activeTab"
+      @update:active-tab="() => {}"
+    />
+    <div class="dashboard-body">
+      <!-- Overlay mobile cuando sidebar está abierto -->
+      <div
+        v-if="isMobile && !sidebarCollapsed"
+        class="mobile-overlay"
+        @click="sidebarCollapsed = true"
+      />
+      <ContextualSidebar
+        :active-tab="activeTab"
+        :collapsed="sidebarCollapsed"
+        :is-mobile="isMobile"
+        @update:collapsed="sidebarCollapsed = $event"
+        @navigate="closeSidebarOnNavigate"
+      />
+      <main class="dashboard-content">
+        <router-view />
+      </main>
     </div>
   </div>
 </template>
@@ -49,76 +106,29 @@ provide('dashboardUser', user)
 .dashboard-layout {
   min-height: 100vh;
   display: flex;
-  background: #f1f5f9;
+  flex-direction: column;
+  background: #f3f5f5;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-.dashboard-main {
+.dashboard-body {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  height: calc(100vh - 100px);
+  position: relative;
+}
+
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
   min-width: 0;
-  overflow: hidden;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  flex-shrink: 0;
-}
-
-.topbar__right {
-  margin-left: auto;
-}
-
-.topbar__profile {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  transition: background 0.15s;
-}
-
-.topbar__profile:hover {
-  background: #f1f5f9;
-}
-
-.topbar__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #0d7377;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.topbar__username {
-  font-size: 0.9rem;
-  color: #475569;
-  font-weight: 500;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .topbar {
-    padding: 0.5rem 1rem;
-  }
-  .topbar__username {
-    display: none;
-  }
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgba(0, 0, 0, 0.4);
 }
 </style>

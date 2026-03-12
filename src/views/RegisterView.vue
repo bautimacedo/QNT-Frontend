@@ -199,7 +199,7 @@ function goToLogin() {
 }
 
 .login-page__form-section {
-  background: #f8fafc;
+  background: #f8fafa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -252,7 +252,7 @@ function goToLogin() {
   width: 100%;
   box-sizing: border-box;
   padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e0e5e5;
   border-radius: 8px;
   background: #fff;
   color: #1e293b;
@@ -265,8 +265,8 @@ function goToLogin() {
 
 .login-form input:focus {
   outline: none;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+  border-color: #113e4c;
+  box-shadow: 0 0 0 3px rgba(17, 62, 76, 0.1);
 }
 
 .login-form input:disabled {
@@ -293,7 +293,7 @@ function goToLogin() {
 .btn-primary {
   width: 100%;
   padding: 0.85rem 1rem;
-  background: #0d7377;
+  background: #113e4c;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -304,7 +304,7 @@ function goToLogin() {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0a5c5f;
+  background: #2b555b;
 }
 
 .btn-primary:disabled {
@@ -320,7 +320,7 @@ function goToLogin() {
 }
 
 .login-link a {
-  color: #0d7377;
+  color: #113e4c;
   text-decoration: none;
   font-weight: 500;
 }
@@ -331,7 +331,7 @@ function goToLogin() {
 
 /* Brand section */
 .login-page__brand-section {
-  background: #0d7377;
+  background: #113e4c;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -368,7 +368,7 @@ function goToLogin() {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #f8fafc;
+  background: #f8fafa;
   padding: 2rem;
 }
 

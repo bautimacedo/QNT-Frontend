@@ -519,14 +519,14 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .field--checkbox input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #0d7377;
+  accent-color: #113e4c;
 }
 
 .input-field {
   width: 100%; box-sizing: border-box; padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #1e293b; font-size: 1rem;
+  border: 1px solid #e0e5e5; border-radius: 8px; background: #fff; color: #1e293b; font-size: 1rem;
 }
-.input-field:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+.input-field:focus { outline: none; border-color: #113e4c; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
 .input-field:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .field-error { color: #dc2626; font-size: 0.85rem; margin: 0.4rem 0 0; }
@@ -535,7 +535,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .image-preview--modal img { max-width: 100%; }
 
 /* Image sections (modal de imágenes) */
-.image-section { border-top: 1px solid #e2e8f0; padding-top: 1.25rem; margin-top: 1.25rem; }
+.image-section { border-top: 1px solid #e0e5e5; padding-top: 1.25rem; margin-top: 1.25rem; }
 .image-section:first-of-type { border-top: none; margin-top: 0.5rem; }
 .image-section__title { margin: 0 0 0.75rem; font-size: 0.95rem; font-weight: 600; color: #334155; }
 .image-section__actions { margin-top: 0.75rem; }
@@ -552,13 +552,13 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 /* Table */
 .table-wrap { background: #fff; border-radius: 12px; overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 0.85rem 1rem; font-weight: 600; color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+.data-table th { text-align: left; padding: 0.85rem 1rem; font-weight: 600; color: #475569; background: #f8fafa; border-bottom: 1px solid #e0e5e5; white-space: nowrap; }
 .data-table td { padding: 0.75rem 1rem; color: #334155; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f8fafc; }
+.data-table tbody tr:hover { background: #f8fafa; }
 .actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
-.btn-action { padding: 0.35rem 0.7rem; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.btn-action { padding: 0.35rem 0.7rem; border: 1px solid #e0e5e5; border-radius: 6px; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
 .btn-action:hover { background: #f1f5f9; color: #334155; }
 .btn-action--danger { color: #991b1b; border-color: #fecaca; }
 .btn-action--danger:hover { background: #fee2e2; }
@@ -567,26 +567,26 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .empty-state p { margin: 0 0 0.75rem; }
 
 /* Buttons */
-.btn-primary { padding: 0.75rem 1.5rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-.btn-primary:hover:not(:disabled) { background: #0a5c5f; }
+.btn-primary { padding: 0.75rem 1.5rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-primary:hover:not(:disabled) { background: #2b555b; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary--danger { background: #dc2626; }
 .btn-primary--danger:hover:not(:disabled) { background: #b91c1c; }
 .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
 
-.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
-.btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+.btn-secondary:hover:not(:disabled) { background: #e0e5e5; }
 .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.btn-retry { padding: 0.5rem 1.25rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
-.btn-retry:hover { background: #0a5c5f; }
+.btn-retry { padding: 0.5rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+.btn-retry:hover { background: #2b555b; }
 
 /* States */
 .state-msg { text-align: center; padding: 3rem 1rem; color: #64748b; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .state-msg--error { color: #dc2626; flex-direction: column; gap: 0.75rem; }
 .state-msg-inline { padding: 1.5rem; text-align: center; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e2e8f0; border-top-color: #0d7377; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e0e5e5; border-top-color: #113e4c; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Modal */

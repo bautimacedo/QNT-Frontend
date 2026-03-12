@@ -2,15 +2,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getList } from '../../api'
+import { Plane, Search, SlidersHorizontal, RefreshCw } from 'lucide-vue-next'
+import StatusBadge from '../../components/ui/StatusBadge.vue'
+import PageHeader  from '../../components/ui/PageHeader.vue'
 
 const router = useRouter()
-const TIPO = 'drones'
-const TITULO = 'Drones'
-const LISTA_ROUTE = '/stock/drones'
-const IMAGEN = '/Images/Matrice 4td.jpg'
+const TIPO        = 'drones'
+const LISTA_ROUTE = '/home/stock/drones'
+const IMAGEN      = '/Images/Matrice 4td.jpg'
 
 const ESTADO_LABELS = {
-  NO_LLEGO:         'Pendiente de llegada',
+  NO_LLEGO:         'Pend. llegada',
   STOCK_ACTUAL:     'En stock',
   EN_PROCESO:       'En proceso',
   STOCK_ACTIVO:     'En operación',
@@ -18,48 +20,42 @@ const ESTADO_LABELS = {
   EN_DESUSO:        'En desuso',
 }
 
-const ESTADO_CLASES = {
-  NO_LLEGO:         'badge--yellow',
-  STOCK_ACTUAL:     'badge--blue',
-  EN_PROCESO:       'badge--blue',
-  STOCK_ACTIVO:     'badge--green',
-  EN_MANTENIMIENTO: 'badge--orange',
-  EN_DESUSO:        'badge--gray',
-}
-
-function claseEstado(estado) {
-  return ESTADO_CLASES[estado] || 'badge--gray'
-}
-
-const items = ref([])
-const loading = ref(true)
-const error = ref('')
-const filtroEstado = ref('')
-const filtroMarca = ref('')
-const filtroModelo = ref('')
+const items          = ref([])
+const loading        = ref(true)
+const error          = ref('')
+const filtroEstado   = ref('')
+const filtroMarca    = ref('')
+const filtroModelo   = ref('')
 const filtroNumeroSerie = ref('')
 
 const filteredItems = computed(() => {
   let list = items.value
-  if (filtroEstado.value) {
-    list = list.filter((i) => (i.estado || '') === filtroEstado.value)
-  }
+  if (filtroEstado.value)
+    list = list.filter(i => (i.estado || '') === filtroEstado.value)
   const marca = filtroMarca.value.trim().toLowerCase()
-  if (marca) list = list.filter((i) => (i.marca || '').toLowerCase().includes(marca))
+  if (marca)
+    list = list.filter(i => (i.marca || '').toLowerCase().includes(marca))
   const modelo = filtroModelo.value.trim().toLowerCase()
-  if (modelo) list = list.filter((i) => (i.modelo || '').toLowerCase().includes(modelo))
+  if (modelo)
+    list = list.filter(i => (i.modelo || '').toLowerCase().includes(modelo))
   const ns = filtroNumeroSerie.value.trim().toLowerCase()
-  if (ns) list = list.filter((i) => (i.numeroSerie || '').toLowerCase().includes(ns))
+  if (ns)
+    list = list.filter(i => (i.numeroSerie || '').toLowerCase().includes(ns))
   return list
 })
 
-function labelEstado(estado) {
-  return ESTADO_LABELS[estado] || estado || '—'
+const hasActiveFilters = computed(() =>
+  filtroEstado.value || filtroMarca.value || filtroModelo.value || filtroNumeroSerie.value
+)
+
+function clearFilters() {
+  filtroEstado.value = ''
+  filtroMarca.value = ''
+  filtroModelo.value = ''
+  filtroNumeroSerie.value = ''
 }
 
-function verDetalle(id) {
-  router.push(`${LISTA_ROUTE}/${id}`)
-}
+function verDetalle(id) { router.push(`${LISTA_ROUTE}/${id}`) }
 
 async function load() {
   loading.value = true
@@ -78,85 +74,144 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="stock-list-page">
-    <nav class="breadcrumb">
-      <router-link to="/stock">Volver a Stock</router-link>
+  <div class="qnt-page">
+    <!-- Breadcrumb -->
+    <nav class="qnt-breadcrumb">
+      <router-link to="/home/stock">Stock</router-link>
+      <span class="qnt-breadcrumb__sep">/</span>
+      <span>Drones</span>
     </nav>
-    <header class="page-header">
-      <h1 class="page-title">{{ TITULO }}</h1>
-    </header>
 
-    <div v-if="loading" class="state-msg">
-      <span class="spinner" /> Cargando…
-    </div>
-    <div v-else-if="error" class="state-msg state-msg--error">
-      {{ error }}
-      <button class="btn-retry" @click="load">Reintentar</button>
-    </div>
-    <template v-else>
-      <div class="filters">
-        <select v-model="filtroEstado" class="filter-select">
-          <option value="">Todos los estados</option>
-          <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
-        </select>
-        <input v-model="filtroMarca" type="text" placeholder="Marca" class="filter-input" />
-        <input v-model="filtroModelo" type="text" placeholder="Modelo" class="filter-input" />
-        <input v-model="filtroNumeroSerie" type="text" placeholder="Nº de serie" class="filter-input" />
-      </div>
-      <p class="filter-count">Mostrando {{ filteredItems.length }} de {{ items.length }} ítems</p>
+    <!-- Header -->
+    <PageHeader title="Drones" :subtitle="`${items.length} equipos registrados`" />
 
-      <div v-if="filteredItems.length === 0" class="state-msg">No hay ítems con los filtros aplicados.</div>
-      <div v-else class="cards-grid">
-        <button
-          v-for="item in filteredItems"
-          :key="item.id"
-          type="button"
-          class="item-card"
-          @click="verDetalle(item.id)"
-        >
-          <div class="item-card__image-wrap">
-            <img :src="IMAGEN" :alt="TITULO" class="item-card__image" />
-          </div>
-          <div class="item-card__body">
-            <div class="item-card__id">{{ item.numeroSerie || item.id }}</div>
-            <div v-if="item.marca" class="item-card__meta">{{ item.marca }}</div>
-            <div v-if="item.modelo" class="item-card__meta">{{ item.modelo }}</div>
-            <div v-if="item.estado" :class="['item-card__badge', claseEstado(item.estado)]">{{ labelEstado(item.estado) }}</div>
-          </div>
-        </button>
+    <!-- Toolbar -->
+    <div class="qnt-toolbar">
+      <div class="search-wrap">
+        <Search class="search-icon" />
+        <input
+          v-model="filtroNumeroSerie"
+          type="text"
+          class="qnt-input search-input"
+          placeholder="Buscar por N° de serie…"
+        />
       </div>
-    </template>
+      <select v-model="filtroEstado" class="qnt-select">
+        <option value="">Todos los estados</option>
+        <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+      </select>
+      <input v-model="filtroMarca"  type="text" class="qnt-input filter-sm" placeholder="Marca"  />
+      <input v-model="filtroModelo" type="text" class="qnt-input filter-sm" placeholder="Modelo" />
+      <button v-if="hasActiveFilters" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">
+        Limpiar
+      </button>
+      <span class="filter-count">{{ filteredItems.length }} / {{ items.length }}</span>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="qnt-state qnt-state--row">
+      <span class="qnt-spinner" /> Cargando drones…
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="qnt-state qnt-state--error">
+      <p>{{ error }}</p>
+      <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="load">
+        <RefreshCw class="w-4 h-4" /> Reintentar
+      </button>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="filteredItems.length === 0" class="qnt-state">
+      <Plane style="width:40px;height:40px;opacity:.25" />
+      <p>{{ hasActiveFilters ? 'Sin resultados con los filtros aplicados.' : 'No hay drones registrados.' }}</p>
+      <button v-if="hasActiveFilters" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">
+        Limpiar filtros
+      </button>
+    </div>
+
+    <!-- Grid -->
+    <div v-else class="equip-grid">
+      <button
+        v-for="item in filteredItems"
+        :key="item.id"
+        type="button"
+        class="equip-card"
+        @click="verDetalle(item.id)"
+      >
+        <div class="equip-card__img-wrap">
+          <img :src="IMAGEN" alt="Dron" class="equip-card__img" />
+          <StatusBadge :estado="item.estado" class="equip-card__badge" />
+        </div>
+        <div class="equip-card__body">
+          <p class="equip-card__serial">{{ item.numeroSerie || `#${item.id}` }}</p>
+          <p class="equip-card__title">{{ [item.marca, item.modelo].filter(Boolean).join(' ') || '—' }}</p>
+        </div>
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.stock-list-page { padding: 1.5rem; flex: 1; min-height: 0; overflow-y: auto; }
-.breadcrumb { margin-bottom: 1rem; }
-.breadcrumb a { color: #0d7377; text-decoration: none; font-size: 0.9rem; }
-.breadcrumb a:hover { text-decoration: underline; }
-.page-header { margin-bottom: 1rem; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
-.filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem; }
-.filter-select, .filter-input { padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; }
-.filter-input { min-width: 120px; }
-.filter-count { font-size: 0.85rem; color: #64748b; margin: 0 0 1rem; }
-.state-msg { text-align: center; padding: 2rem; color: #64748b; }
-.state-msg--error { color: #dc2626; }
-.btn-retry { margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e2e8f0; border-top-color: #0d7377; border-radius: 50%; animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.item-card { display: flex; flex-direction: column; text-align: left; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; padding: 0; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
-.item-card:hover { border-color: #0d7377; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.item-card__image-wrap { height: 120px; overflow: hidden; border-radius: 12px 12px 0 0; background: #f1f5f9; }
-.item-card__image { width: 100%; height: 100%; object-fit: cover; }
-.item-card__body { padding: 1rem; }
-.item-card__id { font-weight: 600; color: #1e293b; }
-.item-card__meta { font-size: 0.85rem; color: #64748b; margin-top: 0.25rem; }
-.item-card__badge { display: inline-block; margin-top: 0.5rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-.badge--yellow  { background: #fef9c3; color: #854d0e; }
-.badge--blue    { background: #dbeafe; color: #1e40af; }
-.badge--green   { background: #dcfce7; color: #166534; }
-.badge--orange  { background: #ffedd5; color: #9a3412; }
-.badge--gray    { background: #f1f5f9; color: #475569; }
+.search-wrap   { position: relative; flex: 1; min-width: 180px; max-width: 280px; }
+.search-icon   { position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--qnt-text-muted); pointer-events: none; }
+.search-input  { width: 100%; padding-left: 2.1rem; }
+.filter-sm     { width: 110px; }
+.filter-count  { font-size: 0.8rem; color: var(--qnt-text-muted); margin-left: auto; white-space: nowrap; }
+
+.equip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.equip-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: var(--qnt-surface);
+  border: 1.5px solid var(--qnt-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s, transform .12s;
+  padding: 0;
+}
+.equip-card:hover {
+  border-color: var(--qnt-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.equip-card__img-wrap {
+  position: relative;
+  height: 130px;
+  background: var(--qnt-surface-raised);
+  overflow: hidden;
+}
+.equip-card__img { width: 100%; height: 100%; object-fit: cover; }
+.equip-card__badge {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+
+.equip-card__body { padding: 0.85rem 0.9rem; }
+.equip-card__serial {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--qnt-text-muted);
+  margin: 0 0 0.2rem;
+}
+.equip-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--qnt-text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>

@@ -52,3 +52,27 @@ export {
   getAccesorio,
   getMapaEquipos,
 } from './stock.js'
+
+export {
+  getAlertasActivas,
+  resolverAlerta,
+  generarAlertasManual,
+} from './alertas.js'
+
+export {
+  getMisiones,
+  getMision,
+  crearMision,
+  actualizarMision,
+  cambiarEstadoMision,
+  eliminarMision,
+} from './misiones.js'
+
+export {
+  getTareas,
+  getTarea,
+  crearTarea,
+  actualizarTarea,
+  cambiarEstadoTarea,
+  eliminarTarea,
+} from './tareas.js'

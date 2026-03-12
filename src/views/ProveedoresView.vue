@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { Search, Plus, RefreshCw } from 'lucide-vue-next'
+import PageHeader from '../components/ui/PageHeader.vue'
 import {
   getProveedores,
   getCompras,
@@ -268,78 +270,59 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="proveedores-page">
-    <Transition name="toast">
-      <div v-if="toast" class="toast">{{ toast }}</div>
+  <div class="qnt-page">
+    <Transition name="qnt-toast">
+      <div v-if="toast" class="qnt-toast">{{ toast }}</div>
     </Transition>
 
-    <div v-if="loading" class="state-msg">
-      <span class="spinner" /> Cargando proveedores…
-    </div>
+    <PageHeader
+      title="Proveedores"
+      :subtitle="loading ? 'Cargando…' : `${cantidadTotal} proveedores registrados`"
+    >
+      <template #actions>
+        <button v-if="hasProveedoresApi" class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">
+          <Plus class="w-4 h-4" /> Nuevo proveedor
+        </button>
+        <button v-else class="qnt-btn qnt-btn--secondary qnt-btn--sm" disabled title="Próximamente">
+          + Nuevo (próximamente)
+          </button>
+        </template>
+      </PageHeader>
 
-    <div v-else-if="error" class="state-msg state-msg--error">
-      {{ error }}
-      <button class="btn-retry" @click="fetchProveedores">Reintentar</button>
+    <div v-if="loading" class="qnt-state qnt-state--row">
+      <span class="qnt-spinner" /> Cargando proveedores…
     </div>
-
-    <div v-else-if="proveedores.length === 0" class="state-msg state-msg--empty">
-      <p>No hay proveedores registrados.</p>
-      <p v-if="!hasProveedoresApi" class="text-muted">Los proveedores aparecerán al cargar compras.</p>
-      <router-link v-if="!hasProveedoresApi" to="/compras" class="btn-primary" style="margin-top:0.5rem">Ir a Compras</router-link>
-      <button v-else class="btn-primary" style="margin-top:0.5rem" @click="openCreate">Crear primer proveedor</button>
+    <div v-else-if="error" class="qnt-state qnt-state--error">
+      <p>{{ error }}</p>
+      <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="fetchProveedores"><RefreshCw class="w-4 h-4" /> Reintentar</button>
     </div>
-
     <template v-else>
-      <header class="page-header">
-        <div class="page-header__left">
-          <h1 class="page-title">Proveedores</h1>
-          <span class="page-count">{{ cantidadTotal }} proveedores registrados</span>
+      <div class="qnt-toolbar">
+        <div class="search-wrap">
+          <Search class="search-icon" />
+          <input v-model="searchText" type="text" class="qnt-input search-input" placeholder="Buscar por nombre, CUIT, contacto, email…" aria-label="Buscar proveedores" />
         </div>
-        <button
-          v-if="hasProveedoresApi"
-          class="btn-primary"
-          @click="openCreate"
-        >
-          + Nuevo proveedor
-        </button>
-        <button
-          v-else
-          class="btn-primary btn-primary--disabled"
-          title="Próximamente cuando el backend exponga el API de proveedores"
-        >
-          + Nuevo proveedor (próximamente)
-        </button>
-      </header>
-
-      <div class="filters">
-        <input
-          v-model="searchText"
-          type="text"
-          placeholder="Buscar por nombre, CUIT, contacto, email…"
-          class="filter-input"
-        />
-        <button v-if="hayFiltrosActivos" class="btn-clear-filters" @click="clearFilters">Limpiar filtros</button>
-      </div>
-      <p class="filter-count">Mostrando {{ cantidadFiltrada }} de {{ cantidadTotal }} proveedores</p>
-
-      <div v-if="sortedProveedores.length === 0" class="state-msg">
-        No se encontraron proveedores con los filtros aplicados.
-        <button class="btn-clear-filters" @click="clearFilters">Limpiar filtros</button>
+        <button v-if="hayFiltrosActivos" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
+        <span class="filter-count">{{ cantidadFiltrada }} / {{ cantidadTotal }}</span>
       </div>
 
-      <div v-else class="table-wrap">
-        <table class="data-table">
+      <div v-if="proveedores.length === 0" class="qnt-state">
+        <p>No hay proveedores registrados.</p>
+        <p v-if="!hasProveedoresApi" class="text-muted">Los proveedores aparecerán al cargar compras.</p>
+        <router-link v-if="!hasProveedoresApi" to="/home/compras" class="qnt-btn qnt-btn--primary qnt-btn--sm">Ir a Compras</router-link>
+        <button v-else class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">Crear primer proveedor</button>
+      </div>
+      <div v-else-if="sortedProveedores.length === 0" class="qnt-state">
+        <p>No se encontraron proveedores con los filtros aplicados.</p>
+        <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar filtros</button>
+      </div>
+      <div v-else class="qnt-table-wrap">
+        <table class="qnt-table">
           <thead>
             <tr>
-              <th class="sortable" @click="toggleSort('nombre')">
-                Nombre <span class="sort-arrow">{{ sortArrow('nombre') }}</span>
-              </th>
-              <th class="sortable" @click="toggleSort('cuit')">
-                CUIT <span class="sort-arrow">{{ sortArrow('cuit') }}</span>
-              </th>
-              <th class="sortable" @click="toggleSort('contacto')">
-                Contacto <span class="sort-arrow">{{ sortArrow('contacto') }}</span>
-              </th>
+              <th class="sortable" @click="toggleSort('nombre')">Nombre <span class="sort-arrow">{{ sortArrow('nombre') }}</span></th>
+              <th class="sortable" @click="toggleSort('cuit')">CUIT <span class="sort-arrow">{{ sortArrow('cuit') }}</span></th>
+              <th class="sortable" @click="toggleSort('contacto')">Contacto <span class="sort-arrow">{{ sortArrow('contacto') }}</span></th>
               <th>Teléfono</th>
               <th>Email</th>
               <th>Compras</th>
@@ -348,9 +331,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-for="p in sortedProveedores" :key="p.id">
-              <td>
-                <button type="button" class="link-name" @click="openDetail(p)">{{ p.nombre || '—' }}</button>
-              </td>
+              <td><button type="button" class="link-name" @click="openDetail(p)">{{ p.nombre || '—' }}</button></td>
               <td>{{ p.cuit || '—' }}</td>
               <td>{{ p.contacto || '—' }}</td>
               <td>{{ p.telefono || '—' }}</td>
@@ -369,45 +350,45 @@ onMounted(() => {
 
     <!-- Modal Crear/Editar -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="formModal.open" class="modal-overlay" @click.self="closeFormModal">
-          <div class="modal-card">
+      <Transition name="qnt-modal">
+        <div v-if="formModal.open" class="qnt-modal-overlay" @click.self="closeFormModal">
+          <div class="qnt-modal">
             <h3 class="modal-title">{{ formModal.editing ? 'Editar proveedor' : 'Nuevo proveedor' }}</h3>
             <form class="modal-form" @submit.prevent="saveProveedor">
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Nombre <span class="required">*</span></label>
-                <input v-model="formModal.nombre" type="text" :disabled="formModal.loading" />
+                <input v-model="formModal.nombre" type="text" class="qnt-input" :disabled="formModal.loading" />
                 <p v-if="formModal.errors.nombre" class="field-error">{{ formModal.errors.nombre }}</p>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>CUIT</label>
-                <input v-model="formModal.cuit" type="text" :disabled="formModal.loading" />
+                <input v-model="formModal.cuit" type="text" class="qnt-input" :disabled="formModal.loading" />
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Contacto</label>
-                <input v-model="formModal.contacto" type="text" :disabled="formModal.loading" />
+                <input v-model="formModal.contacto" type="text" class="qnt-input" :disabled="formModal.loading" />
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Dirección</label>
-                <textarea v-model="formModal.direccion" rows="2" :disabled="formModal.loading"></textarea>
+                <textarea v-model="formModal.direccion" rows="2" class="qnt-input textarea" :disabled="formModal.loading"></textarea>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Teléfono</label>
-                <input v-model="formModal.telefono" type="text" :disabled="formModal.loading" />
+                <input v-model="formModal.telefono" type="text" class="qnt-input" :disabled="formModal.loading" />
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Email</label>
-                <input v-model="formModal.email" type="email" :disabled="formModal.loading" />
+                <input v-model="formModal.email" type="email" class="qnt-input" :disabled="formModal.loading" />
                 <p v-if="formModal.errors.email" class="field-error">{{ formModal.errors.email }}</p>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Observaciones</label>
-                <textarea v-model="formModal.observaciones" rows="2" :disabled="formModal.loading"></textarea>
+                <textarea v-model="formModal.observaciones" rows="2" class="qnt-input textarea" :disabled="formModal.loading"></textarea>
               </div>
               <p v-if="formModal.apiError" class="modal-error">{{ formModal.apiError }}</p>
               <div class="modal-actions">
-                <button type="button" class="btn-secondary" @click="closeFormModal" :disabled="formModal.loading">Cancelar</button>
-                <button type="submit" class="btn-primary" :disabled="formModal.loading">
+                <button type="button" class="qnt-btn qnt-btn--secondary" @click="closeFormModal" :disabled="formModal.loading">Cancelar</button>
+                <button type="submit" class="qnt-btn qnt-btn--primary" :disabled="formModal.loading">
                   {{ formModal.loading ? 'Guardando…' : 'Guardar' }}
                 </button>
               </div>
@@ -419,40 +400,24 @@ onMounted(() => {
 
     <!-- Modal Detalle -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="detailModal.open" class="modal-overlay" @click.self="closeDetail">
-          <div class="modal-card modal-card--wide">
+      <Transition name="qnt-modal">
+        <div v-if="detailModal.open" class="qnt-modal-overlay" @click.self="closeDetail">
+          <div class="qnt-modal qnt-modal--wide">
             <h3 class="modal-title">Detalle del proveedor</h3>
 
             <div class="detail-section">
               <h4 class="detail-section__title">Datos principales</h4>
-              <div class="detail-row">
-                <span class="detail-row__label">Nombre</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.nombre || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">CUIT</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.cuit || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">Contacto</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.contacto || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">Teléfono</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.telefono || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">Email</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.email || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">Dirección</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.direccion || '—' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-row__label">Observaciones</span>
-                <span class="detail-row__value">{{ detailModal.proveedor?.observaciones || '—' }}</span>
+              <div v-for="(val, key) in {
+                'Nombre': detailModal.proveedor?.nombre,
+                'CUIT': detailModal.proveedor?.cuit,
+                'Contacto': detailModal.proveedor?.contacto,
+                'Teléfono': detailModal.proveedor?.telefono,
+                'Email': detailModal.proveedor?.email,
+                'Dirección': detailModal.proveedor?.direccion,
+                'Observaciones': detailModal.proveedor?.observaciones,
+              }" :key="key" class="detail-row">
+                <span class="detail-row__label">{{ key }}</span>
+                <span class="detail-row__value">{{ val || '—' }}</span>
               </div>
             </div>
 
@@ -466,21 +431,17 @@ onMounted(() => {
                   </li>
                 </ul>
                 <p v-if="detailModal.compras.length > 5" class="text-muted">y {{ detailModal.compras.length - 5 }} más…</p>
-                <button type="button" class="btn-primary btn-sm" @click="goToCompras(detailModal.proveedor?.id)">
-                  Ver en Compras
-                </button>
+                <button type="button" class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="goToCompras(detailModal.proveedor?.id)">Ver en Compras</button>
               </template>
               <template v-else>
                 <p class="text-muted">Sin compras asociadas.</p>
-                <button type="button" class="btn-secondary btn-sm" @click="goToCompras(detailModal.proveedor?.id)">
-                  Ir a Compras
-                </button>
+                <button type="button" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="goToCompras(detailModal.proveedor?.id)">Ir a Compras</button>
               </template>
             </div>
 
             <div class="modal-actions">
-              <button v-if="hasProveedoresApi" class="btn-secondary" @click="openEditFromDetail">Editar</button>
-              <button class="btn-secondary" @click="closeDetail">Cerrar</button>
+              <button v-if="hasProveedoresApi" class="qnt-btn qnt-btn--secondary" @click="openEditFromDetail">Editar</button>
+              <button class="qnt-btn qnt-btn--secondary" @click="closeDetail">Cerrar</button>
             </div>
           </div>
         </div>
@@ -489,16 +450,16 @@ onMounted(() => {
 
     <!-- Modal Confirmar eliminación -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="confirmModal.open" class="modal-overlay" @click.self="closeConfirm">
-          <div class="modal-card">
+      <Transition name="qnt-modal">
+        <div v-if="confirmModal.open" class="qnt-modal-overlay" @click.self="closeConfirm">
+          <div class="qnt-modal">
             <h3 class="modal-title">¿Eliminar proveedor?</h3>
             <p class="modal-subtitle">
               ¿Eliminar el proveedor <strong>{{ confirmModal.proveedor?.nombre }}</strong>? Esta acción no se puede deshacer.
             </p>
             <div class="modal-actions">
-              <button class="btn-secondary" @click="closeConfirm" :disabled="confirmModal.loading">Cancelar</button>
-              <button class="btn-primary btn-primary--danger" @click="doDelete" :disabled="confirmModal.loading">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeConfirm" :disabled="confirmModal.loading">Cancelar</button>
+              <button class="qnt-btn qnt-btn--danger" @click="doDelete" :disabled="confirmModal.loading">
                 {{ confirmModal.loading ? 'Eliminando…' : 'Eliminar' }}
               </button>
             </div>
@@ -510,304 +471,66 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.proveedores-page {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
+.search-wrap  { position: relative; flex: 1; min-width: 180px; max-width: 320px; }
+.search-icon  { position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--qnt-text-muted); pointer-events: none; }
+.search-input { width: 100%; padding-left: 2.1rem; }
+.filter-count { font-size: 0.8rem; color: var(--qnt-text-muted); margin-left: auto; }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-}
-.page-header__left {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
-.page-count { font-size: 0.9rem; color: #64748b; }
-
-.filters {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.filter-input {
-  flex: 1;
-  max-width: 320px;
-  padding: 0.6rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-}
-.filter-input::placeholder { color: #94a3b8; }
-.filter-input:focus {
-  outline: none;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
-}
-.btn-clear-filters {
-  background: none;
-  border: none;
-  color: #0d7377;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.6rem 0.5rem;
-}
-.btn-clear-filters:hover { text-decoration: underline; }
-.filter-count { font-size: 0.85rem; color: #94a3b8; margin: 0 0 1rem; }
-
-.table-wrap {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  overflow-x: auto;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-.data-table th {
-  text-align: left;
-  padding: 0.85rem 1rem;
-  font-weight: 600;
-  color: #475569;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  white-space: nowrap;
-}
-.data-table td {
-  padding: 0.75rem 1rem;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
-}
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f8fafc; }
-.actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: #334155; }
-.sort-arrow { font-size: 0.7rem; margin-left: 0.25rem; }
+.sortable:hover { color: var(--qnt-text); }
+.sort-arrow { font-size: 0.7rem; margin-left: 0.2rem; }
+
+.actions-cell { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 
 .link-name {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: inherit;
-  color: #0d7377;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
+  background: none; border: none; padding: 0;
+  font-size: inherit; font-weight: 600;
+  color: var(--qnt-primary); cursor: pointer; text-decoration: underline;
 }
-.link-name:hover { color: #0a5c5f; }
+.link-name:hover { color: var(--qnt-primary-hover); }
 
-.text-muted { color: #94a3b8; font-size: 0.85rem; }
+.text-muted { color: var(--qnt-text-muted); font-size: 0.85rem; }
 
 .btn-action {
-  padding: 0.35rem 0.7rem;
-  border: 1px solid #e2e8f0;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid var(--qnt-border);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
-  font-size: 0.8rem;
+  background: var(--qnt-surface);
+  color: var(--qnt-text-secondary);
+  font-size: 0.77rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background .15s;
   white-space: nowrap;
 }
-.btn-action:hover { background: #f1f5f9; color: #334155; }
+.btn-action:hover { background: var(--qnt-surface-raised); }
 .btn-action--danger { color: #991b1b; border-color: #fecaca; }
 .btn-action--danger:hover { background: #fee2e2; }
 
-.btn-primary {
-  padding: 0.6rem 1.25rem;
-  background: #0d7377;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-}
-.btn-primary:hover:not(:disabled) { background: #0a5c5f; }
-.btn-primary:disabled, .btn-primary--disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.btn-primary--danger { background: #dc2626; }
-.btn-primary--danger:hover:not(:disabled) { background: #b91c1c; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
-
-.btn-secondary {
-  padding: 0.6rem 1.25rem;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
-.btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-retry {
-  padding: 0.5rem 1.25rem;
-  background: #0d7377;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-retry:hover { background: #0a5c5f; }
-
-.state-msg {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #64748b;
-  font-size: 0.95rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-.state-msg--error { color: #dc2626; }
-.state-msg--empty p { margin: 0 0 0.25rem; }
-.spinner {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2.5px solid #e2e8f0;
-  border-top-color: #0d7377;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.toast {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  background: #166534;
-  color: #fff;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
-}
-.toast-enter-active, .toast-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.toast-enter-from { opacity: 0; transform: translateY(-12px); }
-.toast-leave-to { opacity: 0; transform: translateY(-12px); }
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9000;
-  padding: 1rem;
-}
-.modal-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-card--wide { max-width: 560px; }
-.modal-title { margin: 0 0 0.5rem; font-size: 1.2rem; font-weight: 700; color: #1e293b; }
-.modal-subtitle { margin: 0 0 1.25rem; font-size: 0.9rem; color: #64748b; }
-.modal-subtitle strong { color: #1e293b; }
+/* Modal */
+.modal-title    { margin: 0 0 0.4rem; font-size: 1.1rem; font-weight: 700; color: var(--qnt-text); }
+.modal-subtitle { margin: 0 0 1.25rem; font-size: 0.88rem; color: var(--qnt-text-muted); }
+.modal-subtitle strong { color: var(--qnt-text); }
 .modal-error {
-  color: #dc2626;
-  font-size: 0.85rem;
-  margin: 0 0 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: #fef2f2;
-  border-radius: 6px;
+  color: #dc2626; font-size: 0.85rem;
+  padding: 0.5rem 0.75rem; background: #fef2f2; border-radius: 6px;
 }
-.modal-form { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
-.form-field label { display: block; font-size: 0.9rem; font-weight: 500; color: #475569; margin-bottom: 0.35rem; }
-.form-field label .required { color: #dc2626; }
-.form-field input,
-.form-field textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.6rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-}
-.form-field input:focus,
-.form-field textarea:focus {
-  outline: none;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
-}
-.form-field textarea { resize: vertical; min-height: 60px; }
-.field-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem; }
+.modal-form   { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+.field-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.2rem; }
+.required { color: #dc2626; }
+.textarea { resize: vertical; min-height: 56px; font-family: inherit; }
 
 .detail-section { margin-bottom: 1.5rem; }
 .detail-section__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--qnt-text-faint); margin: 0 0 0.75rem;
+  padding-bottom: 0.35rem; border-bottom: 1px solid var(--qnt-border);
 }
-.detail-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-.detail-row__label { color: #64748b; min-width: 120px; flex-shrink: 0; }
-.detail-row__value { color: #1e293b; font-weight: 500; }
+.detail-row { display: flex; gap: 1rem; margin-bottom: 0.45rem; font-size: 0.875rem; }
+.detail-row__label { color: var(--qnt-text-muted); min-width: 120px; flex-shrink: 0; }
+.detail-row__value { color: var(--qnt-text); font-weight: 500; }
 
-.compras-list { list-style: none; padding: 0; margin: 0 0 0.75rem; }
-.compras-list__item { padding: 0.35rem 0; font-size: 0.9rem; color: #475569; }
-
-.modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
-.modal-enter-active .modal-card, .modal-leave-active .modal-card { transition: transform 0.2s; }
-.modal-enter-from { opacity: 0; }
-.modal-enter-from .modal-card { transform: scale(0.95); }
-.modal-leave-to { opacity: 0; }
-.modal-leave-to .modal-card { transform: scale(0.95); }
-
-@media (max-width: 768px) {
-  .proveedores-page { padding: 1rem; }
-  .page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-  .filters { flex-direction: column; }
-  .filter-input { max-width: 100%; }
-  .detail-row { flex-direction: column; gap: 0.25rem; }
-}
+.compras-list { list-style: none; padding: 0; margin: 0.5rem 0 0.75rem; }
+.compras-list__item { padding: 0.3rem 0; font-size: 0.875rem; color: var(--qnt-text-secondary); }
 </style>

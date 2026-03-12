@@ -42,7 +42,7 @@ onMounted(load)
 <template>
   <div class="stock-detail-page">
     <nav class="breadcrumb">
-      <router-link to="/stock">Volver a Stock</router-link>
+      <router-link to="/home/stock">Volver a Stock</router-link>
       <span class="breadcrumb__sep">/</span>
       <router-link :to="LISTA_ROUTE">Volver al listado</router-link>
     </nav>
@@ -71,15 +71,15 @@ onMounted(load)
 <style scoped>
 .stock-detail-page { padding: 1.5rem; flex: 1; min-height: 0; overflow-y: auto; }
 .breadcrumb { margin-bottom: 1rem; font-size: 0.9rem; }
-.breadcrumb a { color: #0d7377; text-decoration: none; }
+.breadcrumb a { color: #113e4c; text-decoration: none; }
 .breadcrumb a:hover { text-decoration: underline; }
 .breadcrumb__sep { color: #94a3b8; margin: 0 0.35rem; }
 .page-header { margin-bottom: 1rem; }
 .page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
 .state-msg { text-align: center; padding: 2rem; color: #64748b; }
 .state-msg--error { color: #dc2626; }
-.btn-retry, .btn-back { margin: 0 0.5rem; padding: 0.5rem 1rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; text-decoration: none; font-size: 0.9rem; display: inline-block; }
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e2e8f0; border-top-color: #0d7377; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.btn-retry, .btn-back { margin: 0 0.5rem; padding: 0.5rem 1rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; text-decoration: none; font-size: 0.9rem; display: inline-block; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e0e5e5; border-top-color: #113e4c; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .detail-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 1rem; }
 .detail-card__image-wrap { height: 180px; background: #f1f5f9; }
@@ -89,6 +89,6 @@ onMounted(load)
 .detail-row__label { color: #64748b; min-width: 140px; }
 .detail-row__value { color: #1e293b; font-weight: 500; }
 .actions { margin-top: 1rem; }
-.btn-secondary { display: inline-block; padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
-.btn-secondary:hover { background: #e2e8f0; }
+.btn-secondary { display: inline-block; padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
+.btn-secondary:hover { background: #e0e5e5; }
 </style>

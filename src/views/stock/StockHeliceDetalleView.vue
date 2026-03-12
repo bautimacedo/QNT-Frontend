@@ -208,12 +208,12 @@ onMounted(load)
 .modal-banner--error { background: #fef2f2; color: #dc2626; }
 .form-group { margin-bottom: 1rem; }
 .form-group label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem; }
-.form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
+.form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
 .coords-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
 .form-group--coords .form-hint { font-size: 0.8rem; color: #64748b; margin-top: 0.35rem; }
-.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
-.btn-primary { padding: 0.6rem 1.25rem; background: #0d7377; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-primary { padding: 0.6rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .toast { position: fixed; top: 1.5rem; right: 1.5rem; background: #166534; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; z-index: 2000; }
 .toast-enter-active, .toast-leave-active { transition: opacity 0.2s; }

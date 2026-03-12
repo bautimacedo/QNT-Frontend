@@ -5,6 +5,8 @@ import {
   getCompras, crearCompra, actualizarCompra, eliminarCompra,
   subirImagenCompra, obtenerImagenCompra, getTiposEquipo,
 } from '../api'
+import { Search, Plus, RefreshCw } from 'lucide-vue-next'
+import PageHeader from '../components/ui/PageHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -546,44 +548,33 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 </script>
 
 <template>
-  <div class="compras-page">
-    <!-- Toast -->
-    <Transition name="toast">
-      <div v-if="toast" class="toast">{{ toast }}</div>
+  <div class="qnt-page">
+    <Transition name="qnt-toast">
+      <div v-if="toast" class="qnt-toast">{{ toast }}</div>
     </Transition>
 
-    <!-- Loading -->
-    <div v-if="loading" class="state-msg">
-      <span class="spinner" /> Cargando compras…
-    </div>
+    <PageHeader title="Compras" :subtitle="`${compras.length} compras registradas`">
+      <template #actions>
+        <button class="qnt-btn qnt-btn--primary" @click="openCreate">
+          <Plus style="width:15px;height:15px" /> Nueva compra
+        </button>
+      </template>
+    </PageHeader>
 
-    <!-- Error -->
-    <div v-else-if="error" class="state-msg state-msg--error">
-      {{ error }}
-      <button class="btn-retry" @click="fetchCompras">Reintentar</button>
+    <div v-if="loading" class="qnt-state qnt-state--row">
+      <span class="qnt-spinner" /> Cargando compras…
     </div>
-
-    <!-- Empty -->
-    <div v-else-if="compras.length === 0" class="state-msg state-msg--empty">
-      <p>No hay compras registradas.</p>
-      <button class="btn-primary" @click="openCreate">Crear primera compra</button>
+    <div v-else-if="error" class="qnt-state qnt-state--error">
+      <p>{{ error }}</p>
+      <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="fetchCompras">
+        <RefreshCw style="width:14px;height:14px" /> Reintentar
+      </button>
     </div>
-
-    <!-- Content -->
     <template v-else>
-      <!-- Header -->
-      <header class="page-header">
-        <div class="page-header__left">
-          <h1 class="page-title">Compras</h1>
-          <span class="page-count">{{ compras.length }} compras registradas</span>
-        </div>
-        <button class="btn-primary" @click="openCreate">+ Nueva compra</button>
-      </header>
-
       <!-- Summary cards -->
       <div class="summary-cards">
-        <div class="summary-card">
-          <span class="summary-card__label">Total gastado</span>
+        <div class="qnt-card summary-card">
+          <span class="summary-card__label">Total gastado (filtrado)</span>
           <span class="summary-card__value">
             <template v-if="Object.keys(totalPorMoneda).length">
               <span v-for="(total, moneda) in totalPorMoneda" :key="moneda" class="summary-card__amount">
@@ -593,48 +584,54 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
             <template v-else>—</template>
           </span>
         </div>
-        <div class="summary-card">
+        <div class="qnt-card summary-card">
           <span class="summary-card__label">Compras</span>
-          <span class="summary-card__value">{{ cantidadFiltrada }}</span>
+          <span class="summary-card__value summary-card__value--big">{{ cantidadFiltrada }}</span>
         </div>
-        <div class="summary-card">
+        <div class="qnt-card summary-card">
           <span class="summary-card__label">Tipo principal</span>
-          <span class="summary-card__value">{{ TIPO_COMPRA_LABELS[tipoMasFrecuente] || '—' }}</span>
+          <span class="summary-card__value summary-card__value--big">{{ TIPO_COMPRA_LABELS[tipoMasFrecuente] || '—' }}</span>
         </div>
       </div>
 
       <!-- Filters -->
-      <div class="filters">
-        <input v-model="searchText" type="text" placeholder="Buscar proveedor, descripción, observaciones…" class="filter-input" />
-        <select v-model="filtroTipo" class="filter-select">
+      <div class="qnt-toolbar">
+        <div class="search-wrap">
+          <Search class="search-icon" />
+          <input v-model="searchText" type="text" class="qnt-input search-input" placeholder="Buscar proveedor, descripción…" />
+        </div>
+        <select v-model="filtroTipo" class="qnt-select">
           <option value="TODOS">Tipo: Todos</option>
           <option v-for="tipo in Object.keys(TIPO_COMPRA_LABELS)" :key="tipo" :value="tipo">
             {{ TIPO_COMPRA_LABELS[tipo] }}
           </option>
         </select>
-        <select v-model="filtroMoneda" class="filter-select">
+        <select v-model="filtroMoneda" class="qnt-select">
           <option value="TODAS">Moneda: Todas</option>
           <option v-for="m in monedasPresentes" :key="m" :value="m">{{ m }}</option>
         </select>
-        <select v-model="filtroProveedor" class="filter-select">
+        <select v-model="filtroProveedor" class="qnt-select">
           <option value="TODOS">Proveedor: Todos</option>
           <option v-for="p in proveedoresUnicos" :key="p.id" :value="p.id">{{ p.nombre }}</option>
         </select>
-        <input v-model="filtroFechaDesde" type="date" class="filter-input filter-input--date" title="Desde" />
-        <input v-model="filtroFechaHasta" type="date" class="filter-input filter-input--date" title="Hasta" />
-        <button v-if="hayFiltrosActivos" class="btn-clear-filters" @click="clearFilters">Limpiar filtros</button>
+        <input v-model="filtroFechaDesde" type="date" class="qnt-input date-input" title="Desde" />
+        <input v-model="filtroFechaHasta" type="date" class="qnt-input date-input" title="Hasta" />
+        <button v-if="hayFiltrosActivos" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
+        <span class="filter-count">{{ sortedCompras.length }} / {{ compras.length }}</span>
       </div>
-      <p class="filter-count">Mostrando {{ sortedCompras.length }} de {{ compras.length }} compras</p>
 
-      <!-- No results -->
-      <div v-if="sortedCompras.length === 0" class="state-msg">
-        No se encontraron compras con los filtros aplicados.
-        <button class="btn-clear-filters" @click="clearFilters">Limpiar filtros</button>
+      <div v-if="compras.length === 0" class="qnt-state">
+        <p>No hay compras registradas.</p>
+        <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">Crear primera compra</button>
+      </div>
+      <div v-else-if="sortedCompras.length === 0" class="qnt-state">
+        <p>No se encontraron compras con los filtros aplicados.</p>
+        <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar filtros</button>
       </div>
 
       <!-- Table -->
-      <div v-else class="table-wrap">
-        <table class="data-table">
+      <div v-else class="qnt-table-wrap">
+        <table class="qnt-table">
           <thead>
             <tr>
               <th class="sortable" @click="toggleSort('proveedor')">
@@ -662,14 +659,14 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <td>{{ METODO_PAGO_LABELS[c.metodoPago] || c.metodoPago || '—' }}</td>
               <td>
                 <span
-                  class="badge-tipo"
+                  class="qnt-badge badge-tipo"
                   :style="{ background: TIPO_COMPRA_COLORS[c.tipoCompra]?.bg, color: TIPO_COMPRA_COLORS[c.tipoCompra]?.color }"
                 >
                   {{ TIPO_COMPRA_LABELS[c.tipoCompra] || c.tipoCompra }}
                 </span>
               </td>
               <td>
-                <span v-if="c.tipoCompra === 'EQUIPO' && c.tipoEquipo" class="badge badge--role">{{ c.tipoEquipo }}</span>
+                <span v-if="c.tipoCompra === 'EQUIPO' && c.tipoEquipo" class="qnt-badge qnt-badge--role">{{ c.tipoEquipo }}</span>
                 <span v-else class="text-muted">—</span>
               </td>
               <td class="text-muted">{{ c.usuarioAlta ? (c.usuarioAlta.nombre || '') + (c.usuarioAlta.apellido ? ' ' + c.usuarioAlta.apellido : '') || c.usuarioAlta.email : '—' }}</td>
@@ -690,18 +687,19 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
     <!-- Modal: Crear/Editar -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="formModal.open" class="modal-overlay" @click.self="closeFormModal">
-          <div class="modal-card modal-card--wide">
-            <h3 class="modal-title">{{ formModal.editing ? 'Editar compra' : 'Nueva compra' }}</h3>
+      <Transition name="qnt-modal">
+        <div v-if="formModal.open" class="qnt-modal-overlay" @click.self="closeFormModal">
+          <div class="qnt-modal qnt-modal--wide">
+            <h3 class="qnt-modal__title">{{ formModal.editing ? 'Editar compra' : 'Nueva compra' }}</h3>
 
             <div class="form-grid">
               <!-- Proveedor (span 2) -->
-              <div class="form-field span-2 proveedor-combo">
+              <div class="qnt-field span-2 proveedor-combo">
                 <label>Proveedor <span class="required">*</span></label>
                 <input
                   v-model="formModal.proveedorText"
                   type="text"
+                  class="qnt-input"
                   placeholder="Buscar o crear proveedor…"
                   :disabled="formModal.loading"
                   autocomplete="off"
@@ -726,67 +724,68 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                     + Crear proveedor: "{{ formModal.proveedorText.trim() }}"
                   </div>
                 </div>
-                <p v-if="formModal.errors.proveedor" class="field-error">{{ formModal.errors.proveedor }}</p>
+                <p v-if="formModal.errors.proveedor" class="qnt-field-error">{{ formModal.errors.proveedor }}</p>
               </div>
 
               <!-- Fecha compra + Fecha factura -->
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Fecha de compra <span class="required">*</span></label>
-                <input v-model="formModal.fechaCompra" type="date" :disabled="formModal.loading" />
-                <p v-if="formModal.errors.fechaCompra" class="field-error">{{ formModal.errors.fechaCompra }}</p>
+                <input v-model="formModal.fechaCompra" type="date" class="qnt-input" :disabled="formModal.loading" />
+                <p v-if="formModal.errors.fechaCompra" class="qnt-field-error">{{ formModal.errors.fechaCompra }}</p>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Fecha de factura</label>
-                <input v-model="formModal.fechaFactura" type="date" :disabled="formModal.loading" />
+                <input v-model="formModal.fechaFactura" type="date" class="qnt-input" :disabled="formModal.loading" />
               </div>
 
               <!-- Método de pago + Importe -->
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Método de pago <span class="required">*</span></label>
-                <select v-model="formModal.metodoPago" :disabled="formModal.loading">
+                <select v-model="formModal.metodoPago" class="qnt-select" :disabled="formModal.loading">
                   <option v-for="(label, key) in METODO_PAGO_LABELS" :key="key" :value="key">{{ label }}</option>
                 </select>
-                <p v-if="formModal.errors.metodoPago" class="field-error">{{ formModal.errors.metodoPago }}</p>
+                <p v-if="formModal.errors.metodoPago" class="qnt-field-error">{{ formModal.errors.metodoPago }}</p>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Importe <span class="required">*</span></label>
-                <input v-model="formModal.importe" type="number" step="0.01" min="0" :disabled="formModal.loading" />
-                <p v-if="formModal.errors.importe" class="field-error">{{ formModal.errors.importe }}</p>
+                <input v-model="formModal.importe" type="number" step="0.01" min="0" class="qnt-input" :disabled="formModal.loading" />
+                <p v-if="formModal.errors.importe" class="qnt-field-error">{{ formModal.errors.importe }}</p>
               </div>
 
-              <!-- Condicional TARJETA: compañía y últimos 4 -->
+              <!-- Condicional TARJETA -->
               <Transition name="slide">
-                <div v-if="formModal.metodoPago === 'TARJETA'" class="form-field">
+                <div v-if="formModal.metodoPago === 'TARJETA'" class="qnt-field">
                   <label>Compañía de tarjeta <span class="required">*</span></label>
-                  <input v-model="formModal.companiaTarjeta" type="text" maxlength="50" placeholder="Ej. Visa, Mastercard" :disabled="formModal.loading" />
-                  <p v-if="formModal.errors.companiaTarjeta" class="field-error">{{ formModal.errors.companiaTarjeta }}</p>
+                  <input v-model="formModal.companiaTarjeta" type="text" maxlength="50" class="qnt-input" placeholder="Ej. Visa, Mastercard" :disabled="formModal.loading" />
+                  <p v-if="formModal.errors.companiaTarjeta" class="qnt-field-error">{{ formModal.errors.companiaTarjeta }}</p>
                 </div>
               </Transition>
               <Transition name="slide">
-                <div v-if="formModal.metodoPago === 'TARJETA'" class="form-field">
+                <div v-if="formModal.metodoPago === 'TARJETA'" class="qnt-field">
                   <label>Últimos 4 dígitos <span class="required">*</span></label>
                   <input
                     v-model="formModal.ultimos4Tarjeta"
                     type="text"
                     inputmode="numeric"
                     maxlength="4"
+                    class="qnt-input"
                     placeholder="1234"
                     :disabled="formModal.loading"
                     @input="formModal.ultimos4Tarjeta = (formModal.ultimos4Tarjeta || '').replace(/\D/g, '').slice(0, 4)"
                   />
-                  <p v-if="formModal.errors.ultimos4Tarjeta" class="field-error">{{ formModal.errors.ultimos4Tarjeta }}</p>
+                  <p v-if="formModal.errors.ultimos4Tarjeta" class="qnt-field-error">{{ formModal.errors.ultimos4Tarjeta }}</p>
                 </div>
               </Transition>
 
-              <!-- Moneda + Tipo compra -->
-              <div class="form-field">
-                <label class="form-field__checkbox-label">
+              <!-- IVA checkbox + porcentaje -->
+              <div class="qnt-field">
+                <label class="checkbox-label">
                   <input v-model="formModal.tieneIva" type="checkbox" :disabled="formModal.loading" />
                   Incluye IVA en el total
                 </label>
               </div>
               <Transition name="slide">
-                <div v-if="formModal.tieneIva" class="form-field">
+                <div v-if="formModal.tieneIva" class="qnt-field">
                   <label>Porcentaje IVA <span class="required">*</span></label>
                   <input
                     v-model="formModal.ivaPorcentaje"
@@ -794,64 +793,67 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                     step="0.01"
                     min="0"
                     max="100"
+                    class="qnt-input"
                     placeholder="21"
                     :disabled="formModal.loading"
                   />
-                  <p v-if="formModal.errors.ivaPorcentaje" class="field-error">{{ formModal.errors.ivaPorcentaje }}</p>
+                  <p v-if="formModal.errors.ivaPorcentaje" class="qnt-field-error">{{ formModal.errors.ivaPorcentaje }}</p>
                 </div>
               </Transition>
-              <div class="form-field">
+
+              <!-- Moneda + Tipo compra -->
+              <div class="qnt-field">
                 <label>Moneda</label>
-                <select v-model="formModal.moneda" :disabled="formModal.loading">
+                <select v-model="formModal.moneda" class="qnt-select" :disabled="formModal.loading">
                   <option value="ARS">ARS</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
                 </select>
               </div>
-              <div class="form-field">
+              <div class="qnt-field">
                 <label>Tipo de compra <span class="required">*</span></label>
-                <select v-model="formModal.tipoCompra" :disabled="formModal.loading">
+                <select v-model="formModal.tipoCompra" class="qnt-select" :disabled="formModal.loading">
                   <option value="" disabled>Seleccionar…</option>
                   <option v-for="(label, key) in TIPO_COMPRA_LABELS" :key="key" :value="key">{{ label }}</option>
                 </select>
-                <p v-if="formModal.errors.tipoCompra" class="field-error">{{ formModal.errors.tipoCompra }}</p>
+                <p v-if="formModal.errors.tipoCompra" class="qnt-field-error">{{ formModal.errors.tipoCompra }}</p>
               </div>
 
               <!-- Condicional: EQUIPO -->
               <Transition name="slide">
-                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="form-field">
+                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="qnt-field">
                   <label>Tipo de equipo <span class="required">*</span></label>
-                  <select v-model="formModal.tipoEquipo" :disabled="formModal.loading">
+                  <select v-model="formModal.tipoEquipo" class="qnt-select" :disabled="formModal.loading">
                     <option value="" disabled>Seleccionar…</option>
                     <option v-for="te in tiposEquipo" :key="te" :value="te">{{ te }}</option>
                   </select>
-                  <p v-if="formModal.errors.tipoEquipo" class="field-error">{{ formModal.errors.tipoEquipo }}</p>
+                  <p v-if="formModal.errors.tipoEquipo" class="qnt-field-error">{{ formModal.errors.tipoEquipo }}</p>
                 </div>
               </Transition>
               <Transition name="slide">
-                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="form-field">
+                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="qnt-field">
                   <label>Descripción equipo</label>
-                  <input v-model="formModal.descripcionEquipo" type="text" maxlength="255" :disabled="formModal.loading" />
+                  <input v-model="formModal.descripcionEquipo" type="text" maxlength="255" class="qnt-input" :disabled="formModal.loading" />
                 </div>
               </Transition>
 
               <!-- Descripción (span 2) -->
-              <div class="form-field span-2">
+              <div class="qnt-field span-2">
                 <label>Descripción</label>
-                <textarea v-model="formModal.descripcion" :disabled="formModal.loading"></textarea>
+                <textarea v-model="formModal.descripcion" class="qnt-input qnt-textarea" :disabled="formModal.loading"></textarea>
               </div>
 
               <!-- Observaciones (span 2) -->
-              <div class="form-field span-2">
+              <div class="qnt-field span-2">
                 <label>Observaciones</label>
-                <textarea v-model="formModal.observaciones" :disabled="formModal.loading"></textarea>
+                <textarea v-model="formModal.observaciones" class="qnt-input qnt-textarea" :disabled="formModal.loading"></textarea>
               </div>
             </div>
 
-            <p v-if="formModal.apiError" class="modal-error">{{ formModal.apiError }}</p>
-            <div class="modal-actions">
-              <button class="btn-secondary" @click="closeFormModal" :disabled="formModal.loading">Cancelar</button>
-              <button class="btn-primary" @click="saveCompra" :disabled="formModal.loading">
+            <p v-if="formModal.apiError" class="qnt-modal__error">{{ formModal.apiError }}</p>
+            <div class="qnt-modal__actions">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeFormModal" :disabled="formModal.loading">Cancelar</button>
+              <button class="qnt-btn qnt-btn--primary" @click="saveCompra" :disabled="formModal.loading">
                 {{ formModal.loading ? 'Guardando…' : 'Guardar' }}
               </button>
             </div>
@@ -862,14 +864,13 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
     <!-- Modal: Detalle -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="detailModal.open" class="modal-overlay" @click.self="closeDetail">
-          <div class="modal-card modal-card--wide">
-            <h3 class="modal-title">Detalle de compra</h3>
+      <Transition name="qnt-modal">
+        <div v-if="detailModal.open" class="qnt-modal-overlay" @click.self="closeDetail">
+          <div class="qnt-modal qnt-modal--wide">
+            <h3 class="qnt-modal__title">Detalle de compra</h3>
 
-            <!-- Sección 1: Info principal -->
-            <div class="detail-section">
-              <h4 class="detail-section__title">Información principal</h4>
+            <div class="qnt-modal__section">
+              <h4 class="qnt-modal__section-title">Información principal</h4>
               <div class="detail-row">
                 <span class="detail-row__label">Proveedor</span>
                 <span class="detail-row__value">{{ detailModal.compra?.proveedor?.nombre || '—' }}</span>
@@ -898,7 +899,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span class="detail-row__label">Tipo de compra</span>
                 <span class="detail-row__value">
                   <span
-                    class="badge-tipo"
+                    class="qnt-badge badge-tipo"
                     :style="{ background: TIPO_COMPRA_COLORS[detailModal.compra?.tipoCompra]?.bg, color: TIPO_COMPRA_COLORS[detailModal.compra?.tipoCompra]?.color }"
                   >
                     {{ TIPO_COMPRA_LABELS[detailModal.compra?.tipoCompra] || detailModal.compra?.tipoCompra }}
@@ -907,7 +908,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               </div>
               <div v-if="detailModal.compra?.tipoCompra === 'EQUIPO' && detailModal.compra?.tipoEquipo" class="detail-row">
                 <span class="detail-row__label">Tipo de equipo</span>
-                <span class="detail-row__value"><span class="badge badge--role">{{ detailModal.compra.tipoEquipo }}</span></span>
+                <span class="detail-row__value"><span class="qnt-badge qnt-badge--role">{{ detailModal.compra.tipoEquipo }}</span></span>
               </div>
               <div v-if="detailModal.compra?.tipoCompra === 'EQUIPO' && detailModal.compra?.descripcionEquipo" class="detail-row">
                 <span class="detail-row__label">Desc. equipo</span>
@@ -936,9 +937,8 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               </div>
             </div>
 
-            <!-- Sección 2: Facturación y pago -->
-            <div class="detail-section">
-              <h4 class="detail-section__title">Facturación y pago</h4>
+            <div class="qnt-modal__section">
+              <h4 class="qnt-modal__section-title">Facturación y pago</h4>
               <div class="detail-row">
                 <span class="detail-row__label">Fecha de compra</span>
                 <span class="detail-row__value">{{ formatDate(detailModal.compra?.fechaCompra) }}</span>
@@ -964,15 +964,14 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               </div>
             </div>
 
-            <!-- Sección 3: Imagen de factura -->
-            <div class="detail-section">
-              <h4 class="detail-section__title">Imagen de factura</h4>
+            <div class="qnt-modal__section">
+              <h4 class="qnt-modal__section-title">Imagen de factura</h4>
               <div class="image-zone">
-                <div v-if="detailModal.imageLoading" class="state-msg-inline"><span class="spinner" /></div>
+                <div v-if="detailModal.imageLoading" class="qnt-state qnt-state--inline"><span class="qnt-spinner" /></div>
                 <template v-else-if="detailModal.imageUrl">
                   <img :src="detailModal.imageUrl" alt="Factura" class="image-preview" />
-                  <div>
-                    <button class="btn-primary btn-sm" :disabled="detailModal.uploading" @click="triggerFileUpload">
+                  <div style="margin-top:0.75rem">
+                    <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" :disabled="detailModal.uploading" @click="triggerFileUpload">
                       {{ detailModal.uploading ? 'Subiendo…' : 'Cambiar imagen' }}
                     </button>
                   </div>
@@ -983,7 +982,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                     <p class="text-muted">Hacé click para subir una.</p>
                   </div>
                   <div style="margin-top:0.75rem">
-                    <button class="btn-primary btn-sm" :disabled="detailModal.uploading" @click="triggerFileUpload">
+                    <button class="qnt-btn qnt-btn--primary qnt-btn--sm" :disabled="detailModal.uploading" @click="triggerFileUpload">
                       {{ detailModal.uploading ? 'Subiendo…' : 'Subir imagen' }}
                     </button>
                   </div>
@@ -992,9 +991,9 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <input ref="detailFileInput" type="file" accept="image/*" style="display:none" @change="handleFileSelect" />
             </div>
 
-            <div class="modal-actions">
-              <button class="btn-secondary" @click="openEditFromDetail">Editar</button>
-              <button class="btn-secondary" @click="closeDetail">Cerrar</button>
+            <div class="qnt-modal__actions">
+              <button class="qnt-btn qnt-btn--secondary" @click="openEditFromDetail">Editar</button>
+              <button class="qnt-btn qnt-btn--secondary" @click="closeDetail">Cerrar</button>
             </div>
           </div>
         </div>
@@ -1003,17 +1002,17 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
     <!-- Modal: Confirmar eliminación -->
     <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="confirmModal.open" class="modal-overlay" @click.self="closeConfirm">
-          <div class="modal-card">
-            <h3 class="modal-title">¿Eliminar compra?</h3>
-            <p class="modal-subtitle">
+      <Transition name="qnt-modal">
+        <div v-if="confirmModal.open" class="qnt-modal-overlay" @click.self="closeConfirm">
+          <div class="qnt-modal">
+            <h3 class="qnt-modal__title">¿Eliminar compra?</h3>
+            <p class="qnt-modal__subtitle">
               Se eliminará la compra de {{ confirmModal.compra?.proveedor?.nombre || '—' }}
               del {{ formatDate(confirmModal.compra?.fechaCompra) }}.
             </p>
-            <div class="modal-actions">
-              <button class="btn-secondary" @click="closeConfirm" :disabled="confirmModal.loading">Cancelar</button>
-              <button class="btn-primary btn-primary--danger" @click="doDelete" :disabled="confirmModal.loading">
+            <div class="qnt-modal__actions">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeConfirm" :disabled="confirmModal.loading">Cancelar</button>
+              <button class="qnt-btn qnt-btn--danger" @click="doDelete" :disabled="confirmModal.loading">
                 {{ confirmModal.loading ? 'Eliminando…' : 'Eliminar' }}
               </button>
             </div>
@@ -1025,358 +1024,67 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 </template>
 
 <style scoped>
-.compras-page {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-/* Header */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-}
-.page-header__left {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-.page-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-.page-count {
-  font-size: 0.9rem;
-  color: #64748b;
-}
-
 /* Summary cards */
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  margin-bottom: 1.25rem;
 }
 .summary-card {
-  background: #fff;
-  border-radius: 12px;
   padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .summary-card__label {
   display: block;
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--qnt-text-faint);
+  margin-bottom: 0.4rem;
 }
 .summary-card__value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-.summary-card__amount {
-  display: block;
   font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--qnt-text);
 }
-.summary-card__amount + .summary-card__amount {
-  margin-top: 0.25rem;
-  font-size: 0.95rem;
-  color: #475569;
-}
+.summary-card__value--big { font-size: 1.35rem; }
+.summary-card__amount { display: block; }
+.summary-card__amount + .summary-card__amount { font-size: 0.95rem; color: var(--qnt-text-secondary); margin-top: 0.2rem; }
 
-/* Filters */
-.filters {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.filter-input {
-  flex: 1;
-  max-width: 320px;
-  padding: 0.6rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-}
-.filter-input::placeholder { color: #94a3b8; }
-.filter-input:focus,
-.filter-select:focus {
-  outline: none;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
-}
-.filter-input--date { max-width: 160px; flex: 0 0 auto; }
-.filter-select {
-  padding: 0.6rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-  cursor: pointer;
-}
-.btn-clear-filters {
-  background: none;
-  border: none;
-  color: #0d7377;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  padding: 0.6rem 0.5rem;
-}
-.btn-clear-filters:hover { text-decoration: underline; }
-.filter-count {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  margin: 0 0 1rem;
-}
+/* Toolbar */
+.search-wrap  { position: relative; flex: 1; min-width: 180px; max-width: 300px; }
+.search-icon  { position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--qnt-text-muted); pointer-events: none; }
+.search-input { width: 100%; padding-left: 2.1rem; }
+.date-input   { max-width: 155px; }
+.filter-count { font-size: 0.8rem; color: var(--qnt-text-muted); margin-left: auto; white-space: nowrap; }
 
-/* Table */
-.table-wrap {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  overflow-x: auto;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-.data-table th {
-  text-align: left;
-  padding: 0.85rem 1rem;
-  font-weight: 600;
-  color: #475569;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  white-space: nowrap;
-}
-.data-table td {
-  padding: 0.75rem 1rem;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
-}
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f8fafc; }
+/* Table extras */
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { color: var(--qnt-text); }
+.sort-arrow { font-size: 0.7rem; margin-left: 0.2rem; }
 .td-importe { white-space: nowrap; font-weight: 600; }
-.actions-cell {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-.sortable {
-  cursor: pointer;
-  user-select: none;
-}
-.sortable:hover { color: #334155; }
-.sort-arrow {
-  font-size: 0.7rem;
-  margin-left: 0.25rem;
-}
-
-/* Badges */
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.badge--green { background: #dcfce7; color: #166534; }
-.badge--yellow { background: #fef3c7; color: #92400e; }
-.badge--red { background: #fee2e2; color: #991b1b; }
-.badge--role { background: #e0f2fe; color: #0c4a6e; margin-right: 0.25rem; }
-.badge-tipo {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.text-muted { color: #94a3b8; font-size: 0.85rem; }
+.text-muted { color: var(--qnt-text-faint); font-size: 0.85rem; }
+.actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
 /* Action buttons */
 .btn-action {
-  padding: 0.35rem 0.7rem;
-  border: 1px solid #e2e8f0;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--qnt-border);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
-  font-size: 0.8rem;
+  background: var(--qnt-surface);
+  color: var(--qnt-text-secondary);
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background .15s, color .15s;
   white-space: nowrap;
 }
-.btn-action:hover { background: #f1f5f9; color: #334155; }
+.btn-action:hover { background: var(--qnt-surface-raised); color: var(--qnt-text); }
 .btn-action--danger { color: #991b1b; border-color: #fecaca; }
 .btn-action--danger:hover { background: #fee2e2; }
 
-/* Buttons */
-.btn-primary {
-  padding: 0.6rem 1.25rem;
-  background: #0d7377;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-primary:hover:not(:disabled) { background: #0a5c5f; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-primary--danger { background: #dc2626; }
-.btn-primary--danger:hover:not(:disabled) { background: #b91c1c; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
-
-.btn-secondary {
-  padding: 0.6rem 1.25rem;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
-.btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-retry {
-  padding: 0.5rem 1.25rem;
-  background: #0d7377;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-retry:hover { background: #0a5c5f; }
-
-/* States */
-.state-msg {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #64748b;
-  font-size: 0.95rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-.state-msg--error { color: #dc2626; }
-.state-msg--empty p { margin: 0 0 0.5rem; }
-.state-msg-inline {
-  padding: 1.5rem;
-  text-align: center;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.spinner {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2.5px solid #e2e8f0;
-  border-top-color: #0d7377;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Toast */
-.toast {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  background: #166534;
-  color: #fff;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
-}
-.toast-enter-active, .toast-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.toast-enter-from { opacity: 0; transform: translateY(-12px); }
-.toast-leave-to { opacity: 0; transform: translateY(-12px); }
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9000;
-  padding: 1rem;
-}
-.modal-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-card--wide { max-width: 640px; }
-.modal-title {
-  margin: 0 0 0.5rem;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-.modal-subtitle {
-  margin: 0 0 1.25rem;
-  font-size: 0.9rem;
-  color: #64748b;
-}
-.modal-error {
-  color: #dc2626;
-  font-size: 0.85rem;
-  margin: 0 0 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: #fef2f2;
-  border-radius: 6px;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-.modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
-.modal-enter-active .modal-card, .modal-leave-active .modal-card { transition: transform 0.2s; }
-.modal-enter-from { opacity: 0; }
-.modal-enter-from .modal-card { transform: scale(0.95); }
-.modal-leave-to { opacity: 0; }
-.modal-leave-to .modal-card { transform: scale(0.95); }
+/* Badge tipo (keeps dynamic inline style for color) */
+.badge-tipo { border-radius: 999px; }
 
 /* Form grid */
 .form-grid {
@@ -1386,56 +1094,21 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   margin-bottom: 1.25rem;
 }
 .form-grid .span-2 { grid-column: span 2; }
-.form-field label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #475569;
-  margin-bottom: 0.35rem;
-}
-.form-field label .required { color: #dc2626; }
-.form-field__checkbox-label {
+.required { color: #dc2626; }
+
+.checkbox-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  font-size: 0.875rem;
   font-weight: 500;
+  color: var(--qnt-text-secondary);
+  padding-top: 1.5rem;
 }
-.form-field__checkbox-label input[type="checkbox"] {
-  width: auto;
-  cursor: pointer;
-}
-.form-field input,
-.form-field select,
-.form-field textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.6rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-}
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus {
-  outline: none;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
-}
-.form-field input:disabled,
-.form-field select:disabled,
-.form-field textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.form-field textarea { resize: vertical; min-height: 80px; }
-.field-error {
-  color: #dc2626;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-}
+.checkbox-label input[type="checkbox"] { width: auto; cursor: pointer; }
+
+.qnt-textarea { resize: vertical; min-height: 80px; }
 
 /* Proveedor combo */
 .proveedor-combo { position: relative; }
@@ -1444,10 +1117,10 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   top: 100%;
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   max-height: 200px;
   overflow-y: auto;
   z-index: 100;
@@ -1455,47 +1128,36 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .proveedor-option {
   padding: 0.6rem 1rem;
   cursor: pointer;
-  font-size: 0.9rem;
-  color: #334155;
+  font-size: 0.875rem;
+  color: var(--qnt-text);
 }
-.proveedor-option:hover { background: #f1f5f9; }
+.proveedor-option:hover { background: var(--qnt-surface-raised); }
 .proveedor-option--create {
-  color: #0d7377;
+  color: var(--qnt-primary);
   font-weight: 500;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--qnt-border);
 }
 
-/* Detail sections */
-.detail-section { margin-bottom: 1.5rem; }
-.detail-section__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
-}
+/* Detail modal rows */
 .detail-row {
   display: flex;
   gap: 1rem;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 .detail-row__label {
-  color: #64748b;
+  color: var(--qnt-text-muted);
   min-width: 140px;
   flex-shrink: 0;
 }
 .detail-row__value {
-  color: #1e293b;
+  color: var(--qnt-text);
   font-weight: 500;
 }
 .detail-row__value--highlight {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #0d7377;
+  color: var(--qnt-primary);
 }
 
 /* Image zone */
@@ -1505,37 +1167,32 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   max-height: 400px;
   width: 100%;
   object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 0.75rem;
 }
 .image-upload {
-  border: 2px dashed #e2e8f0;
-  border-radius: 12px;
+  border: 2px dashed var(--qnt-border);
+  border-radius: var(--radius-lg);
   padding: 2rem;
   cursor: pointer;
-  transition: border-color 0.2s;
-  color: #94a3b8;
+  transition: border-color .2s;
+  color: var(--qnt-text-faint);
 }
-.image-upload:hover { border-color: #0d9488; }
+.image-upload:hover { border-color: var(--qnt-primary); }
 .image-upload p { margin: 0 0 0.25rem; }
 
-/* Transition for EQUIPO fields */
-.slide-enter-active, .slide-leave-active { transition: all 0.25s ease; }
-.slide-enter-from { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-8px); }
-.slide-leave-to { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-8px); }
+/* Slide transition for conditional fields */
+.slide-enter-active, .slide-leave-active { transition: all .22s ease; }
+.slide-enter-from { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-6px); }
+.slide-leave-to   { opacity: 0; max-height: 0; overflow: hidden; transform: translateY(-6px); }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .compras-page { padding: 1rem; }
-  .page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
   .summary-cards { grid-template-columns: 1fr; }
-  .filters { flex-direction: column; }
-  .filter-input { max-width: 100%; flex: 1 1 100%; }
-  .filter-input--date { max-width: 100%; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .span-2 { grid-column: span 1; }
-  .modal-card--wide { max-width: 95vw; }
-  .detail-row { flex-direction: column; gap: 0.25rem; }
+  .date-input { max-width: 100%; }
+  .detail-row { flex-direction: column; gap: 0.2rem; }
 }
 </style>

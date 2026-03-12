@@ -24,7 +24,7 @@ const TIPO_EQUIPO_LABELS = {
 }
 
 const TIPO_EQUIPO_COLORS = {
-  DOCK: '#0d7377',
+  DOCK: '#113e4c',
   DRON: '#1e40af',
   BATERIA: '#166534',
   HELICE: '#92400e',
@@ -170,7 +170,7 @@ onUnmounted(() => {
 <template>
   <div class="mapa-page">
     <nav class="breadcrumb">
-      <router-link to="/stock">Stock</router-link>
+      <router-link to="/home/stock">Stock</router-link>
       <span class="breadcrumb__sep">/</span>
       <span class="breadcrumb__current">Mapa de equipos</span>
     </nav>
@@ -218,7 +218,7 @@ onUnmounted(() => {
   color: #94a3b8;
 }
 .breadcrumb a {
-  color: #0d7377;
+  color: #113e4c;
   text-decoration: none;
 }
 .breadcrumb a:hover { text-decoration: underline; }
@@ -249,8 +249,8 @@ onUnmounted(() => {
   min-height: 400px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border: 1px solid #e0e5e5;
+  background: #f8fafa;
 }
 
 .mapa-empty {
@@ -277,20 +277,20 @@ onUnmounted(() => {
 .btn-retry {
   margin-top: 0.5rem;
   padding: 0.5rem 1.25rem;
-  background: #0d7377;
+  background: #113e4c;
   color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 0.9rem;
   cursor: pointer;
 }
-.btn-retry:hover { background: #0a5c5f; }
+.btn-retry:hover { background: #2b555b; }
 .spinner {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2.5px solid #e2e8f0;
-  border-top-color: #0d7377;
+  border: 2.5px solid #e0e5e5;
+  border-top-color: #113e4c;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -300,7 +300,7 @@ onUnmounted(() => {
 <style>
 /* Popup global (no scoped) para enlaces */
 .mapa-equipos-popup .mapa-popup-link {
-  color: #0d7377;
+  color: #113e4c;
   font-weight: 500;
   text-decoration: none;
 }

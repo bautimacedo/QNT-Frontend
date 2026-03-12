@@ -1,404 +1,500 @@
 <script setup>
-import { computed, inject, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  LayoutDashboard, Wind, CheckCircle2,
+  AlertTriangle, AlertCircle,
+  User,
+  Plane, Package, Wrench, BatteryLow, ShieldCheck, ShieldX,
+  TrendingUp, Bell,
+} from 'lucide-vue-next'
+import { getPilotos, getAlertasActivas, resolverAlerta, getTareas } from '../api'
+import { getClima } from '../api/clima.js'
 
-const user = inject('dashboardUser', ref(null))
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-const userInitials = computed(() => {
-  if (!user?.value?.email) return '?'
-  const parts = user.value.email.split('@')[0].split(/[._-]/)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return (parts[0]?.[0] || '?').toUpperCase()
+const PRIO_CFG = {
+  alta:    { dot: 'bg-red-500',    label: 'Alta'    },
+  critica: { dot: 'bg-red-700',    label: 'Crítica' },
+  media:   { dot: 'bg-amber-500',  label: 'Media'   },
+  baja:    { dot: 'bg-slate-400',  label: 'Baja'    },
+}
+
+const STATUS_CFG = {
+  pendiente:     { dot: 'bg-slate-400',  label: 'Pendiente',  text: 'text-slate-600',   bg: 'bg-slate-50',   border: 'border-slate-200'   },
+  'en-progreso': { dot: 'bg-blue-500',   label: 'En curso',   text: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200'    },
+  completada:    { dot: 'bg-emerald-500',label: 'Completada', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+}
+
+// Mapeo de enums del backend al formato del template
+const ESTADO_MAP = { PENDIENTE: 'pendiente', EN_PROGRESO: 'en-progreso', COMPLETADA: 'completada' }
+const PRIO_MAP   = { CRITICA: 'critica', ALTA: 'alta', MEDIA: 'media', BAJA: 'baja' }
+
+// ─── Tareas — cargadas desde la API ──────────────────────────────────────────
+
+const tareasRaw    = ref([])
+const tareasLoading = ref(false)
+
+async function fetchTareas() {
+  tareasLoading.value = true
+  try {
+    tareasRaw.value = await getTareas()
+  } catch { /* silencioso en dashboard */ }
+  finally { tareasLoading.value = false }
+}
+
+// Mapea respuesta del backend al formato que usa el template
+const TASKS = computed(() =>
+  tareasRaw.value.map(t => ({
+    id:        t.id,
+    titulo:    t.titulo,
+    equipo:    t.descripcion ? t.descripcion.slice(0, 40) : '—',
+    prioridad: PRIO_MAP[t.prioridad]   || 'media',
+    estado:    ESTADO_MAP[t.estado]    || 'pendiente',
+    vence:     t.fechaVencimiento      || null,
+    asignado:  t.asignadoANombre       || '—',
+    vencida:   t.vencida               || false,
+  }))
+)
+
+// Pilotos — cargados desde la API
+const pilotosRaw = ref([])
+const pilotosLoading = ref(false)
+
+async function fetchPilotos() {
+  pilotosLoading.value = true
+  try {
+    pilotosRaw.value = await getPilotos()
+  } catch { /* silencioso en dashboard */ }
+  finally { pilotosLoading.value = false }
+}
+
+// Mapea los datos del backend al formato que usa la vista
+const PILOTOS = computed(() => {
+  return pilotosRaw.value.map(p => {
+    const nombre = `${p.nombre || ''} ${p.apellido || ''}`.trim()
+    // Busca la CMA más reciente entre las licencias activas
+    const fechas = (p.licencias || [])
+      .filter(l => l.activo !== false && l.fechaVencimientoCma)
+      .map(l => l.fechaVencimientoCma)
+      .sort()
+      .reverse()
+    const cmaFecha = p.cmaVencimiento || fechas[0] || null
+    let cmaLabel = 'Sin CMA'
+    let ok = false
+    if (cmaFecha) {
+      const diff = Math.floor((new Date(cmaFecha) - new Date()) / 86400000)
+      cmaLabel = new Date(cmaFecha).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' })
+      ok = diff >= 0
+    }
+    return {
+      id: p.id,
+      nombre,
+      anac: p.numeroLicenciaAnac || '—',
+      cma: cmaLabel,
+      ok,
+    }
+  })
 })
 
-// Datos de ejemplo para el dashboard (según diseño)
-const summaryCards = [
-  { label: 'Flota Total', value: 1, icon: 'check', color: 'blue' },
-  { label: 'Drones con Estado', value: 1, icon: 'warning', color: 'gray' },
-  { label: 'Baterías >100 Vuelos', value: 0, icon: 'battery', color: 'amber' },
-  { label: 'Pilotos Activos', value: 1, icon: 'pilot', color: 'orange' },
-]
+const WEATHER = ref([])
+let weatherInterval = null
 
-const weatherLocations = [
-  { name: 'EFO', temp: '17.1°C', condition: 'Nubes', wind: 'Viento Sostenido 35 km/h', gusts: 'Ráfagas 43 km/h', visibility: 'Visibilidad 10 km' },
-  { name: 'Cañadón Seco', temp: '28.2°C', condition: 'Nubes Dispersas', wind: 'Viento Sostenido 14 km/h', gusts: 'Ráfagas 14 km/h', visibility: 'Visibilidad 10 km' },
-  { name: 'Cañadón Amarillo', temp: '31.1°C', condition: 'Nubes', wind: 'Viento Sostenido 24 km/h', gusts: 'Ráfagas 34 km/h', visibility: 'Visibilidad 10 km' },
-]
+async function fetchWeather() {
+  try {
+    const { data } = await getClima()
+    WEATHER.value = data.map(d => ({
+      nombre:    d.siteName,
+      id:        d.codigo,
+      temp:      Math.round((d.tempCelsius ?? 0) * 10) / 10,
+      cond:      d.conditionDesc ? d.conditionDesc.charAt(0).toUpperCase() + d.conditionDesc.slice(1) : '—',
+      viento:    Math.round((d.windSpeedMs ?? 0) * 3.6),
+      rafagas:   Math.round((d.windGustMs ?? d.windSpeedMs ?? 0) * 3.6),
+      visib:     d.visibilityMeters != null ? (d.visibilityMeters / 1000).toFixed(1) : '—',
+      apto:      d.isFlyable === true,
+      updatedAt: d.recordedAt,
+    }))
+  } catch { /* silencioso */ }
+}
 
-const pilots = [
-  { name: 'Bautista Macedo Rodriguez', cma: 'CMA 30/09/2028', status: 'ok' },
-  { name: 'Hugo Meriño', cma: 'Sin fecha CMA', status: 'error' },
-  { name: 'Patricio Maioli', cma: 'CMA 30/09/2028', status: 'ok' },
-  { name: 'Gonzalo Rodriguez', cma: 'Sin fecha CMA', status: 'error' },
-  { name: 'Bruno Garibaldi', cma: 'CMA 30/09/2028', status: 'ok' },
-]
+const PILOT_COLORS = ['#113e4c','#1d4ed8','#6d28d9','#065f46','#92400e']
+
+// Alertas — cargadas desde la API
+const alertasRaw    = ref([])
+const alertasLoading = ref(false)
+
+async function fetchAlertas() {
+  alertasLoading.value = true
+  try {
+    alertasRaw.value = await getAlertasActivas()
+  } catch { /* silencioso */ }
+  finally { alertasLoading.value = false }
+}
+
+async function onResolverAlerta(id) {
+  try {
+    await resolverAlerta(id)
+    alertasRaw.value = alertasRaw.value.filter(a => a.id !== id)
+  } catch { /* silencioso */ }
+}
+
+// Mapea el nivel/tipo del backend al ícono y color de la vista
+const NIVEL_CFG = {
+  CRITICA:     { icon: AlertTriangle, color: 'text-red-500',   bg: 'bg-red-50'   },
+  ADVERTENCIA: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
+  INFO:        { icon: AlertCircle,   color: 'text-blue-500',  bg: 'bg-blue-50'  },
+}
+
+const ALERTS = computed(() =>
+  alertasRaw.value.map(a => ({
+    id:    a.id,
+    icon:  (NIVEL_CFG[a.nivel] || NIVEL_CFG.INFO).icon,
+    color: (NIVEL_CFG[a.nivel] || NIVEL_CFG.INFO).color,
+    bg:    (NIVEL_CFG[a.nivel] || NIVEL_CFG.INFO).bg,
+    msg:   a.mensaje,
+    sub:   a.subtitulo || '',
+  }))
+)
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const TODAY = new Date().toISOString().slice(0, 10)
+const fechaHoy = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+  .replace(/^\w/, c => c.toUpperCase())
+
+function isOverdue(d) { return d && d < TODAY }
+function isDueToday(d) { return d && d === TODAY }
+function fdate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { day:'2-digit', month:'short' }) : '—' }
+function initials(name) {
+  const p = name.split(' ')
+  return (p[0][0] + (p[1]?.[0] ?? '')).toUpperCase()
+}
+
+// ─── Computed ─────────────────────────────────────────────────────────────────
+
+const pending    = computed(() => TASKS.value.filter(t => t.estado === 'pendiente').length)
+const inProgress = computed(() => TASKS.value.filter(t => t.estado === 'en-progreso').length)
+const completed  = computed(() => TASKS.value.filter(t => t.estado === 'completada').length)
+const overdue    = computed(() => TASKS.value.filter(t => t.vencida).length)
+const cmaAlerts  = computed(() => PILOTOS.value.filter(p => !p.ok).length)
+
+onMounted(() => {
+  fetchPilotos()
+  fetchAlertas()
+  fetchTareas()
+  fetchWeather()
+  weatherInterval = setInterval(fetchWeather, 5 * 60 * 1000)
+})
+
+onUnmounted(() => clearInterval(weatherInterval))
+
+function fhora(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+}
+
+const taskTab = ref('activas')
+
+const TASK_TABS = computed(() => [
+  { id:'activas',     label:'Activas',     count: pending.value + inProgress.value },
+  { id:'pendiente',   label:'Pendientes',  count: pending.value                    },
+  { id:'en-progreso', label:'En curso',    count: inProgress.value                 },
+  { id:'completada',  label:'Completadas', count: completed.value                  },
+])
+
+const shownTasks = computed(() => {
+  const list = taskTab.value === 'activas'
+    ? TASKS.value.filter(t => t.estado !== 'completada')
+    : TASKS.value.filter(t => t.estado === taskTab.value)
+  const pOrd = { critica:0, alta:1, media:2, baja:3 }
+  return list.slice().sort((a, b) => {
+    const aO = a.vencida ? -1 : 0
+    const bO = b.vencida ? -1 : 0
+    if (aO !== bO) return aO - bO
+    return (pOrd[a.prioridad] ?? 2) - (pOrd[b.prioridad] ?? 2)
+  })
+})
+
+const kpiCards = computed(() => [
+  { label:'Drones operativos', val:'5/6', sub:'1 en mantenimiento',                                          Icon:Plane,        grad:'from-[#113e4c] to-[#2b555b]'                                                                   },
+  { label:'Misiones activas',  val:3,     sub:'5 planificadas',                                              Icon:TrendingUp,   grad:'from-[#1d4ed8] to-[#2563eb]'                                                                   },
+  { label:'Tareas abiertas',   val:pending.value+inProgress.value, sub:`${overdue.value} vencida${overdue.value!==1?'s':''}`, Icon:Wrench, grad:overdue.value>0?'from-red-500 to-red-600':'from-[#2b555b] to-[#536c6b]'           },
+  { label:'Alertas',           val:overdue.value+cmaAlerts.value,  sub:`${cmaAlerts.value} CMA sin actualizar`,               Icon:AlertCircle, grad:(overdue.value+cmaAlerts.value)>0?'from-amber-500 to-amber-600':'from-[#536c6b] to-[#658582]' },
+])
 </script>
 
 <template>
-  <div class="dashboard-page">
-    <header v-if="user?.value" class="dashboard-header">
-      <div class="header-content">
+  <div class="min-h-full" style="background:#f5f7f7;">
+
+    <!-- ── Header ── -->
+    <div class="bg-white border-b" style="border-color:#e0e8e8;padding:1.25rem 1.5rem;">
+      <div class="flex items-center justify-between">
         <div>
-          <h1 class="dashboard-title">Dashboard Operativo</h1>
-          <p class="dashboard-subtitle">Vista general de la flota y operaciones en tiempo real</p>
+          <div class="flex items-center gap-1" style="font-size:.625rem;color:#658582;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.375rem;font-weight:500;">
+            <LayoutDashboard style="width:14px;height:14px;" />
+            <span style="color:#113e4c;margin-left:.25rem;">Resumen operativo</span>
+          </div>
+          <h1 style="margin:0;color:#113e4c;font-weight:700;font-size:1.3rem;">Dashboard</h1>
+          <p style="margin:.25rem 0 0;color:#536c6b;font-size:.875rem;">{{ fechaHoy }} · QNT Drones</p>
         </div>
-        <div class="header-actions">
-          <router-link to="/usuarios" class="btn-secondary">Gestión de Usuarios</router-link>
-          <router-link to="/compras" class="btn-secondary">Compras</router-link>
-          <div class="user-avatar" :title="user?.value?.email">{{ userInitials }}</div>
+        <div v-if="overdue > 0" class="flex items-center gap-2" style="padding:.625rem 1rem;border-radius:.75rem;background:#fef2f2;border:1px solid #fecaca;">
+          <Bell style="width:16px;height:16px;color:#dc2626;" />
+          <span style="font-size:.75rem;font-weight:700;color:#b91c1c;">{{ overdue }} tarea{{ overdue > 1 ? 's' : '' }} vencida{{ overdue > 1 ? 's' : '' }}</span>
         </div>
       </div>
-    </header>
+    </div>
 
-    <main class="dashboard-content">
-        <div class="summary-cards">
-          <div
-            v-for="(card, i) in summaryCards"
-            :key="i"
-            class="summary-card"
-            :class="`summary-card--${card.color}`"
-          >
-            <span class="summary-card__value">{{ card.value }}</span>
-            <span class="summary-card__label">{{ card.label }}</span>
-            <span class="summary-card__icon" :class="`summary-card__icon--${card.color}`">
-              <template v-if="card.icon === 'check'">✓</template>
-              <template v-else-if="card.icon === 'warning'">!</template>
-              <template v-else-if="card.icon === 'battery'">▭</template>
-              <template v-else>👤</template>
-            </span>
+    <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;">
+
+      <!-- ── KPIs ── -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div
+          v-for="(k, i) in kpiCards"
+          :key="i"
+          class="bg-white rounded-2xl flex items-center gap-4 hover:shadow-md transition-shadow"
+          style="border:1px solid #e0e8e8;padding:1rem 1.25rem;"
+        >
+          <div :class="`w-11 h-11 rounded-xl bg-gradient-to-br ${k.grad} flex items-center justify-center flex-shrink-0`">
+            <component :is="k.Icon" style="width:20px;height:20px;color:#fff;" />
+          </div>
+          <div class="min-w-0">
+            <p style="font-size:.625rem;color:#658582;text-transform:uppercase;letter-spacing:.06em;margin:0;">{{ k.label }}</p>
+            <p style="font-size:1.25rem;font-weight:700;color:#113e4c;line-height:1.1;margin:0;">{{ k.val }}</p>
+            <p style="font-size:.625rem;color:#a0b5b5;margin:.125rem 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ k.sub }}</p>
           </div>
         </div>
+      </div>
 
-        <div class="weather-cards">
-          <div
-            v-for="loc in weatherLocations"
-            :key="loc.name"
-            class="weather-card"
-          >
-            <div class="weather-card__header">{{ loc.name }}</div>
-            <div class="weather-card__body">
-              <div class="weather-card__main">
-                <span class="weather-card__icon">☁</span>
-                <span class="weather-card__temp">{{ loc.temp }}</span>
-                <span class="weather-card__condition">{{ loc.condition }}</span>
+      <!-- ── Weather ── -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div
+          v-for="loc in WEATHER"
+          :key="loc.id"
+          class="rounded-2xl overflow-hidden shadow-md"
+          style="background:linear-gradient(135deg,#0d3340 0%,#1e4d5a 60%,#2b6370 100%);"
+        >
+          <div style="padding:1.25rem 1.25rem 1rem;">
+            <div class="flex items-start justify-between" style="margin-bottom:.75rem;">
+              <div>
+                <p style="color:rgba(255,255,255,.6);font-size:.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin:0;">{{ loc.id }}</p>
+                <p style="color:#fff;font-size:.875rem;font-weight:700;margin:.125rem 0 0;">{{ loc.nombre }}</p>
               </div>
-              <div class="weather-card__details">
-                <p>{{ loc.wind }}</p>
-                <p>{{ loc.gusts }}</p>
-                <p>{{ loc.visibility }}</p>
+              <span
+                style="font-size:.5625rem;font-weight:700;padding:.25rem .5rem;border-radius:999px;"
+                :style="loc.apto
+                  ? 'background:rgba(16,185,129,.2);color:#6ee7b7;border:1px solid rgba(16,185,129,.3);'
+                  : 'background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.3);'"
+              >{{ loc.apto ? '✓ APTO' : '✗ NO APTO' }}</span>
+            </div>
+            <div class="flex items-end gap-3" style="margin-bottom:1rem;">
+              <p style="color:#fff;font-weight:700;font-size:2.2rem;line-height:1;margin:0;">{{ loc.temp }}°</p>
+              <div style="padding-bottom:.125rem;">
+                <p style="color:rgba(255,255,255,.8);font-size:.75rem;margin:0;">{{ loc.cond }}</p>
+                <p style="color:rgba(255,255,255,.5);font-size:.625rem;margin:.125rem 0 0;">Visib. {{ loc.visib }} km</p>
               </div>
             </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div
+                v-for="w in [{label:'Viento',val:`${loc.viento} km/h`,warn:loc.viento>30},{label:'Ráfagas',val:`${loc.rafagas} km/h`,warn:loc.rafagas>40}]"
+                :key="w.label"
+                class="flex items-center gap-1"
+                style="padding:.375rem .5rem;border-radius:.5rem;"
+                :style="w.warn ? 'background:rgba(239,68,68,.2)' : 'background:rgba(255,255,255,.1)'"
+              >
+                <Wind style="width:12px;height:12px;flex-shrink:0;" :style="w.warn ? 'color:#fca5a5' : 'color:rgba(255,255,255,.6)'" />
+                <div>
+                  <p style="font-size:.5625rem;margin:0;" :style="w.warn ? 'color:#fca5a5' : 'color:rgba(255,255,255,.5)'">{{ w.label }}</p>
+                  <p style="font-size:.6875rem;font-weight:700;margin:0;" :style="w.warn ? 'color:#fecaca' : 'color:#fff'">{{ w.val }}</p>
+                </div>
+              </div>
+            </div>
+            <p style="margin:.625rem 0 0;font-size:.5625rem;color:rgba(255,255,255,.35);">
+              Últ. actualización: {{ fhora(loc.updatedAt) }} hs
+            </p>
           </div>
         </div>
+      </div>
 
-        <section class="pilots-section">
-          <h2 class="pilots-section__title">Pilotos Activos - CMA (Certificado Médico Aeronáutico)</h2>
-          <div class="pilots-list">
+      <!-- ── Main 2-col ── -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- Tasks (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl overflow-hidden flex flex-col" style="border:1px solid #e0e8e8;">
+          <div style="padding:1rem 1.25rem;border-bottom:1px solid #e0e8e8;">
+            <div class="flex items-center justify-between" style="margin-bottom:.75rem;">
+              <div class="flex items-center gap-2">
+                <div style="width:28px;height:28px;border-radius:.5rem;background:linear-gradient(135deg,#113e4c,#2b555b);display:flex;align-items:center;justify-content:center;">
+                  <Wrench style="width:14px;height:14px;color:#fff;" />
+                </div>
+                <h2 style="font-size:.875rem;font-weight:700;color:#113e4c;margin:0;">Tareas</h2>
+                <span v-if="overdue>0" style="font-size:.5625rem;font-weight:700;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:.125rem .375rem;border-radius:999px;">
+                  {{ overdue }} vencida{{ overdue>1?'s':'' }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span style="font-size:.5625rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:.125rem .5rem;border-radius:999px;font-weight:500;">{{ pending }} pend.</span>
+                <span style="font-size:.5625rem;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:.125rem .5rem;border-radius:999px;font-weight:500;">{{ inProgress }} en curso</span>
+                <span style="font-size:.5625rem;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;padding:.125rem .5rem;border-radius:999px;font-weight:500;">{{ completed }} hecha{{ completed!==1?'s':'' }}</span>
+              </div>
+            </div>
+            <!-- Tabs -->
+            <div class="flex items-center gap-1">
+              <button
+                v-for="tab in TASK_TABS"
+                :key="tab.id"
+                @click="taskTab = tab.id"
+                class="flex items-center gap-1"
+                style="padding:.375rem .625rem;border-radius:.5rem;font-size:.6875rem;font-weight:600;cursor:pointer;transition:all .15s;border:none;"
+                :style="taskTab===tab.id ? 'background:#eaf1f2;color:#113e4c;outline:1px solid #b8d0d4;' : 'background:transparent;color:#658582;'"
+              >
+                {{ tab.label }}
+                <span
+                  style="font-size:.5rem;font-weight:700;padding:.125rem .3rem;border-radius:999px;"
+                  :style="taskTab===tab.id ? 'background:#113e4c;color:#fff;' : 'background:#edf1f1;color:#658582;'"
+                >{{ tab.count }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Task list -->
+          <div class="flex-1 overflow-y-auto" style="max-height:340px;">
+            <div v-if="tareasLoading" style="padding:2.5rem 0;text-align:center;font-size:.75rem;color:#a0b5b5;">Cargando tareas…</div>
+            <div v-else-if="shownTasks.length===0" style="padding:2.5rem 0;text-align:center;">
+              <CheckCircle2 style="width:32px;height:32px;color:#34d399;margin:0 auto .5rem;" />
+              <p style="font-size:.875rem;color:#536c6b;margin:0;">Sin tareas en esta categoría</p>
+            </div>
+            <template v-else>
             <div
-              v-for="(pilot, i) in pilots"
-              :key="i"
-              class="pilot-row"
+              v-for="t in shownTasks"
+              :key="t.id"
+              class="flex items-center gap-3 hover:bg-[#f8fafa] transition-colors"
+              style="padding:.75rem 1rem;border-bottom:1px solid #f0f4f4;"
+              :style="t.estado==='completada' ? 'opacity:.55' : ''"
             >
-              <span class="pilot-row__icon">👤</span>
-              <span class="pilot-row__name">{{ pilot.name }}</span>
-              <span class="pilot-row__cma" :class="pilot.status === 'error' ? 'pilot-row__cma--error' : ''">
-                {{ pilot.cma }}
+              <span :class="`w-2.5 h-2.5 rounded-full flex-shrink-0 ${PRIO_CFG[t.prioridad].dot}`" />
+              <div class="flex-1 min-w-0">
+                <p
+                  class="truncate"
+                  style="font-size:.75rem;font-weight:600;margin:0;"
+                  :style="t.estado==='completada' ? 'text-decoration:line-through;color:#a0b5b5' : 'color:#113e4c'"
+                >{{ t.titulo }}</p>
+                <p class="truncate" style="font-size:.5625rem;color:#a0b5b5;margin:.125rem 0 0;">{{ t.equipo }}</p>
+              </div>
+              <span
+                class="hidden sm:inline-flex items-center gap-1 flex-shrink-0"
+                style="font-size:.5625rem;font-weight:700;padding:.125rem .375rem;border-radius:999px;white-space:nowrap;border-width:1px;border-style:solid;"
+                :class="`${STATUS_CFG[t.estado].bg} ${STATUS_CFG[t.estado].text} ${STATUS_CFG[t.estado].border}`"
+              >
+                <span :class="`w-1.5 h-1.5 rounded-full ${STATUS_CFG[t.estado].dot}`" />
+                {{ STATUS_CFG[t.estado].label }}
               </span>
               <span
-                class="pilot-row__dot"
-                :class="pilot.status === 'ok' ? 'pilot-row__dot--ok' : 'pilot-row__dot--error'"
-              />
+                class="flex-shrink-0"
+                style="font-size:.625rem;font-weight:600;white-space:nowrap;"
+                :style="t.estado!=='completada' && isOverdue(t.vence) ? 'color:#dc2626' : isDueToday(t.vence) ? 'color:#d97706' : 'color:#658582'"
+              >{{ t.estado!=='completada' && isOverdue(t.vence) ? '⚠️ ' : '' }}{{ fdate(t.vence) }}</span>
+              <span class="hidden md:block flex-shrink-0" style="font-size:.5625rem;color:#a0b5b5;white-space:nowrap;">{{ t.asignado }}</span>
+            </div>
+            </template>
+          </div>
+
+          <!-- Footer legend -->
+          <div class="flex items-center gap-4" style="padding:.625rem 1rem;border-top:1px solid #f0f4f4;background:#fafbfb;">
+            <div v-for="l in [{dot:'bg-red-500',label:'Alta'},{dot:'bg-amber-500',label:'Media'},{dot:'bg-slate-400',label:'Baja'}]" :key="l.label" class="flex items-center gap-1">
+              <span :class="`w-2 h-2 rounded-full ${l.dot}`" />
+              <span style="font-size:.5625rem;color:#658582;">{{ l.label }}</span>
+            </div>
+            <span style="margin-left:auto;font-size:.5625rem;color:#a0b5b5;">⚠️ = vencida</span>
+          </div>
+        </div>
+
+        <!-- Right column (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+
+          <!-- Pilots & CMA -->
+          <div class="bg-white rounded-2xl overflow-hidden" style="border:1px solid #e0e8e8;">
+            <div class="flex items-center justify-between" style="padding:1rem 1.25rem;border-bottom:1px solid #e0e8e8;">
+              <div class="flex items-center gap-2">
+                <div style="width:28px;height:28px;border-radius:.5rem;background:linear-gradient(135deg,#113e4c,#2b555b);display:flex;align-items:center;justify-content:center;">
+                  <User style="width:14px;height:14px;color:#fff;" />
+                </div>
+                <h2 style="font-size:.875rem;font-weight:700;color:#113e4c;margin:0;">Pilotos · CMA</h2>
+              </div>
+              <span v-if="pilotosLoading" style="font-size:.5625rem;color:#a0b5b5;">Cargando…</span>
+              <span v-else-if="cmaAlerts>0" style="font-size:.5625rem;font-weight:700;color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:.125rem .5rem;border-radius:999px;">
+                {{ cmaAlerts }} alerta{{ cmaAlerts>1?'s':'' }}
+              </span>
+            </div>
+            <div>
+              <div v-if="pilotosLoading" style="padding:2rem;text-align:center;font-size:.75rem;color:#a0b5b5;">Cargando pilotos…</div>
+              <div v-else-if="PILOTOS.length===0" style="padding:2rem;text-align:center;font-size:.75rem;color:#a0b5b5;">Sin pilotos registrados</div>
+              <div
+                v-for="(p, idx) in PILOTOS"
+                :key="p.id"
+                class="flex items-center gap-3 hover:bg-[#f8fafa] transition-colors"
+                style="padding:.75rem 1rem;border-bottom:1px solid #f0f4f4;"
+              >
+                <div
+                  class="flex-shrink-0 flex items-center justify-center"
+                  style="width:32px;height:32px;border-radius:50%;color:#fff;font-size:.6875rem;font-weight:700;"
+                  :style="{ backgroundColor: PILOT_COLORS[idx % PILOT_COLORS.length] }"
+                >{{ initials(p.nombre) }}</div>
+                <div class="flex-1 min-w-0">
+                  <p class="truncate" style="font-size:.75rem;font-weight:600;color:#113e4c;margin:0;">{{ p.nombre }}</p>
+                  <p style="font-size:.5625rem;color:#a0b5b5;margin:.125rem 0 0;">ANAC {{ p.anac }}</p>
+                </div>
+                <div class="flex-shrink-0">
+                  <span v-if="p.ok" class="inline-flex items-center gap-1" style="font-size:.5625rem;font-weight:700;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;padding:.25rem .5rem;border-radius:.5rem;">
+                    <ShieldCheck style="width:12px;height:12px;" />
+                    <span class="hidden sm:inline">{{ p.cma }}</span>
+                    <span class="sm:hidden">OK</span>
+                  </span>
+                  <span v-else class="inline-flex items-center gap-1" style="font-size:.5625rem;font-weight:700;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:.25rem .5rem;border-radius:.5rem;">
+                    <ShieldX style="width:12px;height:12px;" />
+                    {{ p.cma }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
-      </main>
+
+          <!-- Alerts -->
+          <div class="bg-white rounded-2xl overflow-hidden" style="border:1px solid #e0e8e8;">
+            <div class="flex items-center gap-2" style="padding:.875rem 1.25rem;border-bottom:1px solid #e0e8e8;">
+              <Bell style="width:16px;height:16px;color:#658582;" />
+              <h2 style="font-size:.875rem;font-weight:700;color:#113e4c;margin:0;">Alertas del sistema</h2>
+            </div>
+            <div>
+              <div v-if="alertasLoading" class="flex items-center justify-center" style="padding:2rem;color:#a0b5b5;font-size:.75rem;">
+                Cargando alertas…
+              </div>
+              <div v-else-if="ALERTS.length === 0" class="flex items-center justify-center gap-2" style="padding:2rem;color:#a0b5b5;font-size:.75rem;">
+                <CheckCircle2 style="width:16px;height:16px;" />
+                Sin alertas activas
+              </div>
+              <template v-else>
+                <div
+                  v-for="a in ALERTS"
+                  :key="a.id"
+                  class="flex items-start gap-3"
+                  style="padding:.75rem 1rem;border-bottom:1px solid #f0f4f4;"
+                  :class="a.bg"
+                >
+                  <component :is="a.icon" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;" :class="a.color" />
+                  <div class="flex-1 min-w-0">
+                    <p style="font-size:.6875rem;font-weight:600;color:#113e4c;margin:0;">{{ a.msg }}</p>
+                    <p style="font-size:.5625rem;color:#658582;margin:.125rem 0 0;">{{ a.sub }}</p>
+                  </div>
+                  <button
+                    @click="onResolverAlerta(a.id)"
+                    style="flex-shrink:0;font-size:.5625rem;font-weight:600;color:#536c6b;background:#f0f4f4;border:1px solid #e0e8e8;border-radius:.375rem;padding:.25rem .5rem;cursor:pointer;white-space:nowrap;"
+                  >Resolver</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.dashboard-page {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.dashboard-header {
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 1.25rem 1.5rem;
-}
-
-.header-content {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.dashboard-title {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.dashboard-subtitle {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #64748b;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-secondary:hover {
-  background: #e2e8f0;
-  color: #334155;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #0d7377;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.dashboard-content {
-  flex: 1;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.summary-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  position: relative;
-  min-height: 100px;
-}
-
-.summary-card__value {
-  display: block;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 0.25rem;
-}
-
-.summary-card__label {
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.summary-card__icon {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.summary-card__icon--blue {
-  background: #3b82f6;
-  color: #fff;
-}
-
-.summary-card__icon--gray {
-  background: #94a3b8;
-  color: #fff;
-}
-
-.summary-card__icon--amber {
-  background: #f59e0b;
-  color: #fff;
-}
-
-.summary-card__icon--orange {
-  background: #f97316;
-  color: #fff;
-}
-
-.weather-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.weather-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.weather-card__header {
-  background: #0c4a6e;
-  color: #fff;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.weather-card__body {
-  padding: 1rem;
-}
-
-.weather-card__main {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.weather-card__icon {
-  font-size: 1.5rem;
-}
-
-.weather-card__temp {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.weather-card__condition {
-  font-size: 0.9rem;
-  color: #64748b;
-  margin-left: auto;
-}
-
-.weather-card__details {
-  font-size: 0.85rem;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-.weather-card__details p {
-  margin: 0.2rem 0;
-}
-
-.pilots-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.pilots-section__title {
-  margin: 0 0 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.pilots-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.pilot-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.pilot-row:last-child {
-  border-bottom: none;
-}
-
-.pilot-row__icon {
-  font-size: 1.25rem;
-  color: #94a3b8;
-}
-
-.pilot-row__name {
-  flex: 1;
-  font-size: 0.95rem;
-  color: #334155;
-}
-
-.pilot-row__cma {
-  font-size: 0.9rem;
-  color: #64748b;
-}
-
-.pilot-row__cma--error {
-  color: #dc2626;
-}
-
-.pilot-row__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.pilot-row__dot--ok {
-  background: #22c55e;
-}
-
-.pilot-row__dot--error {
-  background: #dc2626;
-}
-
-@media (max-width: 1200px) {
-  .summary-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .weather-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .summary-cards {
-    grid-template-columns: 1fr;
-  }
-  .header-content {
-    flex-direction: column;
-  }
-  .header-actions {
-    flex-wrap: wrap;
-  }
-}
-</style>

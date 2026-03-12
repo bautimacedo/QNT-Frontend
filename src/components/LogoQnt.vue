@@ -7,10 +7,7 @@ defineProps({
 
 <template>
   <div class="logo-qnt" :class="[`logo-qnt--${variant}`]">
-    <div class="logo-qnt__mark">
-      <span class="logo-qnt__qnt">QNT</span>
-      <span class="logo-qnt__drones">DRONES</span>
-    </div>
+    <img src="/src/assets/Qnt_Logo.png" alt="QNT Drones" class="logo-qnt__img" />
   </div>
 </template>
 
@@ -19,6 +16,22 @@ defineProps({
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.logo-qnt__img {
+  object-fit: contain;
+}
+
+.logo-qnt--square .logo-qnt__img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.logo-qnt--circle .logo-qnt__img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
 }
 
 .logo-qnt--circle .logo-qnt__mark {
