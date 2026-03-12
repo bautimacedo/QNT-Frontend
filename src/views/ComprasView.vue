@@ -83,7 +83,7 @@ const FORM_DEFAULTS = () => ({
 const formModal = ref(FORM_DEFAULTS())
 
 const detailModal = ref({
-  open: false, compra: null, imageUrl: null, imageLoading: false, uploading: false,
+  open: false, compra: null, imageUrl: null, imageType: null, imageLoading: false, uploading: false,
 })
 const detailFileInput = ref(null)
 
@@ -464,10 +464,13 @@ async function saveCompra() {
 
 // --- Detail Modal ---
 async function openDetail(compra) {
-  detailModal.value = { open: true, compra, imageUrl: null, imageLoading: true, uploading: false }
+  detailModal.value = { open: true, compra, imageUrl: null, imageType: null, imageLoading: true, uploading: false }
   try {
     const blob = await obtenerImagenCompra(compra.id)
-    if (blob) detailModal.value.imageUrl = trackUrl(URL.createObjectURL(blob))
+    if (blob) {
+      detailModal.value.imageUrl = trackUrl(URL.createObjectURL(blob))
+      detailModal.value.imageType = blob.type
+    }
   } catch (_) { /* no image */ }
   finally { detailModal.value.imageLoading = false }
 }
@@ -476,7 +479,7 @@ function closeDetail() {
   if (detailModal.value.imageUrl) {
     URL.revokeObjectURL(detailModal.value.imageUrl)
   }
-  detailModal.value = { open: false, compra: null, imageUrl: null, imageLoading: false, uploading: false }
+  detailModal.value = { open: false, compra: null, imageUrl: null, imageType: null, imageLoading: false, uploading: false }
 }
 
 function openEditFromDetail() {
@@ -504,6 +507,7 @@ async function handleFileSelect(event) {
     if (blob) {
       if (detailModal.value.imageUrl) URL.revokeObjectURL(detailModal.value.imageUrl)
       detailModal.value.imageUrl = trackUrl(URL.createObjectURL(blob))
+      detailModal.value.imageType = blob.type
     }
     fetchCompras()
   } catch (e) {
@@ -969,10 +973,16 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <div class="image-zone">
                 <div v-if="detailModal.imageLoading" class="qnt-state qnt-state--inline"><span class="qnt-spinner" /></div>
                 <template v-else-if="detailModal.imageUrl">
-                  <img :src="detailModal.imageUrl" alt="Factura" class="image-preview" />
+                  <iframe
+                    v-if="detailModal.imageType === 'application/pdf'"
+                    :src="detailModal.imageUrl"
+                    class="pdf-preview"
+                    title="Factura PDF"
+                  />
+                  <img v-else :src="detailModal.imageUrl" alt="Factura" class="image-preview" />
                   <div style="margin-top:0.75rem">
                     <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" :disabled="detailModal.uploading" @click="triggerFileUpload">
-                      {{ detailModal.uploading ? 'Subiendo…' : 'Cambiar imagen' }}
+                      {{ detailModal.uploading ? 'Subiendo…' : 'Cambiar archivo' }}
                     </button>
                   </div>
                 </template>
@@ -988,7 +998,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   </div>
                 </template>
               </div>
-              <input ref="detailFileInput" type="file" accept="image/*" style="display:none" @change="handleFileSelect" />
+              <input ref="detailFileInput" type="file" accept="image/*,application/pdf" style="display:none" @change="handleFileSelect" />
             </div>
 
             <div class="qnt-modal__actions">
@@ -1167,6 +1177,14 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   max-height: 400px;
   width: 100%;
   object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0.75rem;
+}
+.pdf-preview {
+  width: 100%;
+  height: 500px;
+  border: none;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   margin-bottom: 0.75rem;
