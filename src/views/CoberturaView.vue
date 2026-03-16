@@ -46,10 +46,18 @@ const ESTADO_MISION = {
   CANCELADA:   { label: 'Cancelada',   bg: '#fef2f2', color: '#b91c1c', dot: '#f87171' },
 }
 
-// ─── Stats ───────────────────────────────────────
+// ─── Detalle de equipo seleccionado ──────────────
+const equipoDetalle = ref(null)
+
+// ─── Equipos operativos (solo STOCK_ACTIVO) ──────
+const equiposOperativos = computed(() =>
+  equipos.value.filter(e => e.estado === 'STOCK_ACTIVO')
+)
+
+// ─── Stats (solo operativos) ─────────────────────
 const stats = computed(() => ({
-  dronesEnMapa:   equipos.value.filter(e => e.tipoEquipo === 'DRON').length,
-  docksEnMapa:    equipos.value.filter(e => e.tipoEquipo === 'DOCK').length,
+  dronesEnMapa:    equiposOperativos.value.filter(e => e.tipoEquipo === 'DRON').length,
+  docksEnMapa:     equiposOperativos.value.filter(e => e.tipoEquipo === 'DOCK').length,
   misionesActivas: misiones.value.filter(m => m.estado === 'EN_CURSO').length,
   misionesPlanic:  misiones.value.filter(m => m.estado === 'PLANIFICADA').length,
 }))
@@ -98,8 +106,8 @@ function renderMapa() {
 
   const bounds = []
 
-  // Marcadores de equipos
-  equipos.value.forEach(eq => {
+  // Marcadores de equipos (solo STOCK_ACTIVO)
+  equiposOperativos.value.forEach(eq => {
     const lat = Number(eq.latitud)
     const lng = Number(eq.longitud)
     if (isNaN(lat) || isNaN(lng)) return
@@ -118,14 +126,9 @@ function renderMapa() {
       fillOpacity: 0.9,
     })
 
-    marker.bindPopup(`
-      <div style="font-size:13px;min-width:160px;">
-        <strong style="color:#113e4c;">${eq.nombre || 'Sin nombre'}</strong><br/>
-        <span style="color:#536c6b;font-size:12px;">${eq.tipoEquipo} · ${labelEstado(eq.estado)}</span>
-        ${eq.siteNombre ? `<br/><span style="font-size:12px;color:#536c6b;">Site: ${eq.siteNombre}</span>` : ''}
-        ${eq.altitud != null ? `<br/><span style="font-size:12px;color:#536c6b;">Alt: ${eq.altitud} m</span>` : ''}
-      </div>
-    `, { maxWidth: 280 })
+    marker.on('click', () => { equipoDetalle.value = eq })
+
+    marker.bindTooltip(eq.nombre || 'Sin nombre', { permanent: false, direction: 'top', offset: [0, -8] })
 
     layerEquipos.addLayer(marker)
   })
@@ -290,8 +293,53 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Panel lateral de misiones -->
+      <!-- Panel lateral: detalle equipo o misiones -->
       <div class="cob-panel">
+
+        <!-- Detalle de equipo seleccionado -->
+        <template v-if="equipoDetalle">
+          <div class="cob-panel__head">
+            <h3>{{ equipoDetalle.tipoEquipo === 'DRON' ? '🚁' : '🏠' }} {{ equipoDetalle.nombre }}</h3>
+            <button class="layer-btn" @click="equipoDetalle = null" style="padding:.2rem .5rem;font-size:.75rem;">✕</button>
+          </div>
+          <div class="detalle-body">
+            <div class="detalle-row">
+              <span class="detalle-label">Tipo</span>
+              <span class="detalle-val">{{ equipoDetalle.tipoEquipo }}</span>
+            </div>
+            <div class="detalle-row">
+              <span class="detalle-label">Estado</span>
+              <span class="detalle-val detalle-val--ok">Operativo</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.marca">
+              <span class="detalle-label">Modelo</span>
+              <span class="detalle-val">{{ equipoDetalle.marca }} {{ equipoDetalle.modelo }}</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.siteNombre">
+              <span class="detalle-label">Site</span>
+              <span class="detalle-val">{{ equipoDetalle.siteNombre }}</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.ultimoMantenimiento">
+              <span class="detalle-label">Últ. mantenimiento</span>
+              <span class="detalle-val">{{ new Date(equipoDetalle.ultimoMantenimiento).toLocaleDateString('es-AR') }}</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.horasUso != null">
+              <span class="detalle-label">Horas de uso</span>
+              <span class="detalle-val">{{ equipoDetalle.horasUso }} hs</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.altitud != null">
+              <span class="detalle-label">Altitud</span>
+              <span class="detalle-val">{{ equipoDetalle.altitud }} m</span>
+            </div>
+            <div class="detalle-row" v-if="equipoDetalle.numeroSerie">
+              <span class="detalle-label">N° Serie</span>
+              <span class="detalle-val">{{ equipoDetalle.numeroSerie }}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Panel de misiones (default) -->
+        <template v-else>
         <div class="cob-panel__head">
           <h3>Misiones</h3>
           <select v-model="filtroEstado" class="cob-select">
@@ -329,6 +377,8 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+        </template><!-- fin v-else misiones -->
+
       </div>
     </div>
   </div>
@@ -489,6 +539,13 @@ onUnmounted(() => {
 .mision-nombre { font-size: .8rem; font-weight: 600; color: #113e4c; margin: 0 0 .375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mision-meta { display: flex; flex-direction: column; gap: 2px; }
 .mision-meta span { font-size: .7rem; color: #536c6b; }
+
+/* Detalle equipo */
+.detalle-body { padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.detalle-row { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.detalle-label { font-size: .75rem; color: #536c6b; flex-shrink: 0; }
+.detalle-val { font-size: .8rem; font-weight: 600; color: #113e4c; text-align: right; }
+.detalle-val--ok { color: #15803d; }
 
 /* Buttons */
 .qnt-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .875rem; border-radius: 8px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: background .15s; }
