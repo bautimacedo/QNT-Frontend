@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
   Wrench, Cpu, Package, Plus, Pencil, Trash2, X, AlertTriangle,
 } from 'lucide-vue-next'
@@ -22,6 +22,7 @@ const drones   = ref([])
 const docks    = ref([])
 const usuarios = ref([])
 const baterias = ref([])
+const helices  = ref([])
 const loading  = ref(false)
 const error    = ref('')
 
@@ -40,13 +41,14 @@ onMounted(async () => {
   loading.value = true
   error.value   = ''
   try {
-    const [md, mk, dr, dk, us, bt] = await Promise.all([
+    const [md, mk, dr, dk, us, bt, he] = await Promise.all([
       getMantenimientosDrones(),
       getMantenimientosDocks(),
       getList('drones'),
       getList('docks'),
       getPilotos(),
       getList('baterias'),
+      getList('helices'),
     ])
     mantenimientosDrones.value = md
     mantenimientosDocks.value  = mk
@@ -54,6 +56,7 @@ onMounted(async () => {
     docks.value    = dk
     usuarios.value = us
     baterias.value = bt
+    helices.value  = he
   } catch {
     error.value = 'No se pudo cargar los mantenimientos.'
   } finally {
@@ -79,7 +82,7 @@ const modalDron = ref({ open: false, loading: false, id: null })
 const formDron  = ref(emptyFormDron())
 
 function emptyFormDron() {
-  return { dronId: '', usuarioId: '', fechaMantenimiento: '', bateriaViejaId: '', bateriaNuevaId: '', observaciones: '' }
+  return { dronId: '', usuarioId: '', fechaMantenimiento: '', bateriaViejaId: '', bateriaNuevaId: '', helicesViejasIds: [], helicesNuevasIds: [], observaciones: '' }
 }
 function openCrearDron() {
   formDron.value  = emptyFormDron()
@@ -92,11 +95,30 @@ function openEditarDron(m) {
     fechaMantenimiento: m.fechaMantenimiento ? m.fechaMantenimiento.substring(0, 16) : '',
     bateriaViejaId:    m.bateriaViejaId ?? '',
     bateriaNuevaId:    m.bateriaNuevaId ?? '',
+    helicesViejasIds:  m.helicesViejasIds ?? [],
+    helicesNuevasIds:  m.helicesNuevasIds ?? [],
     observaciones:     m.observaciones  ?? '',
   }
   modalDron.value = { open: true, loading: false, id: m.id }
 }
 function closeDron() { modalDron.value.open = false }
+
+// Auto-fill batería y hélices instaladas al seleccionar un dron
+watch(() => formDron.value.dronId, (dronId) => {
+  if (!dronId) return
+  const id = Number(dronId)
+  const batActiva = baterias.value.find(b => b.dronId === id && b.estado === 'STOCK_ACTIVO')
+  formDron.value.bateriaViejaId = batActiva ? batActiva.id : ''
+  const helActivas = helices.value.filter(h => h.dronId === id && h.estado === 'STOCK_ACTIVO').map(h => h.id)
+  formDron.value.helicesViejasIds = helActivas
+})
+
+// Info de ciclos de la batería retirada
+const bateriaViejaInfo = computed(() => {
+  const id = Number(formDron.value.bateriaViejaId)
+  if (!id) return null
+  return baterias.value.find(b => b.id === id) ?? null
+})
 
 async function guardarDron() {
   if (!formDron.value.dronId || !formDron.value.usuarioId || !formDron.value.fechaMantenimiento) {
@@ -110,6 +132,8 @@ async function guardarDron() {
       fechaMantenimiento: formDron.value.fechaMantenimiento,
       bateriaViejaId:    formDron.value.bateriaViejaId ? Number(formDron.value.bateriaViejaId) : null,
       bateriaNuevaId:    formDron.value.bateriaNuevaId ? Number(formDron.value.bateriaNuevaId) : null,
+      helicesViejasIds:  formDron.value.helicesViejasIds.map(Number),
+      helicesNuevasIds:  formDron.value.helicesNuevasIds.map(Number),
       observaciones:     formDron.value.observaciones || null,
     }
     if (modalDron.value.id) {
@@ -249,11 +273,11 @@ const stats = computed(() => ({
     </div>
 
     <!-- Tabs -->
-    <div class="mant-tabs">
-      <button class="mant-tab" :class="{ 'mant-tab--active': tab === 'drones' }" @click="tab = 'drones'">
+    <div class="tabs-bar">
+      <button class="tab-btn" :class="{ active: tab === 'drones' }" @click="tab = 'drones'">
         <Cpu class="w-4 h-4" /> Drones
       </button>
-      <button class="mant-tab" :class="{ 'mant-tab--active': tab === 'docks' }" @click="tab = 'docks'">
+      <button class="tab-btn" :class="{ active: tab === 'docks' }" @click="tab = 'docks'">
         <Package class="w-4 h-4" /> Docks
       </button>
     </div>
@@ -329,13 +353,16 @@ const stats = computed(() => ({
     </template>
 
     <!-- Modal Dron -->
-    <div v-if="modalDron.open" class="modal-backdrop" @click.self="closeDron">
-      <div class="modal">
-        <div class="modal__head">
-          <h3>{{ modalDron.id ? 'Editar' : 'Registrar' }} — Dron</h3>
-          <button class="modal__close" @click="closeDron"><X class="w-5 h-5" /></button>
+    <div v-if="modalDron.open" class="qnt-modal-overlay" @click.self="closeDron">
+      <div class="qnt-modal">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon"><Cpu class="w-5 h-5" /></div>
+          <div>
+            <h3 class="qnt-modal__title">{{ modalDron.id ? 'Editar' : 'Registrar' }} mantenimiento — Dron</h3>
+          </div>
+          <button class="qnt-modal__close" @click="closeDron"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body">
+        <div class="qnt-modal__body">
           <div class="form-grid">
             <label class="field">
               <span>Dron <em>*</em></span>
@@ -361,6 +388,9 @@ const stats = computed(() => ({
                 <option value="">Sin cambio</option>
                 <option v-for="b in baterias" :key="b.id" :value="b.id">{{ b.nombre }}</option>
               </select>
+              <span v-if="bateriaViejaInfo?.ciclosCarga != null" class="field-hint">
+                {{ bateriaViejaInfo.ciclosCarga }} ciclos de carga
+              </span>
             </label>
             <label class="field">
               <span>Batería instalada</span>
@@ -369,13 +399,33 @@ const stats = computed(() => ({
                 <option v-for="b in baterias" :key="b.id" :value="b.id">{{ b.nombre }}</option>
               </select>
             </label>
+            <div class="field field--full">
+              <span>Hélices retiradas</span>
+              <div class="multi-check">
+                <label v-for="h in helices" :key="h.id" class="check-item">
+                  <input type="checkbox" :value="h.id" v-model="formDron.helicesViejasIds" />
+                  <span>{{ h.nombre || (h.marca + ' ' + h.modelo) || ('Hélice #' + h.id) }}</span>
+                </label>
+                <span v-if="!helices.length" class="text-muted">Sin hélices cargadas</span>
+              </div>
+            </div>
+            <div class="field field--full">
+              <span>Hélices instaladas</span>
+              <div class="multi-check">
+                <label v-for="h in helices" :key="h.id" class="check-item">
+                  <input type="checkbox" :value="h.id" v-model="formDron.helicesNuevasIds" />
+                  <span>{{ h.nombre || (h.marca + ' ' + h.modelo) || ('Hélice #' + h.id) }}</span>
+                </label>
+                <span v-if="!helices.length" class="text-muted">Sin hélices cargadas</span>
+              </div>
+            </div>
             <label class="field field--full">
               <span>Observaciones</span>
               <textarea v-model="formDron.observaciones" class="qnt-input" rows="3" placeholder="Trabajo realizado..." />
             </label>
           </div>
         </div>
-        <div class="modal__foot">
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="closeDron">Cancelar</button>
           <button class="qnt-btn qnt-btn--primary" :disabled="modalDron.loading" @click="guardarDron">
             {{ modalDron.loading ? 'Guardando...' : 'Guardar' }}
@@ -385,13 +435,16 @@ const stats = computed(() => ({
     </div>
 
     <!-- Modal Dock -->
-    <div v-if="modalDock.open" class="modal-backdrop" @click.self="closeDock">
-      <div class="modal">
-        <div class="modal__head">
-          <h3>{{ modalDock.id ? 'Editar' : 'Registrar' }} — Dock</h3>
-          <button class="modal__close" @click="closeDock"><X class="w-5 h-5" /></button>
+    <div v-if="modalDock.open" class="qnt-modal-overlay" @click.self="closeDock">
+      <div class="qnt-modal">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon qnt-modal__icon--dock"><Package class="w-5 h-5" /></div>
+          <div>
+            <h3 class="qnt-modal__title">{{ modalDock.id ? 'Editar' : 'Registrar' }} mantenimiento — Dock</h3>
+          </div>
+          <button class="qnt-modal__close" @click="closeDock"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body">
+        <div class="qnt-modal__body">
           <div class="form-grid">
             <label class="field">
               <span>Dock <em>*</em></span>
@@ -417,7 +470,7 @@ const stats = computed(() => ({
             </label>
           </div>
         </div>
-        <div class="modal__foot">
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="closeDock">Cancelar</button>
           <button class="qnt-btn qnt-btn--primary" :disabled="modalDock.loading" @click="guardarDock">
             {{ modalDock.loading ? 'Guardando...' : 'Guardar' }}
@@ -427,14 +480,15 @@ const stats = computed(() => ({
     </div>
 
     <!-- Confirm Dron -->
-    <div v-if="confirmDron.open" class="modal-backdrop">
-      <div class="modal modal--sm">
-        <div class="modal__head">
-          <h3>Eliminar registro</h3>
-          <button class="modal__close" @click="confirmDron.open = false"><X class="w-5 h-5" /></button>
+    <div v-if="confirmDron.open" class="qnt-modal-overlay">
+      <div class="qnt-modal qnt-modal--sm">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon qnt-modal__icon--danger"><Trash2 class="w-5 h-5" /></div>
+          <div><h3 class="qnt-modal__title">Eliminar registro</h3></div>
+          <button class="qnt-modal__close" @click="confirmDron.open = false"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body"><p>¿Confirmás la eliminación?</p></div>
-        <div class="modal__foot">
+        <div class="qnt-modal__body"><p>¿Confirmás la eliminación?</p></div>
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="confirmDron.open = false">Cancelar</button>
           <button class="qnt-btn qnt-btn--danger" @click="confirmarEliminarDron">Eliminar</button>
         </div>
@@ -442,14 +496,15 @@ const stats = computed(() => ({
     </div>
 
     <!-- Confirm Dock -->
-    <div v-if="confirmDock.open" class="modal-backdrop">
-      <div class="modal modal--sm">
-        <div class="modal__head">
-          <h3>Eliminar registro</h3>
-          <button class="modal__close" @click="confirmDock.open = false"><X class="w-5 h-5" /></button>
+    <div v-if="confirmDock.open" class="qnt-modal-overlay">
+      <div class="qnt-modal qnt-modal--sm">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon qnt-modal__icon--danger"><Trash2 class="w-5 h-5" /></div>
+          <div><h3 class="qnt-modal__title">Eliminar registro</h3></div>
+          <button class="qnt-modal__close" @click="confirmDock.open = false"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body"><p>¿Confirmás la eliminación?</p></div>
-        <div class="modal__foot">
+        <div class="qnt-modal__body"><p>¿Confirmás la eliminación?</p></div>
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="confirmDock.open = false">Cancelar</button>
           <button class="qnt-btn qnt-btn--danger" @click="confirmarEliminarDock">Eliminar</button>
         </div>
@@ -470,7 +525,8 @@ const stats = computed(() => ({
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
-  padding: 1.25rem 1.5rem 0;
+  padding: var(--qnt-page-pad);
+  padding-bottom: 0;
 }
 .mant-stat {
   background: #fff;
@@ -485,41 +541,40 @@ const stats = computed(() => ({
   width: 40px; height: 40px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.mant-stat__icon--dron  { background: #eaf1f2; color: #113e4c; }
+.mant-stat__icon--dron  { background: #eaf1f2; color: var(--qnt-primary, #113e4c); }
 .mant-stat__icon--dock  { background: #eff6ff; color: #1d4ed8; }
 .mant-stat__icon--fecha { background: #fef9c3; color: #92400e; }
-.mant-stat__val   { font-size: 1.25rem; font-weight: 700; color: #113e4c; margin: 0; }
-.mant-stat__label { font-size: 0.75rem; color: #536c6b; margin: 0; }
+.mant-stat__val   { font-size: 1.25rem; font-weight: 700; color: var(--qnt-primary, #113e4c); margin: 0; }
+.mant-stat__label { font-size: 0.75rem; color: var(--qnt-muted, #536c6b); margin: 0; }
 
-.mant-tabs {
+/* Tabs — shared pattern */
+.tabs-bar {
   display: flex; gap: 4px;
   padding: 1rem 1.5rem 0;
   border-bottom: 1px solid var(--qnt-border, #e0e5e5);
-  margin-bottom: 0;
 }
-.mant-tab {
+.tab-btn {
   display: flex; align-items: center; gap: 0.4rem;
   padding: 0.5rem 1rem; border: none; background: transparent;
-  border-bottom: 2px solid transparent;
-  font-size: 0.875rem; font-weight: 500; color: #536c6b;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-size: 0.875rem; font-weight: 500; color: var(--qnt-muted, #536c6b);
   cursor: pointer; transition: color .15s, border-color .15s;
-  margin-bottom: -1px;
 }
-.mant-tab:hover { color: #113e4c; }
-.mant-tab--active { color: #113e4c; border-bottom-color: #113e4c; font-weight: 600; }
+.tab-btn:hover { color: var(--qnt-primary, #113e4c); }
+.tab-btn.active { color: var(--qnt-primary, #113e4c); border-bottom-color: var(--qnt-primary, #113e4c); font-weight: 600; }
 
-.qnt-state { padding: 3rem 1.5rem; text-align: center; color: #536c6b; font-size: .875rem; }
+.qnt-state { padding: 3rem 1.5rem; text-align: center; color: var(--qnt-muted, #536c6b); font-size: .875rem; }
 .qnt-state--err { color: #b91c1c; display: flex; align-items: center; justify-content: center; gap: .5rem; }
 
 .tbl-wrap { padding: 1rem 1.5rem; overflow-x: auto; }
 .tbl { width: 100%; border-collapse: collapse; font-size: .875rem; }
-.tbl th { padding: .6rem .75rem; text-align: left; font-size: .75rem; font-weight: 600; color: #536c6b; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--qnt-border, #e0e5e5); white-space: nowrap; }
+.tbl th { padding: .6rem .75rem; text-align: left; font-size: .75rem; font-weight: 600; color: var(--qnt-muted, #536c6b); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--qnt-border, #e0e5e5); white-space: nowrap; }
 .tbl td { padding: .75rem; border-bottom: 1px solid #f3f5f5; color: #1e293b; vertical-align: middle; }
 .tbl tr:hover td { background: #fafbfb; }
 
-.cell-title { font-weight: 600; color: #113e4c; }
-.cell-sub   { font-size: .75rem; color: #536c6b; }
-.cell-obs   { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #536c6b; font-size: .8rem; }
+.cell-title { font-weight: 600; color: var(--qnt-primary, #113e4c); }
+.cell-sub   { font-size: .75rem; color: var(--qnt-muted, #536c6b); }
+.cell-obs   { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--qnt-muted, #536c6b); font-size: .8rem; }
 .text-muted { color: #a0b5b5; }
 .row-actions { display: flex; gap: 4px; }
 
@@ -527,43 +582,40 @@ const stats = computed(() => ({
 .badge--out { background: #fef2f2; color: #b91c1c; }
 .badge--in  { background: #f0fdf4; color: #15803d; }
 
-.icon-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--qnt-border, #e0e5e5); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #536c6b; transition: background .15s, color .15s; }
-.icon-btn:hover { background: #f3f5f5; color: #113e4c; }
+.icon-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--qnt-border, #e0e5e5); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--qnt-muted, #536c6b); transition: background .15s, color .15s; }
+.icon-btn:hover { background: #f3f5f5; color: var(--qnt-primary, #113e4c); }
 .icon-btn--del:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
 /* Modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(10,30,38,.45); backdrop-filter: blur(3px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal { background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.18); width: 100%; max-width: 560px; }
-.modal--sm { max-width: 400px; }
-.modal__head { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--qnt-border, #e0e5e5); }
-.modal__head h3 { font-size: 1rem; font-weight: 700; color: #113e4c; margin: 0; }
-.modal__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #536c6b; transition: background .15s; }
-.modal__close:hover { background: #f3f5f5; }
-.modal__body { padding: 1.5rem; }
-.modal__body p { color: #536c6b; margin: 0; }
-.modal__foot { display: flex; justify-content: flex-end; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--qnt-border, #e0e5e5); }
+.qnt-modal-overlay { position: fixed; inset: 0; background: rgba(10,30,38,.45); backdrop-filter: blur(3px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.qnt-modal { background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.18); width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; }
+.qnt-modal--sm { max-width: 400px; }
+.qnt-modal__head { display: flex; align-items: center; gap: .75rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--qnt-border, #e0e5e5); }
+.qnt-modal__icon { width: 36px; height: 36px; border-radius: 10px; background: #eaf1f2; color: var(--qnt-primary, #113e4c); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qnt-modal__icon--dock   { background: #eff6ff; color: #1d4ed8; }
+.qnt-modal__icon--danger { background: #fef2f2; color: #dc2626; }
+.qnt-modal__title { font-size: 1rem; font-weight: 700; color: var(--qnt-primary, #113e4c); margin: 0; }
+.qnt-modal__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--qnt-muted, #536c6b); transition: background .15s; margin-left: auto; }
+.qnt-modal__close:hover { background: #f3f5f5; }
+.qnt-modal__body { padding: 1.5rem; }
+.qnt-modal__body p { color: var(--qnt-muted, #536c6b); margin: 0; }
+.qnt-modal__foot { display: flex; justify-content: flex-end; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--qnt-border, #e0e5e5); }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field { display: flex; flex-direction: column; gap: .4rem; }
 .field--full { grid-column: 1 / -1; }
-.field span { font-size: .8rem; font-weight: 600; color: #536c6b; }
+.field span { font-size: .8rem; font-weight: 600; color: var(--qnt-muted, #536c6b); }
 .field em { color: #ef4444; font-style: normal; }
-.qnt-input { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .5rem .75rem; font-size: .875rem; color: #113e4c; outline: none; transition: border-color .15s; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; }
-.qnt-input:focus { border-color: #113e4c; }
+.qnt-input { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .5rem .75rem; font-size: .875rem; color: var(--qnt-primary, #113e4c); outline: none; transition: border-color .15s; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; }
+.qnt-input:focus { border-color: var(--qnt-primary, #113e4c); }
 
-/* Buttons */
-.qnt-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem 1rem; border-radius: 8px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: background .15s; }
-.qnt-btn--primary { background: #113e4c; color: #fff; }
-.qnt-btn--primary:hover { background: #2b555b; }
-.qnt-btn--primary:disabled { opacity: .6; cursor: not-allowed; }
-.qnt-btn--ghost { background: transparent; color: #536c6b; border: 1px solid var(--qnt-border, #e0e5e5); }
-.qnt-btn--ghost:hover { background: #f3f5f5; }
-.qnt-btn--danger { background: #dc2626; color: #fff; }
-.qnt-btn--danger:hover { background: #b91c1c; }
+.field-hint { font-size: .75rem; color: var(--qnt-muted, #536c6b); margin-top: 2px; }
 
-/* Toast */
-.qnt-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: #113e4c; color: #fff; padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
-.qnt-toast--err { background: #dc2626; }
+.multi-check { display: flex; flex-wrap: wrap; gap: .5rem; padding: .5rem; border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; max-height: 140px; overflow-y: auto; background: #fff; }
+.check-item { display: flex; align-items: center; gap: .35rem; font-size: .8rem; cursor: pointer; padding: .2rem .4rem; border-radius: 6px; transition: background .1s; }
+.check-item:hover { background: #f3f5f5; }
+.check-item input[type=checkbox] { accent-color: var(--qnt-primary, #113e4c); cursor: pointer; }
+
 .toast-enter-active, .toast-leave-active { transition: opacity .2s, transform .2s; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
 </style>

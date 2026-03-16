@@ -7,7 +7,7 @@ import StockDetalleLayout from '../../components/stock/StockDetalleLayout.vue'
 const route = useRoute()
 const TITULO = 'Accesorio'
 const TITULO_LISTA = 'Accesorios'
-const LISTA_ROUTE = '/stock/accesorios'
+const LISTA_ROUTE = '/home/stock/accesorios'
 
 const ESTADO_LABELS = {
   NO_LLEGO: 'Pendiente de llegada',

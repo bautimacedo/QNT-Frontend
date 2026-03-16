@@ -5,7 +5,7 @@ import { getLicencia } from '../../api'
 
 const route = useRoute()
 const TITULO = 'Licencia'
-const LISTA_ROUTE = '/stock/licencias'
+const LISTA_ROUTE = '/home/stock/licencias'
 const IMAGEN = '/Images/fhfb.jpg'
 
 const item = ref(null)

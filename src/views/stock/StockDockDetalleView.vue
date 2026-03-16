@@ -8,7 +8,7 @@ const route = useRoute()
 const TIPO = 'docks'
 const TITULO = 'Dock'
 const TITULO_LISTA = 'Docks'
-const LISTA_ROUTE = '/stock/docks'
+const LISTA_ROUTE = '/home/stock/docks'
 
 const ESTADO_LABELS = {
   NO_LLEGO: 'Pendiente de llegada',

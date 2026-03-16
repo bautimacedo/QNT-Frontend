@@ -37,7 +37,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status
+    if (status === 401) {
       clearToken()
       window.dispatchEvent(new CustomEvent('qnt:unauthorized'))
       const path = window.location.pathname || ''

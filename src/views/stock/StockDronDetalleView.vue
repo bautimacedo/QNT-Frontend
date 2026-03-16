@@ -8,7 +8,7 @@ const route = useRoute()
 const TIPO = 'drones'
 const TITULO = 'Dron'
 const TITULO_LISTA = 'Drones'
-const LISTA_ROUTE = '/stock/drones'
+const LISTA_ROUTE = '/home/stock/drones'
 
 const ESTADO_LABELS = {
   NO_LLEGO: 'Pendiente de llegada',

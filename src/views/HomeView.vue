@@ -7,8 +7,18 @@ import {
   Plane, Package, Wrench, BatteryLow, ShieldCheck, ShieldX,
   TrendingUp, Bell,
 } from 'lucide-vue-next'
-import { getPilotos, getAlertasActivas, resolverAlerta, getTareas } from '../api'
+import { getPilotos, getAlertasActivas, resolverAlerta, getTareas, getDashboardStats } from '../api'
 import { getClima } from '../api/clima.js'
+
+// ─── Stats reales del backend ─────────────────────────────────────────────────
+
+const stats = ref(null)
+
+async function fetchStats() {
+  try {
+    stats.value = await getDashboardStats()
+  } catch { /* silencioso */ }
+}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -182,6 +192,7 @@ onMounted(() => {
   fetchAlertas()
   fetchTareas()
   fetchWeather()
+  fetchStats()
   weatherInterval = setInterval(fetchWeather, 5 * 60 * 1000)
 })
 
@@ -214,12 +225,32 @@ const shownTasks = computed(() => {
   })
 })
 
-const kpiCards = computed(() => [
-  { label:'Drones operativos', val:'5/6', sub:'1 en mantenimiento',                                          Icon:Plane,        grad:'from-[#113e4c] to-[#2b555b]'                                                                   },
-  { label:'Misiones activas',  val:3,     sub:'5 planificadas',                                              Icon:TrendingUp,   grad:'from-[#1d4ed8] to-[#2563eb]'                                                                   },
-  { label:'Tareas abiertas',   val:pending.value+inProgress.value, sub:`${overdue.value} vencida${overdue.value!==1?'s':''}`, Icon:Wrench, grad:overdue.value>0?'from-red-500 to-red-600':'from-[#2b555b] to-[#536c6b]'           },
-  { label:'Alertas',           val:overdue.value+cmaAlerts.value,  sub:`${cmaAlerts.value} CMA sin actualizar`,               Icon:AlertCircle, grad:(overdue.value+cmaAlerts.value)>0?'from-amber-500 to-amber-600':'from-[#536c6b] to-[#658582]' },
-])
+const kpiCards = computed(() => {
+  const dronesOp   = stats.value?.dronesOperativos  ?? '—'
+  const dronesTotal= stats.value?.dronesTotal        ?? '—'
+  const dronesM    = stats.value?.dronesEnMantenimiento ?? 0
+  const mActivas   = stats.value != null ? (stats.value.misionesPlanificadas + stats.value.misionesEnCurso) : '—'
+  const mPlan      = stats.value?.misionesPlanificadas ?? 0
+  const mCurso     = stats.value?.misionesEnCurso    ?? 0
+  const alertCount = stats.value?.alertasActivas      ?? (overdue.value + cmaAlerts.value)
+  const batWarn    = stats.value?.bateriasCiclosExcedidos ?? 0
+  const tempWarn   = stats.value?.dronesConTempAlta   ?? 0
+  const alertWarn  = batWarn + tempWarn
+
+  const dronesVal  = stats.value != null ? `${dronesOp}/${dronesTotal}` : '—'
+  const droneSub   = dronesM > 0 ? `${dronesM} en mantenimiento` : 'Todos operativos'
+  const mSub       = `${mPlan} planificada${mPlan !== 1 ? 's' : ''} · ${mCurso} en curso`
+  const alertSub   = alertWarn > 0
+    ? `${alertWarn} advertencia${alertWarn !== 1 ? 's' : ''} de equipo`
+    : `${cmaAlerts.value} CMA sin actualizar`
+
+  return [
+    { label: 'Drones operativos', val: dronesVal,                              sub: droneSub,                                           Icon: Plane,        grad: dronesM > 0 ? 'from-amber-500 to-amber-600' : 'from-[#113e4c] to-[#2b555b]' },
+    { label: 'Misiones activas',  val: mActivas,                               sub: mSub,                                               Icon: TrendingUp,   grad: 'from-[#1d4ed8] to-[#2563eb]'                                               },
+    { label: 'Tareas abiertas',   val: pending.value + inProgress.value,       sub: `${overdue.value} vencida${overdue.value!==1?'s':''}`, Icon: Wrench,    grad: overdue.value > 0 ? 'from-red-500 to-red-600' : 'from-[#2b555b] to-[#536c6b]' },
+    { label: 'Alertas del sistema', val: alertCount,                           sub: alertSub,                                           Icon: AlertCircle,  grad: alertCount > 0 ? 'from-amber-500 to-amber-600' : 'from-[#536c6b] to-[#658582]' },
+  ]
+})
 </script>
 
 <template>

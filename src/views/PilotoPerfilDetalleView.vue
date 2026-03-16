@@ -92,6 +92,10 @@ async function load() {
 
 onMounted(load)
 
+function licenciaTieneAlgunaImagen(lic) {
+  return !!(lic?.tieneImagenCma || lic?.tieneImagenCertificadoIdoneidad)
+}
+
 async function openLicImageModal(lic) {
   licImageModal.value = {
     open: true,

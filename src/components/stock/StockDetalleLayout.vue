@@ -10,7 +10,7 @@ const props = defineProps({
   tipo: { type: String, default: '' },
   titulo: { type: String, default: '' },
   tituloLista: { type: String, default: '' },
-  listaRoute: { type: String, default: '/stock' },
+  listaRoute: { type: String, default: '/home/stock' },
   estadoLabels: { type: Object, default: () => ({}) },
   estadoColors: { type: Object, default: () => ({}) },
   placeholderType: { type: String, default: '' },
@@ -114,7 +114,7 @@ function onVolver() {
   <div class="stock-detalle-layout">
     <!-- Breadcrumb -->
     <nav class="breadcrumb">
-      <router-link to="/stock">Stock</router-link>
+      <router-link to="/home/stock">Stock</router-link>
       <span class="breadcrumb__sep">/</span>
       <router-link :to="listaRoute">{{ tituloLista }}</router-link>
       <span v-if="item" class="breadcrumb__sep">/</span>

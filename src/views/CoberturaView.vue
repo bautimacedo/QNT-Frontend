@@ -100,6 +100,9 @@ function renderMapa() {
     layerMisiones = L.layerGroup().addTo(map)
   }
 
+  // Asegurar que Leaflet recalcule el tamaño del contenedor
+  map.invalidateSize()
+
   // Limpiar capas
   layerEquipos.clearLayers()
   layerMisiones.clearLayers()
@@ -335,6 +338,83 @@ onUnmounted(() => {
               <span class="detalle-label">N° Serie</span>
               <span class="detalle-val">{{ equipoDetalle.numeroSerie }}</span>
             </div>
+
+            <!-- Telemetría MQTT -->
+            <template v-if="equipoDetalle.ultimaTelemetria">
+              <div class="detalle-sep"></div>
+              <div class="tele-card">
+                <div class="tele-card__head">
+                  <span class="tele-card__title">📡 Telemetría en tiempo real</span>
+                  <span class="tele-chip">
+                    {{ new Date(equipoDetalle.ultimaTelemetria).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' }) }}
+                  </span>
+                </div>
+
+                <template v-if="equipoDetalle.tipoEquipo === 'DRON'">
+                  <div class="tele-main" v-if="equipoDetalle.bateriaPorc != null">
+                    <span class="tele-main__label">Batería</span>
+                    <span
+                      class="tele-main__value"
+                      :class="{
+                        'tele-main__value--ok': equipoDetalle.bateriaPorc >= 50,
+                        'tele-main__value--warn': equipoDetalle.bateriaPorc < 50 && equipoDetalle.bateriaPorc >= 20,
+                        'tele-main__value--danger': equipoDetalle.bateriaPorc < 20,
+                      }"
+                    >
+                      {{ equipoDetalle.bateriaPorc }}%
+                    </span>
+                  </div>
+                  <div class="tele-bar-wrap" v-if="equipoDetalle.bateriaPorc != null">
+                    <div class="tele-bar">
+                      <div
+                        class="tele-bar__fill"
+                        :class="{
+                          'tele-bar__fill--ok': equipoDetalle.bateriaPorc >= 50,
+                          'tele-bar__fill--warn': equipoDetalle.bateriaPorc < 50 && equipoDetalle.bateriaPorc >= 20,
+                          'tele-bar__fill--danger': equipoDetalle.bateriaPorc < 20,
+                        }"
+                        :style="{ width: Math.min(100, Math.max(0, equipoDetalle.bateriaPorc)) + '%' }"
+                      />
+                    </div>
+                  </div>
+                  <div class="tele-row" v-if="equipoDetalle.bateriaNombre">
+                    <span class="tele-row__label">Batería instalada</span>
+                    <span class="tele-row__value">{{ equipoDetalle.bateriaNombre }}</span>
+                  </div>
+                  <div class="tele-row" v-if="equipoDetalle.bateriaCiclos != null">
+                    <span class="tele-row__label">Ciclos de carga</span>
+                    <span class="tele-row__value">{{ equipoDetalle.bateriaCiclos }}</span>
+                  </div>
+                  <div class="tele-row" v-if="equipoDetalle.bateriaTempC != null">
+                    <span class="tele-row__label">Temp. batería</span>
+                    <span class="tele-row__value">{{ equipoDetalle.bateriaTempC }}°C</span>
+                  </div>
+                  <div class="tele-row" v-if="equipoDetalle.droneEnDock != null">
+                    <span class="tele-row__label">Ubicación</span>
+                    <span class="tele-row__value">
+                      {{ equipoDetalle.droneEnDock ? '🏠 En dock' : '🚁 En vuelo' }}
+                    </span>
+                  </div>
+                </template>
+
+                <template v-if="equipoDetalle.tipoEquipo === 'DOCK'">
+                  <div class="tele-main" v-if="equipoDetalle.temperaturaAmbiente != null">
+                    <span class="tele-main__label">Temp. ambiente</span>
+                    <span class="tele-main__value tele-main__value--ok">
+                      {{ equipoDetalle.temperaturaAmbiente }}°C
+                    </span>
+                  </div>
+                  <div class="tele-row" v-if="equipoDetalle.velocidadViento != null">
+                    <span class="tele-row__label">Viento</span>
+                    <span class="tele-row__value">{{ equipoDetalle.velocidadViento }} m/s</span>
+                  </div>
+                </template>
+
+                <div class="detalle-update">
+                  Actualizado: {{ new Date(equipoDetalle.ultimaTelemetria).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) }}
+                </div>
+              </div>
+            </template>
           </div>
         </template>
 
@@ -477,7 +557,9 @@ onUnmounted(() => {
 }
 .cob-map {
   flex: 1;
-  min-height: 400px;
+  height: 520px;
+  max-height: 520px;
+  min-height: 300px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--qnt-border, #e0e5e5);
@@ -546,6 +628,81 @@ onUnmounted(() => {
 .detalle-label { font-size: .75rem; color: #536c6b; flex-shrink: 0; }
 .detalle-val { font-size: .8rem; font-weight: 600; color: #113e4c; text-align: right; }
 .detalle-val--ok { color: #15803d; }
+.detalle-sep { border-top: 1px solid #e2e8f0; margin: .25rem 0; }
+.detalle-telemetria-titulo { font-size: .7rem; font-weight: 700; color: #113e4c; text-transform: uppercase; letter-spacing: .04em; padding: .1rem 0 .25rem; }
+.detalle-update { font-size: .68rem; color: #94a3b8; margin-top: .25rem; }
+
+/* Tarjeta de telemetría */
+.tele-card {
+  margin-top: .35rem;
+  padding: .6rem .7rem;
+  border-radius: 10px;
+  background: #f8fafb;
+  border: 1px dashed #cbd5e1;
+}
+.tele-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .4rem;
+}
+.tele-card__title {
+  font-size: .75rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.tele-chip {
+  font-size: .7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+.tele-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+}
+.tele-main__label {
+  font-size: .75rem;
+  color: #64748b;
+}
+.tele-main__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.tele-main__value--ok { color: #166534; }
+.tele-main__value--warn { color: #92400e; }
+.tele-main__value--danger { color: #b91c1c; }
+.tele-bar-wrap {
+  margin: .35rem 0 .2rem;
+}
+.tele-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.tele-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width .2s ease-out;
+}
+.tele-bar__fill--ok { background: #16a34a; }
+.tele-bar__fill--warn { background: #f59e0b; }
+.tele-bar__fill--danger { background: #dc2626; }
+.tele-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: .75rem;
+  color: #475569;
+  margin-top: .15rem;
+}
+.tele-row__label { color: #64748b; }
+.tele-row__value { font-weight: 600; }
 
 /* Buttons */
 .qnt-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .875rem; border-radius: 8px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: background .15s; }

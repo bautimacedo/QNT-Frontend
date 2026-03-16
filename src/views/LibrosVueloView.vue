@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
-  BookOpen, Search, Filter, Trash2, X, AlertTriangle, FileText, Plus,
+  BookOpen, Search, Trash2, X, AlertTriangle, FileText, Plus,
 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { getLogs, crearLog, eliminarLog } from '../api/logs.js'
@@ -93,21 +93,20 @@ function fmtDateTime(ts) {
     + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function tipoBadge(tipo) {
-  const map = {
-    VUELO:         { bg: '#eff6ff', color: '#1d4ed8' },
-    INCIDENTE:     { bg: '#fef2f2', color: '#b91c1c' },
-    MANTENIMIENTO: { bg: '#fef9c3', color: '#92400e' },
-    INSPECCION:    { bg: '#f0fdf4', color: '#15803d' },
-    OTRO:          { bg: '#f5f3ff', color: '#6d28d9' },
-  }
-  return map[tipo] || { bg: '#f3f5f5', color: '#536c6b' }
+const TIPO_CLASS = {
+  VUELO:         'tipo--blue',
+  INCIDENTE:     'tipo--red',
+  MANTENIMIENTO: 'tipo--yellow',
+  INSPECCION:    'tipo--green',
+  OTRO:          'tipo--purple',
+}
+function tipoClass(tipo) {
+  return TIPO_CLASS[tipo] || 'tipo--gray'
 }
 
 // ─── Modal crear log ─────────────────────────────
-const modal    = ref({ open: false, loading: false })
-const form     = ref(emptyForm())
-const usuarios2 = computed(() => usuarios.value)
+const modal = ref({ open: false, loading: false })
+const form  = ref(emptyForm())
 
 function emptyForm() {
   return { entidadTipo: '', entidadId: '', tipo: 'VUELO', detalle: '', usuarioId: '', timestamp: '' }
@@ -246,10 +245,7 @@ function limpiarFiltros() {
             <tr v-for="l in logsFiltrados" :key="l.id">
               <td class="cell-fecha">{{ fmtDateTime(l.timestamp) }}</td>
               <td>
-                <span
-                  class="tipo-badge"
-                  :style="`background:${tipoBadge(l.tipo).bg};color:${tipoBadge(l.tipo).color}`"
-                >{{ l.tipo || '—' }}</span>
+                <span class="tipo-badge" :class="tipoClass(l.tipo)">{{ l.tipo || '—' }}</span>
               </td>
               <td>{{ l.entidadTipo || '—' }}</td>
               <td>{{ l.entidadId ?? '—' }}</td>
@@ -267,13 +263,16 @@ function limpiarFiltros() {
     </template>
 
     <!-- Modal crear -->
-    <div v-if="modal.open" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal">
-        <div class="modal__head">
-          <h3>Nuevo registro de vuelo</h3>
-          <button class="modal__close" @click="closeModal"><X class="w-5 h-5" /></button>
+    <div v-if="modal.open" class="qnt-modal-overlay" @click.self="closeModal">
+      <div class="qnt-modal">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon"><BookOpen class="w-5 h-5" /></div>
+          <div>
+            <h3 class="qnt-modal__title">Nuevo registro de vuelo</h3>
+          </div>
+          <button class="qnt-modal__close" @click="closeModal"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body">
+        <div class="qnt-modal__body">
           <div class="form-grid">
             <label class="field">
               <span>Entidad <em>*</em></span>
@@ -309,7 +308,7 @@ function limpiarFiltros() {
             </label>
           </div>
         </div>
-        <div class="modal__foot">
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="closeModal">Cancelar</button>
           <button class="qnt-btn qnt-btn--primary" :disabled="modal.loading" @click="guardar">
             {{ modal.loading ? 'Guardando...' : 'Guardar' }}
@@ -319,14 +318,17 @@ function limpiarFiltros() {
     </div>
 
     <!-- Confirm eliminar -->
-    <div v-if="confirm.open" class="modal-backdrop">
-      <div class="modal modal--sm">
-        <div class="modal__head">
-          <h3>Eliminar registro</h3>
-          <button class="modal__close" @click="confirm.open = false"><X class="w-5 h-5" /></button>
+    <div v-if="confirm.open" class="qnt-modal-overlay">
+      <div class="qnt-modal qnt-modal--sm">
+        <div class="qnt-modal__head">
+          <div class="qnt-modal__icon qnt-modal__icon--danger"><Trash2 class="w-5 h-5" /></div>
+          <div>
+            <h3 class="qnt-modal__title">Eliminar registro</h3>
+          </div>
+          <button class="qnt-modal__close" @click="confirm.open = false"><X class="w-5 h-5" /></button>
         </div>
-        <div class="modal__body"><p>¿Confirmás la eliminación de este registro?</p></div>
-        <div class="modal__foot">
+        <div class="qnt-modal__body"><p>¿Confirmás la eliminación de este registro?</p></div>
+        <div class="qnt-modal__foot">
           <button class="qnt-btn qnt-btn--ghost" @click="confirm.open = false">Cancelar</button>
           <button class="qnt-btn qnt-btn--danger" @click="confirmarEliminar">Eliminar</button>
         </div>
@@ -347,20 +349,28 @@ function limpiarFiltros() {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
-  padding: 1.25rem 1.5rem 0;
+  padding: var(--qnt-page-pad, 1.25rem 1.5rem);
+  padding-bottom: 0;
   max-width: 600px;
 }
 .lb-stat {
-  background: #fff; border: 1px solid var(--qnt-border, #e0e5e5);
-  border-radius: 12px; padding: 1rem 1.25rem;
-  display: flex; align-items: center; gap: .875rem;
+  background: #fff;
+  border: 1px solid var(--qnt-border, #e0e5e5);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .875rem;
 }
-.lb-stat__icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lb-stat__icon--total { background: #eaf1f2; color: #113e4c; }
+.lb-stat__icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lb-stat__icon--total { background: #eaf1f2; color: var(--qnt-primary, #113e4c); }
 .lb-stat__icon--vuelo { background: #eff6ff; color: #1d4ed8; }
 .lb-stat__icon--inc   { background: #fef2f2; color: #b91c1c; }
-.lb-stat__val   { font-size: 1.25rem; font-weight: 700; color: #113e4c; margin: 0; }
-.lb-stat__label { font-size: .75rem; color: #536c6b; margin: 0; }
+.lb-stat__val   { font-size: 1.25rem; font-weight: 700; color: var(--qnt-primary, #113e4c); margin: 0; }
+.lb-stat__label { font-size: .75rem; color: var(--qnt-muted, #536c6b); margin: 0; }
 
 .lb-toolbar {
   display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
@@ -371,58 +381,58 @@ function limpiarFiltros() {
   background: #fff; border: 1px solid var(--qnt-border, #e0e5e5);
   border-radius: 8px; padding: .4rem .75rem; flex: 1; min-width: 200px;
 }
-.lb-search__icon { width: 16px; height: 16px; color: #a0b5b5; flex-shrink: 0; }
-.lb-search__input { border: none; outline: none; font-size: .875rem; color: #113e4c; background: transparent; flex: 1; }
-.qnt-select { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .4rem .75rem; font-size: .875rem; color: #113e4c; background: #fff; cursor: pointer; outline: none; }
+.lb-search__icon { width: 16px; height: 16px; color: var(--qnt-muted, #a0b5b5); flex-shrink: 0; }
+.lb-search__input { border: none; outline: none; font-size: .875rem; color: var(--qnt-primary, #113e4c); background: transparent; flex: 1; }
 
-.qnt-state { padding: 3rem 1.5rem; text-align: center; color: #536c6b; font-size: .875rem; }
+.qnt-state { padding: 3rem 1.5rem; text-align: center; color: var(--qnt-muted, #536c6b); font-size: .875rem; }
 .qnt-state--err { color: #b91c1c; display: flex; align-items: center; justify-content: center; gap: .5rem; }
 
 .tbl-wrap { padding: 0 1.5rem 1.5rem; overflow-x: auto; }
 .tbl { width: 100%; border-collapse: collapse; font-size: .875rem; }
-.tbl th { padding: .6rem .75rem; text-align: left; font-size: .75rem; font-weight: 600; color: #536c6b; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--qnt-border, #e0e5e5); white-space: nowrap; }
+.tbl th {
+  padding: .6rem .75rem; text-align: left; font-size: .75rem; font-weight: 600;
+  color: var(--qnt-muted, #536c6b); text-transform: uppercase; letter-spacing: .04em;
+  border-bottom: 1px solid var(--qnt-border, #e0e5e5); white-space: nowrap;
+}
 .tbl td { padding: .75rem; border-bottom: 1px solid #f3f5f5; color: #1e293b; vertical-align: middle; }
 .tbl tr:hover td { background: #fafbfb; }
 
-.cell-fecha { white-space: nowrap; font-size: .8rem; color: #536c6b; }
-.cell-det   { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #536c6b; font-size: .8rem; }
+.cell-fecha { white-space: nowrap; font-size: .8rem; color: var(--qnt-muted, #536c6b); }
+.cell-det   { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--qnt-muted, #536c6b); font-size: .8rem; }
 
 .tipo-badge { display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.tipo--blue   { background: #eff6ff; color: #1d4ed8; }
+.tipo--red    { background: #fef2f2; color: #b91c1c; }
+.tipo--yellow { background: #fef9c3; color: #92400e; }
+.tipo--green  { background: #f0fdf4; color: #15803d; }
+.tipo--purple { background: #f5f3ff; color: #6d28d9; }
+.tipo--gray   { background: #f3f5f5; color: var(--qnt-muted, #536c6b); }
 
-.icon-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--qnt-border, #e0e5e5); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #536c6b; transition: background .15s, color .15s; }
+.icon-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--qnt-border, #e0e5e5); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--qnt-muted, #536c6b); transition: background .15s, color .15s; }
 .icon-btn--del:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
 /* Modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(10,30,38,.45); backdrop-filter: blur(3px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal { background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.18); width: 100%; max-width: 560px; }
-.modal--sm { max-width: 400px; }
-.modal__head { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--qnt-border, #e0e5e5); }
-.modal__head h3 { font-size: 1rem; font-weight: 700; color: #113e4c; margin: 0; }
-.modal__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #536c6b; transition: background .15s; }
-.modal__close:hover { background: #f3f5f5; }
-.modal__body { padding: 1.5rem; }
-.modal__body p { color: #536c6b; margin: 0; }
-.modal__foot { display: flex; justify-content: flex-end; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--qnt-border, #e0e5e5); }
+.qnt-modal-overlay { position: fixed; inset: 0; background: rgba(10,30,38,.45); backdrop-filter: blur(3px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.qnt-modal { background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.18); width: 100%; max-width: 560px; }
+.qnt-modal--sm { max-width: 400px; }
+.qnt-modal__head { display: flex; align-items: center; gap: .75rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--qnt-border, #e0e5e5); }
+.qnt-modal__icon { width: 36px; height: 36px; border-radius: 10px; background: #eaf1f2; color: var(--qnt-primary, #113e4c); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qnt-modal__icon--danger { background: #fef2f2; color: #dc2626; }
+.qnt-modal__title { font-size: 1rem; font-weight: 700; color: var(--qnt-primary, #113e4c); margin: 0; }
+.qnt-modal__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--qnt-muted, #536c6b); transition: background .15s; margin-left: auto; }
+.qnt-modal__close:hover { background: #f3f5f5; }
+.qnt-modal__body { padding: 1.5rem; }
+.qnt-modal__body p { color: var(--qnt-muted, #536c6b); margin: 0; }
+.qnt-modal__foot { display: flex; justify-content: flex-end; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--qnt-border, #e0e5e5); }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field { display: flex; flex-direction: column; gap: .4rem; }
 .field--full { grid-column: 1 / -1; }
-.field span { font-size: .8rem; font-weight: 600; color: #536c6b; }
+.field span { font-size: .8rem; font-weight: 600; color: var(--qnt-muted, #536c6b); }
 .field em { color: #ef4444; font-style: normal; }
-.qnt-input { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .5rem .75rem; font-size: .875rem; color: #113e4c; outline: none; transition: border-color .15s; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; }
-.qnt-input:focus { border-color: #113e4c; }
+.qnt-input { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .5rem .75rem; font-size: .875rem; color: var(--qnt-primary, #113e4c); outline: none; transition: border-color .15s; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; }
+.qnt-input:focus { border-color: var(--qnt-primary, #113e4c); }
 
-.qnt-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem 1rem; border-radius: 8px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: background .15s; }
-.qnt-btn--primary { background: #113e4c; color: #fff; }
-.qnt-btn--primary:hover { background: #2b555b; }
-.qnt-btn--primary:disabled { opacity: .6; cursor: not-allowed; }
-.qnt-btn--ghost { background: transparent; color: #536c6b; border: 1px solid var(--qnt-border, #e0e5e5); }
-.qnt-btn--ghost:hover { background: #f3f5f5; }
-.qnt-btn--danger { background: #dc2626; color: #fff; }
-.qnt-btn--danger:hover { background: #b91c1c; }
-
-.qnt-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: #113e4c; color: #fff; padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
-.qnt-toast--err { background: #dc2626; }
 .toast-enter-active, .toast-leave-active { transition: opacity .2s, transform .2s; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
 </style>

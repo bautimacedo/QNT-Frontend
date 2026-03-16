@@ -1,12 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil } from '../api'
+import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil, subirFotoPerfil, obtenerFotoPerfil } from '../api'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle } from 'lucide-vue-next'
+import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle, Camera } from 'lucide-vue-next'
 
 const perfil = ref(null)
 const loading = ref(true)
 const loadError = ref('')
+const fotoPerfil = ref(null) // blob URL
+const fotoInput = ref(null)
+const fotoUploading = ref(false)
 
 const form = ref({ nombre: '', apellido: '', dni: '', passwordMission: '' })
 const saving = ref(false)
@@ -57,10 +60,33 @@ async function loadPerfil() {
       dni: data.dni || '',
       passwordMission: data.passwordMission || '',
     }
+    if (data.tieneFotoPerfil) {
+      const blob = await obtenerFotoPerfil()
+      if (fotoPerfil.value) URL.revokeObjectURL(fotoPerfil.value)
+      fotoPerfil.value = URL.createObjectURL(blob)
+    }
   } catch (e) {
     loadError.value = e.message || 'Error al cargar el perfil.'
   } finally {
     loading.value = false
+  }
+}
+
+async function onFotoSelected(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  fotoUploading.value = true
+  try {
+    await subirFotoPerfil(file)
+    const blob = await obtenerFotoPerfil()
+    if (fotoPerfil.value) URL.revokeObjectURL(fotoPerfil.value)
+    fotoPerfil.value = URL.createObjectURL(blob)
+    showToast('Foto de perfil actualizada.')
+  } catch {
+    showToast('Error al subir la foto.')
+  } finally {
+    fotoUploading.value = false
+    e.target.value = ''
   }
 }
 
@@ -127,7 +153,14 @@ onMounted(loadPerfil)
       <div class="hero-card">
         <div class="hero-cover" />
         <div class="hero-body">
-          <div class="hero-avatar">{{ getInitial(perfil) }}</div>
+          <div class="hero-avatar" @click="fotoInput.click()" title="Cambiar foto de perfil">
+            <img v-if="fotoPerfil" :src="fotoPerfil" class="avatar-img" alt="Foto de perfil" />
+            <span v-else>{{ getInitial(perfil) }}</span>
+            <div class="avatar-overlay">
+              <Camera class="avatar-cam" />
+            </div>
+            <input ref="fotoInput" type="file" accept="image/*" style="display:none" @change="onFotoSelected" />
+          </div>
           <div class="hero-info">
             <div class="hero-name-row">
               <h2 class="hero-name">{{ perfil.nombre }} {{ perfil.apellido }}</h2>
@@ -294,7 +327,18 @@ onMounted(loadPerfil)
   border: 3px solid var(--qnt-surface);
   margin-top: -36px;
   flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
 }
+.hero-avatar:hover .avatar-overlay { opacity: 1; }
+.avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.avatar-overlay {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .2s;
+}
+.avatar-cam { width: 20px; height: 20px; color: #fff; }
 .hero-info {
   flex: 1;
   min-width: 160px;

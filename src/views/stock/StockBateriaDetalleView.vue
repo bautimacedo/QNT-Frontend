@@ -8,7 +8,7 @@ const route = useRoute()
 const TIPO = 'baterias'
 const TITULO = 'Batería'
 const TITULO_LISTA = 'Baterías'
-const LISTA_ROUTE = '/stock/baterias'
+const LISTA_ROUTE = '/home/stock/baterias'
 
 const ESTADO_LABELS = {
   NO_LLEGO: 'Pendiente de llegada',
@@ -34,9 +34,6 @@ const editModal = ref({
   numeroSerie: '',
   garantia: '',
   estado: '',
-  latitud: '',
-  longitud: '',
-  altitud: '',
 })
 
 const toast = ref('')
@@ -59,9 +56,6 @@ function openEdit() {
     numeroSerie: o.numeroSerie || '',
     garantia: o.garantia || '',
     estado: o.estado || '',
-    latitud: o.latitud != null ? String(o.latitud) : '',
-    longitud: o.longitud != null ? String(o.longitud) : '',
-    altitud: o.altitud != null ? String(o.altitud) : '',
   }
 }
 
@@ -73,7 +67,6 @@ async function saveEdit() {
   editModal.value.loading = true
   editModal.value.apiError = ''
   try {
-    const parseCoord = (v) => (v === '' || v == null ? null : parseFloat(v))
     const body = {
       ...item.value,
       nombre: editModal.value.nombre || item.value.nombre,
@@ -82,9 +75,6 @@ async function saveEdit() {
       numeroSerie: editModal.value.numeroSerie || null,
       garantia: editModal.value.garantia || null,
       estado: editModal.value.estado,
-      latitud: parseCoord(editModal.value.latitud),
-      longitud: parseCoord(editModal.value.longitud),
-      altitud: parseCoord(editModal.value.altitud),
     }
     item.value = await updateItem(TIPO, body)
     closeEdit()
@@ -172,15 +162,6 @@ onMounted(load)
               <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
             </select>
           </div>
-          <div class="form-group form-group--coords">
-            <label>Ubicación (para el mapa)</label>
-            <div class="coords-row">
-              <input v-model="editModal.latitud" type="number" step="any" placeholder="Latitud (-90 a 90)" class="form-input" />
-              <input v-model="editModal.longitud" type="number" step="any" placeholder="Longitud (-180 a 180)" class="form-input" />
-              <input v-model="editModal.altitud" type="number" step="any" placeholder="Altitud (m, opcional)" class="form-input" />
-            </div>
-            <p class="form-hint">Opcional. Si cargás latitud y longitud, el equipo aparecerá en el Mapa de equipos.</p>
-          </div>
           <div v-if="editModal.apiError" class="modal-banner modal-banner--error">{{ editModal.apiError }}</div>
           <div class="modal-actions">
             <button type="button" class="btn-secondary" :disabled="editModal.loading" @click="closeEdit">Cancelar</button>
@@ -210,8 +191,6 @@ onMounted(load)
 .form-group label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem; }
 .form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
-.coords-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
-.form-group--coords .form-hint { font-size: 0.8rem; color: #64748b; margin-top: 0.35rem; }
 .btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
 .btn-primary { padding: 0.6rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }

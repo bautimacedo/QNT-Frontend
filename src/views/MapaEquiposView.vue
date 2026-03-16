@@ -34,12 +34,12 @@ const TIPO_EQUIPO_COLORS = {
 
 function getRutaDetalle(tipoEquipo, id) {
   const rutas = {
-    DOCK: '/stock/docks',
-    DRON: '/stock/drones',
-    BATERIA: '/stock/baterias',
-    HELICE: '/stock/helices',
-    ANTENA_RTK: '/stock/antenas-rtk',
-    ANTENA_STARLINK: '/stock/antenas-starlink',
+    DOCK: '/home/stock/docks',
+    DRON: '/home/stock/drones',
+    BATERIA: '/home/stock/baterias',
+    HELICE: '/home/stock/helices',
+    ANTENA_RTK: '/home/stock/antenas-rtk',
+    ANTENA_STARLINK: '/home/stock/antenas-starlink',
   }
   const base = rutas[tipoEquipo]
   return base ? `${base}/${id}` : null
@@ -63,6 +63,13 @@ function labelEstado(estado) {
   return labels[estado] || estado || '—'
 }
 
+function formatInstant(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d)) return null
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 function buildPopupContent(eq) {
   const ruta = getRutaDetalle(eq.tipoEquipo, eq.id)
   const lineas = [
@@ -73,15 +80,33 @@ function buildPopupContent(eq) {
   if (eq.ultimoMantenimiento) {
     lineas.push(`Último mantenimiento: ${formatFecha(eq.ultimoMantenimiento)}`)
   }
-  if (eq.siteNombre) {
-    lineas.push(`Site: ${eq.siteNombre}`)
+  if (eq.siteNombre) lineas.push(`Site: ${eq.siteNombre}`)
+  if (eq.numeroSerie) lineas.push(`Nº serie: ${eq.numeroSerie}`)
+  if (eq.altitud != null && eq.altitud !== '') lineas.push(`Altitud: ${eq.altitud} m`)
+
+  // Telemetría MQTT
+  const hayTelemetria = eq.ultimaTelemetria != null
+  if (hayTelemetria) {
+    lineas.push(`<div class="telemetria-sep"></div>`)
+    lineas.push(`<div class="telemetria-titulo">📡 Telemetría en tiempo real</div>`)
+
+    if (eq.tipoEquipo === 'DRON') {
+      if (eq.bateriaPorc != null) {
+        const color = eq.bateriaPorc >= 50 ? '#166534' : eq.bateriaPorc >= 20 ? '#92400e' : '#dc2626'
+        lineas.push(`Batería: <span style="color:${color};font-weight:600">${eq.bateriaPorc}%</span>`)
+      }
+      if (eq.bateriaTempC != null) lineas.push(`Temp. batería: ${eq.bateriaTempC}°C`)
+      if (eq.droneEnDock != null) lineas.push(`En dock: ${eq.droneEnDock ? '✅ Sí' : '🚁 En vuelo'}`)
+    }
+
+    if (eq.tipoEquipo === 'DOCK') {
+      if (eq.temperaturaAmbiente != null) lineas.push(`Temp. ambiente: ${eq.temperaturaAmbiente}°C`)
+      if (eq.velocidadViento != null) lineas.push(`Viento: ${eq.velocidadViento} m/s`)
+    }
+
+    lineas.push(`<span class="telemetria-update">Actualizado: ${formatInstant(eq.ultimaTelemetria)}</span>`)
   }
-  if (eq.numeroSerie) {
-    lineas.push(`Nº serie: ${eq.numeroSerie}`)
-  }
-  if (eq.altitud != null && eq.altitud !== '') {
-    lineas.push(`Altitud: ${eq.altitud} m`)
-  }
+
   if (ruta) {
     lineas.push(`<a href="#" data-ruta="${ruta}" class="mapa-popup-link">Ver ficha del equipo</a>`)
   }
@@ -305,4 +330,21 @@ onUnmounted(() => {
   text-decoration: none;
 }
 .mapa-equipos-popup .mapa-popup-link:hover { text-decoration: underline; }
+
+.mapa-equipos-popup .telemetria-sep {
+  border-top: 1px solid #e2e8f0;
+  margin: 6px 0 4px;
+}
+.mapa-equipos-popup .telemetria-titulo {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #113e4c;
+  margin-bottom: 2px;
+}
+.mapa-equipos-popup .telemetria-update {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  display: block;
+  margin-top: 4px;
+}
 </style>

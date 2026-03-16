@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // En desarrollo, /api/qnt/v1 se reenvía al backend (mismo puerto que en docker: 8081)
       '/api/qnt/v1': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

@@ -76,3 +76,5 @@ export {
   cambiarEstadoTarea,
   eliminarTarea,
 } from './tareas.js'
+
+export { getDashboardStats } from './dashboard.js'

@@ -431,9 +431,9 @@ async function saveCompra() {
       const compraCreada = await crearCompra(body)
       if (body.tipoCompra === 'EQUIPO') {
         const rutasStock = {
-          DRON:    '/stock/drones',
-          BATERIA: '/stock/baterias',
-          HELICE:  '/stock/helices',
+          DRON:    '/home/stock/drones',
+          BATERIA: '/home/stock/baterias',
+          HELICE:  '/home/stock/helices',
         }
         const destino = rutasStock[body.tipoEquipo]
         if (destino) {
