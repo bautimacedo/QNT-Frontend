@@ -1,15 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { FileCheck, Plus, Pencil, Trash2, X, AlertTriangle } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { FileCheck, Plus, Pencil, Trash2, X, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { getLicencias, crearLicencia, actualizarLicencia, eliminarLicencia } from '../api/licencias-standalone.js'
 
-// ─── estado ─────────────────────────────────────
 const licencias = ref([])
 const loading   = ref(false)
 const error     = ref('')
 
-// toast
 const toast = ref({ show: false, msg: '', type: 'ok' })
 let toastTimer = null
 function showToast(msg, type = 'ok') {
@@ -21,7 +19,6 @@ function showToast(msg, type = 'ok') {
 onMounted(() => fetchLicencias())
 onUnmounted(() => clearTimeout(toastTimer))
 
-// ─── carga ──────────────────────────────────────
 async function fetchLicencias() {
   loading.value = true
   error.value   = ''
@@ -34,23 +31,26 @@ async function fetchLicencias() {
   }
 }
 
-// ─── helpers ────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   const [year, month, day] = dateStr.split('T')[0].split('-')
   return `${day}/${month}/${year}`
 }
 
-function caducidadBadge(caducidad) {
+function caducidadInfo(caducidad) {
   if (!caducidad) return null
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
+  const hoy = new Date(); hoy.setHours(0,0,0,0)
   const cad = new Date(caducidad + 'T00:00:00')
-  if (cad < hoy) return { label: 'Vencida', bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' }
-  return { label: 'Vigente', bg: '#f0fdf4', color: '#15803d', border: '#86efac' }
+  const diff = Math.floor((cad - hoy) / (1000*60*60*24))
+  if (cad < hoy) return { label: 'Vencida', cls: 'badge--red' }
+  if (diff <= 30) return { label: 'Por vencer', cls: 'badge--yellow' }
+  return { label: 'Vigente', cls: 'badge--green' }
 }
 
-// ─── modal crear/editar ─────────────────────────
+const vigentes = computed(() => licencias.value.filter(l => l.activo && caducidadInfo(l.caducidad)?.cls === 'badge--green').length)
+const vencidas = computed(() => licencias.value.filter(l => !l.activo || caducidadInfo(l.caducidad)?.cls === 'badge--red').length)
+const porVencer = computed(() => licencias.value.filter(l => caducidadInfo(l.caducidad)?.cls === 'badge--yellow').length)
+
 const modal = ref({ open: false, loading: false, licencia: null })
 const form  = ref(emptyForm())
 
@@ -107,9 +107,7 @@ async function submitModal() {
   }
 }
 
-// ─── eliminar ────────────────────────────────────
 const confirmDelete = ref({ open: false, licencia: null })
-
 function openDelete(l)  { confirmDelete.value = { open: true, licencia: l } }
 function closeDelete()  { confirmDelete.value.open = false }
 
@@ -129,261 +127,271 @@ async function doDelete() {
 </script>
 
 <template>
-  <div style="flex:1;background:#f5f7f7;overflow:auto;">
-
+  <div class="qnt-page">
     <!-- Toast -->
-    <Transition name="toast">
-      <div v-if="toast.show"
-        style="position:fixed;top:1.25rem;right:1.25rem;z-index:9999;padding:.75rem 1.25rem;border-radius:10px;font-size:.8125rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.12);"
-        :style="toast.type === 'error'
-          ? 'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;'
-          : 'background:#f0fdf4;color:#15803d;border:1px solid #86efac;'"
-      >{{ toast.msg }}</div>
+    <Transition name="qnt-toast">
+      <div v-if="toast.show" class="qnt-toast" :class="toast.type === 'error' ? 'qnt-toast--error' : ''">{{ toast.msg }}</div>
     </Transition>
 
-    <!-- Header -->
-    <PageHeader
-      title="Licencias"
-      subtitle="Gestión de licencias de software y operación"
-      :icon="FileCheck"
-    >
+    <PageHeader title="Licencias" subtitle="Gestión de licencias de software y operación">
       <template #actions>
-        <button
-          @click="openCreate"
-          style="display:flex;align-items:center;gap:.375rem;padding:.5rem .875rem;border-radius:8px;font-size:.8125rem;font-weight:600;color:#fff;background:linear-gradient(135deg,#113e4c,#2b555b);border:none;cursor:pointer;box-shadow:0 2px 8px rgba(17,62,76,.2);"
-        >
-          <Plus style="width:14px;height:14px;" />
-          Nueva licencia
+        <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">
+          <Plus class="w-4 h-4" /> Nueva licencia
         </button>
       </template>
     </PageHeader>
 
-    <div style="padding:1.75rem;">
-
-      <!-- Loading -->
-      <div v-if="loading" style="text-align:center;padding:4rem;color:#a0b5b5;font-size:.875rem;">
-        Cargando licencias…
+    <!-- KPI row -->
+    <div class="kpi-row" v-if="licencias.length > 0">
+      <div class="kpi-chip kpi-chip--blue">
+        <FileCheck class="kc-icon" />
+        <span class="kc-val">{{ licencias.length }}</span>
+        <span class="kc-lbl">Total</span>
       </div>
-
-      <!-- Error -->
-      <div v-else-if="error" style="text-align:center;padding:4rem;color:#b91c1c;font-size:.875rem;">
-        {{ error }}
+      <div class="kpi-chip kpi-chip--green">
+        <CheckCircle class="kc-icon" />
+        <span class="kc-val">{{ vigentes }}</span>
+        <span class="kc-lbl">Vigentes</span>
       </div>
-
-      <!-- Empty -->
-      <div v-else-if="licencias.length === 0"
-        style="text-align:center;padding:4rem;background:#fff;border-radius:16px;border:1px solid #e0e8e8;">
-        <FileCheck style="width:40px;height:40px;color:#c8d8d8;margin:0 auto .75rem;" />
-        <p style="color:#536c6b;font-size:.875rem;margin:0;">No hay licencias registradas.</p>
-        <button @click="openCreate" style="margin-top:1rem;padding:.5rem 1.25rem;border-radius:8px;font-size:.8125rem;font-weight:600;color:#fff;background:#113e4c;border:none;cursor:pointer;">
-          Agregar primera licencia
-        </button>
+      <div class="kpi-chip kpi-chip--yellow">
+        <AlertTriangle class="kc-icon" />
+        <span class="kc-val">{{ porVencer }}</span>
+        <span class="kc-lbl">Por vencer</span>
       </div>
-
-      <!-- Tabla -->
-      <div v-else style="background:#fff;border-radius:16px;border:1px solid #e0e8e8;overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f9fbfb;">
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Nombre</th>
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">N° Licencia</th>
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Versión</th>
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Fecha compra</th>
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Caducidad</th>
-              <th style="padding:.75rem 1rem;text-align:left;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Estado</th>
-              <th style="padding:.75rem 1rem;text-align:right;font-size:.6875rem;font-weight:700;color:#536c6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0e8e8;">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="l in licencias" :key="l.id"
-              style="border-bottom:1px solid #f0f4f4;transition:background .15s;"
-              @mouseenter="$event.currentTarget.style.background='#fafcfc'"
-              @mouseleave="$event.currentTarget.style.background=''"
-            >
-              <td style="padding:.875rem 1rem;">
-                <div style="display:flex;align-items:center;gap:.5rem;">
-                  <div style="width:30px;height:30px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <FileCheck style="width:14px;height:14px;color:#15803d;" />
-                  </div>
-                  <span style="font-size:.8125rem;font-weight:600;color:#113e4c;">{{ l.nombre }}</span>
-                </div>
-              </td>
-              <td style="padding:.875rem 1rem;">
-                <span style="font-size:.8125rem;color:#536c6b;">{{ l.numLicencia || '—' }}</span>
-              </td>
-              <td style="padding:.875rem 1rem;">
-                <span style="font-size:.8125rem;color:#536c6b;">{{ l.version || '—' }}</span>
-              </td>
-              <td style="padding:.875rem 1rem;">
-                <span style="font-size:.8125rem;color:#536c6b;">{{ formatDate(l.fechaCompra) }}</span>
-              </td>
-              <td style="padding:.875rem 1rem;">
-                <div style="display:flex;flex-direction:column;gap:.25rem;">
-                  <span style="font-size:.8125rem;color:#536c6b;">{{ formatDate(l.caducidad) }}</span>
-                  <template v-if="caducidadBadge(l.caducidad)">
-                    <span
-                      style="display:inline-block;padding:.15rem .5rem;border-radius:5px;font-size:.625rem;font-weight:700;border:1px solid;width:fit-content;"
-                      :style="{ background: caducidadBadge(l.caducidad).bg, color: caducidadBadge(l.caducidad).color, borderColor: caducidadBadge(l.caducidad).border }"
-                    >{{ caducidadBadge(l.caducidad).label }}</span>
-                  </template>
-                </div>
-              </td>
-              <td style="padding:.875rem 1rem;">
-                <span
-                  style="display:inline-block;padding:.2rem .6rem;border-radius:6px;font-size:.6875rem;font-weight:700;border:1px solid;"
-                  :style="l.activo
-                    ? 'background:#f0fdf4;color:#15803d;border-color:#86efac;'
-                    : 'background:#f8fafc;color:#64748b;border-color:#cbd5e1;'"
-                >{{ l.activo ? 'Activa' : 'Inactiva' }}</span>
-              </td>
-              <td style="padding:.875rem 1rem;text-align:right;">
-                <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem;">
-                  <button @click="openEdit(l)"
-                    title="Editar"
-                    style="width:30px;height:30px;border-radius:6px;border:1px solid #e0e8e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#536c6b;"
-                    @mouseenter="$event.currentTarget.style.background='#f5f7f7'"
-                    @mouseleave="$event.currentTarget.style.background='#fff'"
-                  ><Pencil style="width:13px;height:13px;" /></button>
-                  <button @click="openDelete(l)"
-                    title="Eliminar"
-                    style="width:30px;height:30px;border-radius:6px;border:1px solid #fecaca;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#dc2626;"
-                    @mouseenter="$event.currentTarget.style.background='#fef2f2'"
-                    @mouseleave="$event.currentTarget.style.background='#fff'"
-                  ><Trash2 style="width:13px;height:13px;" /></button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="kpi-chip kpi-chip--red">
+        <XCircle class="kc-icon" />
+        <span class="kc-val">{{ vencidas }}</span>
+        <span class="kc-lbl">Vencidas / inactivas</span>
       </div>
     </div>
 
-    <!-- ═══ Modal crear / editar ═══ -->
-    <Teleport to="body">
-      <div v-if="modal.open"
-        style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;"
-        @click.self="closeModal"
-      >
-        <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="closeModal" />
-        <div style="position:relative;background:#fff;border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.18);">
+    <div v-if="loading" class="qnt-state qnt-state--row"><span class="qnt-spinner" /> Cargando licencias…</div>
+    <div v-else-if="error" class="qnt-state qnt-state--error"><p>{{ error }}</p></div>
 
-          <!-- Header modal -->
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid #e0e8e8;position:sticky;top:0;background:#fff;z-index:1;">
-            <div style="display:flex;align-items:center;gap:.75rem;">
-              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#113e4c,#2b555b);display:flex;align-items:center;justify-content:center;">
-                <FileCheck style="width:18px;height:18px;color:#fff;" />
-              </div>
-              <h2 style="font-size:1rem;font-weight:700;color:#113e4c;margin:0;">
-                {{ modal.licencia ? 'Editar licencia' : 'Nueva licencia' }}
-              </h2>
-            </div>
-            <button @click="closeModal" style="width:32px;height:32px;border-radius:8px;border:1px solid #e0e8e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#536c6b;">
-              <X style="width:16px;height:16px;" />
-            </button>
+    <div v-else-if="licencias.length === 0" class="qnt-state">
+      <FileCheck style="width:40px;height:40px;opacity:.2" />
+      <p>No hay licencias registradas.</p>
+      <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">Agregar primera licencia</button>
+    </div>
+
+    <!-- Cards grid -->
+    <div v-else class="lic-grid">
+      <div v-for="l in licencias" :key="l.id" class="lic-card">
+        <div class="lic-card-header">
+          <div class="lic-icon-wrap"><FileCheck class="lic-icon" /></div>
+          <div class="lic-title-wrap">
+            <div class="lic-nombre">{{ l.nombre }}</div>
+            <div class="lic-num" v-if="l.numLicencia">{{ l.numLicencia }}</div>
           </div>
+          <div class="lic-badges">
+            <span class="qnt-badge" :class="`qnt-badge--${l.activo ? 'green' : 'gray'}`">{{ l.activo ? 'Activa' : 'Inactiva' }}</span>
+            <span v-if="caducidadInfo(l.caducidad)" class="qnt-badge" :class="`qnt-badge--${caducidadInfo(l.caducidad).cls.replace('badge--','')}`">{{ caducidadInfo(l.caducidad).label }}</span>
+          </div>
+        </div>
+        <div class="lic-meta">
+          <div class="meta-item" v-if="l.version">
+            <span class="meta-label">Versión</span>
+            <span class="meta-val">{{ l.version }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Compra</span>
+            <span class="meta-val">{{ formatDate(l.fechaCompra) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Caducidad</span>
+            <span class="meta-val">{{ formatDate(l.caducidad) }}</span>
+          </div>
+        </div>
+        <div class="lic-actions">
+          <button class="btn-act" @click="openEdit(l)"><Pencil class="ba-icon" /> Editar</button>
+          <button class="btn-act btn-act--danger" @click="openDelete(l)"><Trash2 class="ba-icon" /> Eliminar</button>
+        </div>
+      </div>
+    </div>
 
-          <!-- Body modal -->
-          <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
-
-            <div>
-              <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Nombre *</label>
-              <input v-model="form.nombre" placeholder="Nombre de la licencia"
-                style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
+    <!-- Modal crear/editar -->
+    <Teleport to="body">
+      <Transition name="qnt-modal">
+        <div v-if="modal.open" class="qnt-modal-overlay" @click.self="closeModal">
+          <div class="qnt-modal">
+            <div class="modal-hd">
+              <div class="modal-hd-icon"><FileCheck class="mh-icon" /></div>
+              <h3 class="modal-hd-title">{{ modal.licencia ? 'Editar licencia' : 'Nueva licencia' }}</h3>
+              <button class="modal-close" @click="closeModal"><X class="w-4 h-4" /></button>
             </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">N° Licencia <span style="font-weight:400;color:#a0b5b5;">(opcional)</span></label>
-                <input v-model="form.numLicencia" placeholder="Número de licencia"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
+            <div class="modal-body">
+              <div class="qnt-field">
+                <label class="qnt-label">Nombre <span class="required">*</span></label>
+                <input v-model="form.nombre" type="text" class="qnt-input" placeholder="Nombre de la licencia" />
               </div>
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Versión <span style="font-weight:400;color:#a0b5b5;">(opcional)</span></label>
-                <input v-model="form.version" placeholder="Ej: 2.1.0"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
+              <div class="form-row">
+                <div class="qnt-field">
+                  <label class="qnt-label">N° Licencia</label>
+                  <input v-model="form.numLicencia" type="text" class="qnt-input" placeholder="Número" />
+                </div>
+                <div class="qnt-field">
+                  <label class="qnt-label">Versión</label>
+                  <input v-model="form.version" type="text" class="qnt-input" placeholder="Ej: 2.1.0" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="qnt-field">
+                  <label class="qnt-label">Fecha de compra</label>
+                  <input v-model="form.fechaCompra" type="date" class="qnt-input" />
+                </div>
+                <div class="qnt-field">
+                  <label class="qnt-label">Caducidad</label>
+                  <input v-model="form.caducidad" type="date" class="qnt-input" />
+                </div>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <p class="toggle-label">Estado de la licencia</p>
+                  <p class="toggle-hint">{{ form.activo ? 'Activa y en uso' : 'Inactiva o dada de baja' }}</p>
+                </div>
+                <button type="button" class="toggle-btn" :class="{ active: form.activo }" @click="form.activo = !form.activo">
+                  <span class="toggle-knob" />
+                </button>
               </div>
             </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Fecha de compra</label>
-                <input v-model="form.fechaCompra" type="date"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
-              </div>
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Caducidad</label>
-                <input v-model="form.caducidad" type="date"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
-              </div>
-            </div>
-
-            <!-- Toggle activo -->
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-radius:10px;border:1px solid #e0e8e8;background:#f9fbfb;">
-              <div>
-                <p style="font-size:.875rem;font-weight:600;color:#113e4c;margin:0;">Estado de la licencia</p>
-                <p style="font-size:.75rem;color:#a0b5b5;margin:.125rem 0 0;">{{ form.activo ? 'Activa y en uso' : 'Inactiva o dada de baja' }}</p>
-              </div>
-              <button
-                @click="form.activo = !form.activo"
-                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0;"
-                :style="{ background: form.activo ? '#113e4c' : '#cbd5e1' }"
-              >
-                <span style="position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);"
-                  :style="{ left: form.activo ? '22px' : '2px' }" />
+            <div class="modal-footer">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeModal">Cancelar</button>
+              <button class="qnt-btn qnt-btn--primary" :disabled="modal.loading || !form.nombre?.trim()" @click="submitModal">
+                {{ modal.loading ? 'Guardando…' : (modal.licencia ? 'Guardar cambios' : 'Crear licencia') }}
               </button>
             </div>
           </div>
-
-          <!-- Footer modal -->
-          <div style="display:flex;justify-content:flex-end;gap:.75rem;padding:1.25rem 1.5rem;border-top:1px solid #e0e8e8;position:sticky;bottom:0;background:#fff;">
-            <button @click="closeModal"
-              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
-              Cancelar
-            </button>
-            <button @click="submitModal" :disabled="modal.loading || !form.nombre?.trim()"
-              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#fff;background:linear-gradient(135deg,#113e4c,#2b555b);border:none;cursor:pointer;transition:opacity .15s;"
-              :style="{ opacity: (modal.loading || !form.nombre?.trim()) ? '.5' : '1' }"
-            >
-              {{ modal.loading ? 'Guardando…' : (modal.licencia ? 'Guardar cambios' : 'Crear licencia') }}
-            </button>
-          </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
-    <!-- ═══ Confirm delete ═══ -->
+    <!-- Confirm delete -->
     <Teleport to="body">
-      <div v-if="confirmDelete.open"
-        style="position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:1rem;"
-        @click.self="closeDelete"
-      >
-        <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="closeDelete" />
-        <div style="position:relative;background:#fff;border-radius:16px;width:100%;max-width:400px;padding:2rem;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.16);">
-          <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-            <AlertTriangle style="width:24px;height:24px;color:#dc2626;" />
-          </div>
-          <h3 style="font-size:1rem;font-weight:700;color:#113e4c;margin:0 0 .5rem;">Eliminar licencia</h3>
-          <p style="font-size:.875rem;color:#536c6b;margin:0 0 1.5rem;">
-            ¿Seguro que querés eliminar <strong>{{ confirmDelete.licencia?.nombre }}</strong>? Esta acción no se puede deshacer.
-          </p>
-          <div style="display:flex;gap:.75rem;justify-content:center;">
-            <button @click="closeDelete"
-              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
-              Cancelar
-            </button>
-            <button @click="doDelete"
-              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#fff;background:#dc2626;border:none;cursor:pointer;">
-              Eliminar
-            </button>
+      <Transition name="qnt-modal">
+        <div v-if="confirmDelete.open" class="qnt-modal-overlay" @click.self="closeDelete">
+          <div class="qnt-modal qnt-modal--sm">
+            <div class="confirm-icon"><AlertTriangle class="ci-icon" /></div>
+            <h3 class="confirm-title">Eliminar licencia</h3>
+            <p class="confirm-msg">¿Seguro que querés eliminar <strong>{{ confirmDelete.licencia?.nombre }}</strong>? Esta acción no se puede deshacer.</p>
+            <div class="modal-footer">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeDelete">Cancelar</button>
+              <button class="qnt-btn qnt-btn--danger" @click="doDelete">Eliminar</button>
+            </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
-
   </div>
 </template>
 
 <style scoped>
-.toast-enter-active, .toast-leave-active { transition: all .25s ease; }
-.toast-enter-from, .toast-leave-to       { opacity: 0; transform: translateY(-8px); }
+/* KPI row */
+.kpi-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.kpi-chip {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface);
+}
+.kpi-chip--blue   .kc-icon { color: #1e88e5; }
+.kpi-chip--green  .kc-icon { color: #16a34a; }
+.kpi-chip--yellow .kc-icon { color: #ca8a04; }
+.kpi-chip--red    .kc-icon { color: #dc2626; }
+.kc-icon { width: 15px; height: 15px; }
+.kc-val  { font-size: 1rem; font-weight: 700; color: var(--qnt-text); }
+.kc-lbl  { font-size: 0.72rem; color: var(--qnt-text-muted); }
+
+/* Grid */
+.lic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.85rem;
+}
+.lic-card {
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  transition: border-color .15s;
+}
+.lic-card:hover { border-color: #1e88e5; }
+
+.lic-card-header { display: flex; align-items: flex-start; gap: 0.65rem; }
+.lic-icon-wrap {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: rgba(22,163,74,.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lic-icon { width: 17px; height: 17px; color: #16a34a; }
+.lic-title-wrap { flex: 1; }
+.lic-nombre { font-size: 0.9rem; font-weight: 600; color: var(--qnt-text); }
+.lic-num    { font-size: 0.75rem; color: var(--qnt-text-muted); margin-top: 0.1rem; }
+.lic-badges { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; }
+
+.lic-meta {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
+  background: var(--qnt-surface-raised); border-radius: 8px;
+}
+.meta-item { display: flex; flex-direction: column; gap: 0.05rem; flex: 1; min-width: 70px; }
+.meta-label { font-size: 0.65rem; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.meta-val   { font-size: 0.82rem; color: var(--qnt-text); font-weight: 500; }
+
+.lic-actions { display: flex; gap: 0.5rem; }
+.btn-act {
+  display: flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.6rem; border-radius: 6px;
+  border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface); color: var(--qnt-text-secondary);
+  font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  transition: background .15s;
+}
+.btn-act:hover { background: var(--qnt-surface-raised); color: var(--qnt-text); }
+.btn-act--danger { color: #991b1b; border-color: #fecaca; }
+.btn-act--danger:hover { background: #fee2e2; }
+.ba-icon { width: 12px; height: 12px; }
+
+/* Modal */
+.modal-hd { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.modal-hd-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg,#0f4c81,#1e88e5);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.mh-icon { width: 18px; height: 18px; color: #fff; }
+.modal-hd-title { flex: 1; font-size: 1rem; font-weight: 700; color: var(--qnt-text); margin: 0; }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface); color: var(--qnt-text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.modal-body { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface-raised);
+}
+.toggle-label { font-size: 0.875rem; font-weight: 600; color: var(--qnt-text); margin: 0; }
+.toggle-hint  { font-size: 0.75rem; color: var(--qnt-text-muted); margin: 0.1rem 0 0; }
+.toggle-btn {
+  width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer;
+  background: var(--qnt-border); position: relative; transition: background .2s; flex-shrink: 0;
+}
+.toggle-btn.active { background: #1e88e5; }
+.toggle-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: left .2s;
+}
+.toggle-btn.active .toggle-knob { left: 22px; }
+
+.confirm-icon { width: 52px; height: 52px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+.ci-icon { width: 24px; height: 24px; color: #dc2626; }
+.confirm-title { text-align: center; font-size: 1rem; font-weight: 700; color: var(--qnt-text); margin: 0 0 0.5rem; }
+.confirm-msg   { text-align: center; font-size: 0.875rem; color: var(--qnt-text-muted); margin: 0 0 1.5rem; }
+
+.required { color: #dc2626; }
+.qnt-label { font-size: 0.75rem; font-weight: 600; color: var(--qnt-text-muted); margin-bottom: 0.3rem; display: block; }
 </style>

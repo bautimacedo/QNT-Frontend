@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil } from '../api'
 import PageHeader from '../components/ui/PageHeader.vue'
+import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle } from 'lucide-vue-next'
 
 const perfil = ref(null)
 const loading = ref(true)
@@ -15,6 +16,7 @@ const pwForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const pwSaving = ref(false)
 const pwError = ref('')
 
+const activeTab = ref('info')
 const toast = ref('')
 let toastTimer = null
 
@@ -27,6 +29,20 @@ function showToast(msg) {
 function formatRoles(roles) {
   if (!roles?.length) return []
   return roles.map(r => r.nombre || r.codigo.replace('ROLE_', ''))
+}
+
+function getInitial(p) {
+  return p?.nombre ? p.nombre[0].toUpperCase() : '?'
+}
+
+function estadoBadgeClass(estado) {
+  const map = { ACTIVO: 'hero-badge--green', DESACTIVADO: 'hero-badge--red', PENDIENTE_APROBACION: 'hero-badge--yellow' }
+  return map[estado] || 'hero-badge--gray'
+}
+
+function estadoLabel(estado) {
+  const map = { ACTIVO: 'Habilitado', DESACTIVADO: 'Inactivo', PENDIENTE_APROBACION: 'Pendiente' }
+  return map[estado] || estado
 }
 
 async function loadPerfil() {
@@ -107,98 +123,331 @@ onMounted(loadPerfil)
     </div>
 
     <template v-else-if="perfil">
-      <div class="perfil-cols">
-        <section class="qnt-card">
-          <h2 class="section-title">Datos personales</h2>
-          <form class="pf-form" @submit.prevent="onSaveProfile">
-            <div class="qnt-field">
-              <label for="pf-nombre">Nombre</label>
-              <input id="pf-nombre" v-model="form.nombre" type="text" class="qnt-input" :disabled="saving" />
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="hero-cover" />
+        <div class="hero-body">
+          <div class="hero-avatar">{{ getInitial(perfil) }}</div>
+          <div class="hero-info">
+            <div class="hero-name-row">
+              <h2 class="hero-name">{{ perfil.nombre }} {{ perfil.apellido }}</h2>
+              <span class="hero-badge" :class="estadoBadgeClass(perfil.estado)">{{ estadoLabel(perfil.estado) }}</span>
             </div>
-            <div class="qnt-field">
-              <label for="pf-apellido">Apellido</label>
-              <input id="pf-apellido" v-model="form.apellido" type="text" class="qnt-input" :disabled="saving" />
+            <p class="hero-email">{{ perfil.email }}</p>
+            <div class="hero-roles">
+              <span v-for="r in formatRoles(perfil.roles)" :key="r" class="role-chip">{{ r }}</span>
             </div>
-            <div class="qnt-field">
-              <label for="pf-email">Email</label>
-              <input id="pf-email" :value="perfil.email" type="email" class="qnt-input qnt-input--readonly" readonly disabled />
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <Plane class="stat-icon" />
+              <span class="stat-val">{{ perfil.cantidadVuelos ?? '—' }}</span>
+              <span class="stat-lbl">Vuelos</span>
             </div>
-            <div class="qnt-field">
-              <label for="pf-dni">DNI</label>
-              <input id="pf-dni" v-model="form.dni" type="text" class="qnt-input" :disabled="saving" />
+            <div class="stat-item">
+              <Clock class="stat-icon" />
+              <span class="stat-val">{{ perfil.horasVuelo ?? '—' }}</span>
+              <span class="stat-lbl">Horas</span>
             </div>
-            <div class="qnt-field">
-              <label>Roles</label>
-              <div class="badges-row">
-                <span v-for="r in formatRoles(perfil.roles)" :key="r" class="qnt-badge qnt-badge--role">{{ r }}</span>
-                <span v-if="!perfil.roles?.length" class="text-muted">Sin rol asignado</span>
-              </div>
+            <div class="stat-item">
+              <Shield class="stat-icon" />
+              <span class="stat-val">{{ perfil.roles?.length ?? 0 }}</span>
+              <span class="stat-lbl">Roles</span>
             </div>
-            <div class="qnt-field">
-              <label for="pf-pwmission">Contraseña de Misión</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-bar">
+        <button class="tab-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
+          <User class="tab-icon" /> Información Personal
+        </button>
+        <button class="tab-btn" :class="{ active: activeTab === 'pw' }" @click="activeTab = 'pw'">
+          <Lock class="tab-icon" /> Cambiar Contraseña
+        </button>
+      </div>
+
+      <!-- Tab: Información Personal -->
+      <div v-if="activeTab === 'info'">
+        <form class="pf-grid" @submit.prevent="onSaveProfile">
+          <div class="pf-field-card">
+            <div class="pf-field-icon"><User class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Nombre</label>
+              <input v-model="form.nombre" type="text" class="pf-input" :disabled="saving" placeholder="Tu nombre" />
+            </div>
+          </div>
+          <div class="pf-field-card">
+            <div class="pf-field-icon"><User class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Apellido</label>
+              <input v-model="form.apellido" type="text" class="pf-input" :disabled="saving" placeholder="Tu apellido" />
+            </div>
+          </div>
+          <div class="pf-field-card pf-field-card--readonly">
+            <div class="pf-field-icon"><Mail class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Email</label>
+              <input :value="perfil.email" type="email" class="pf-input" readonly disabled />
+            </div>
+          </div>
+          <div class="pf-field-card">
+            <div class="pf-field-icon"><CreditCard class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">DNI</label>
+              <input v-model="form.dni" type="text" class="pf-input" :disabled="saving" placeholder="Tu DNI" />
+            </div>
+          </div>
+          <div class="pf-field-card pf-field-card--full">
+            <div class="pf-field-icon"><CheckCircle class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Contraseña de Misión</label>
               <input
-                id="pf-pwmission"
                 v-model="form.passwordMission"
                 type="text"
-                class="qnt-input"
+                class="pf-input"
                 maxlength="30"
-                placeholder="Clave operativa para misiones"
+                placeholder="Clave operativa para misiones de vuelo"
                 :disabled="saving"
               />
-              <p class="field-helper">Clave operativa para misiones de vuelo. No es tu contraseña de login.</p>
+              <p class="pf-helper">Clave operativa para misiones de vuelo. No es tu contraseña de login.</p>
             </div>
+          </div>
+          <div class="pf-actions">
             <p v-if="saveError" class="field-error">{{ saveError }}</p>
             <button type="submit" class="qnt-btn qnt-btn--primary" :disabled="saving">
               {{ saving ? 'Guardando…' : 'Guardar cambios' }}
             </button>
-          </form>
-        </section>
+          </div>
+        </form>
+      </div>
 
-        <section class="qnt-card">
-          <h2 class="section-title">Cambiar contraseña de login</h2>
-          <form class="pf-form" @submit.prevent="onChangePassword">
-            <div class="qnt-field">
-              <label for="pw-old">Contraseña actual</label>
-              <input id="pw-old" v-model="pwForm.oldPassword" type="password" class="qnt-input" autocomplete="current-password" :disabled="pwSaving" />
+      <!-- Tab: Cambiar Contraseña -->
+      <div v-if="activeTab === 'pw'">
+        <form class="pf-grid pf-grid--narrow" @submit.prevent="onChangePassword">
+          <div class="pf-field-card pf-field-card--full">
+            <div class="pf-field-icon"><Lock class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Contraseña actual</label>
+              <input v-model="pwForm.oldPassword" type="password" class="pf-input" autocomplete="current-password" :disabled="pwSaving" placeholder="Tu contraseña actual" />
             </div>
-            <div class="qnt-field">
-              <label for="pw-new">Nueva contraseña</label>
-              <input id="pw-new" v-model="pwForm.newPassword" type="password" class="qnt-input" autocomplete="new-password" placeholder="Mínimo 6 caracteres" :disabled="pwSaving" />
+          </div>
+          <div class="pf-field-card pf-field-card--full">
+            <div class="pf-field-icon"><Lock class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Nueva contraseña</label>
+              <input v-model="pwForm.newPassword" type="password" class="pf-input" autocomplete="new-password" :disabled="pwSaving" placeholder="Mínimo 6 caracteres" />
             </div>
-            <div class="qnt-field">
-              <label for="pw-confirm">Confirmar nueva contraseña</label>
-              <input id="pw-confirm" v-model="pwForm.confirmPassword" type="password" class="qnt-input" autocomplete="new-password" :disabled="pwSaving" />
+          </div>
+          <div class="pf-field-card pf-field-card--full">
+            <div class="pf-field-icon"><Lock class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <label class="pf-label">Confirmar nueva contraseña</label>
+              <input v-model="pwForm.confirmPassword" type="password" class="pf-input" autocomplete="new-password" :disabled="pwSaving" placeholder="Repetí la nueva contraseña" />
             </div>
+          </div>
+          <div class="pf-actions">
             <p v-if="pwError" class="field-error">{{ pwError }}</p>
             <button type="submit" class="qnt-btn qnt-btn--primary" :disabled="pwSaving">
               {{ pwSaving ? 'Cambiando…' : 'Cambiar contraseña' }}
             </button>
-          </form>
-        </section>
+          </div>
+        </form>
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.perfil-cols {
-  display: grid;
-  grid-template-columns: 1fr;
+/* Hero Card */
+.hero-card {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  margin-bottom: 1.5rem;
+}
+.hero-cover {
+  height: 90px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f4c81 100%);
+}
+.hero-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 0 1.5rem 1.5rem;
+  position: relative;
+  flex-wrap: wrap;
+}
+.hero-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f4c81, #1e88e5);
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--qnt-surface);
+  margin-top: -36px;
+  flex-shrink: 0;
+}
+.hero-info {
+  flex: 1;
+  min-width: 160px;
+  padding-top: 0.5rem;
+}
+.hero-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.hero-name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--qnt-text);
+}
+.hero-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: .03em;
+}
+.hero-badge--green  { background: #dcfce7; color: #166534; }
+.hero-badge--red    { background: #fee2e2; color: #991b1b; }
+.hero-badge--yellow { background: #fef3c7; color: #92400e; }
+.hero-badge--gray   { background: var(--qnt-surface-raised); color: var(--qnt-text-muted); }
+.hero-email {
+  margin: 0.2rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--qnt-text-muted);
+}
+.hero-roles {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.role-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(30, 136, 229, 0.12);
+  color: #1e88e5;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.hero-stats {
+  display: flex;
   gap: 1.5rem;
+  padding-top: 0.75rem;
+  margin-left: auto;
 }
-@media (min-width: 900px) {
-  .perfil-cols { grid-template-columns: 1fr 1fr; align-items: start; }
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
 }
+.stat-icon { width: 16px; height: 16px; color: var(--qnt-text-muted); margin-bottom: 0.1rem; }
+.stat-val  { font-size: 1.1rem; font-weight: 700; color: var(--qnt-text); line-height: 1; }
+.stat-lbl  { font-size: 0.7rem; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .05em; }
 
-.section-title { margin: 0 0 1.25rem; font-size: 1rem; font-weight: 600; color: var(--qnt-text); }
+/* Tabs */
+.tabs-bar {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--qnt-border);
+  margin-bottom: 1.5rem;
+}
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--qnt-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: var(--qnt-text); }
+.tab-btn.active { color: #1e88e5; border-bottom-color: #1e88e5; }
+.tab-icon { width: 14px; height: 14px; }
 
-.pf-form { display: flex; flex-direction: column; gap: 1rem; }
+/* Field Cards Grid */
+.pf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.pf-grid--narrow {
+  grid-template-columns: 1fr;
+  max-width: 520px;
+}
+.pf-field-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  border-radius: 10px;
+  transition: border-color .15s;
+}
+.pf-field-card:focus-within { border-color: #1e88e5; }
+.pf-field-card--readonly { opacity: .7; }
+.pf-field-card--full { grid-column: 1 / -1; }
+.pf-field-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(30, 136, 229, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+.fc-icon { width: 15px; height: 15px; color: #1e88e5; }
+.pf-field-body { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+.pf-label { font-size: 0.72rem; font-weight: 600; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.pf-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--qnt-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: 100%;
+  padding: 0;
+}
+.pf-input::placeholder { color: var(--qnt-text-muted); font-weight: 400; }
+.pf-input:disabled { cursor: default; }
+.pf-helper { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--qnt-text-muted); line-height: 1.4; }
 
-.qnt-input--readonly { background: var(--qnt-surface-raised) !important; color: var(--qnt-text-muted) !important; cursor: default; }
+.pf-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+}
+.field-error { color: #dc2626; font-size: 0.85rem; margin: 0; flex: 1; }
 
-.badges-row { display: flex; gap: 0.4rem; flex-wrap: wrap; padding-top: 0.25rem; }
-.text-muted { color: var(--qnt-text-muted); font-size: 0.85rem; }
-
-.field-helper { margin: 0.3rem 0 0; font-size: 0.78rem; color: var(--qnt-text-muted); line-height: 1.4; }
-.field-error { color: #dc2626; font-size: 0.85rem; margin: 0; }
+@media (max-width: 640px) {
+  .pf-grid { grid-template-columns: 1fr; }
+  .hero-stats { gap: 1rem; }
+}
 </style>

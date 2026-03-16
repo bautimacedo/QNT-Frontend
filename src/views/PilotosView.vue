@@ -2,7 +2,7 @@
 import { ref, computed, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPilotos } from '../api'
-import { Users, Search, RefreshCw } from 'lucide-vue-next'
+import { Users, Search, RefreshCw, UserCheck, AlertTriangle, Clock } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 
@@ -38,8 +38,9 @@ const filteredPilotos = computed(() => {
 })
 
 const cantidadTotal = computed(() => pilotos.value.length)
-const cantidadFiltrada = computed(() => filteredPilotos.value.length)
-const hayFiltrosActivos = computed(() => searchText.value.trim() !== '')
+const cantidadActivos = computed(() => pilotos.value.filter(p => p.estado === 'ACTIVO').length)
+const cantidadSinCma = computed(() => pilotos.value.filter(p => !getCmaFechaEfectiva(p)).length)
+const horasTotales = computed(() => pilotos.value.reduce((acc, p) => acc + (p.horasVuelo || 0), 0))
 
 async function fetchPilotos() {
   loading.value = true
@@ -65,28 +66,12 @@ function clearFilters() {
   searchText.value = ''
 }
 
-function showToast(msg) {
-  toast.value = msg
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => { toast.value = '' }, 4000)
-}
-
 function formatNombre(p) {
   return `${p.nombre} ${p.apellido || ''}`.trim()
 }
 
 function getInitial(p) {
   return p.nombre ? p.nombre[0].toUpperCase() : '?'
-}
-
-function estadoBadgeClass(estado) {
-  const map = { ACTIVO: 'badge--green', DESACTIVADO: 'badge--red', PENDIENTE_APROBACION: 'badge--gray' }
-  return map[estado] || ''
-}
-
-function estadoBadgeLabel(estado) {
-  const map = { ACTIVO: 'Activo', DESACTIVADO: 'Desactivado', PENDIENTE_APROBACION: 'Pendiente' }
-  return map[estado] || estado
 }
 
 function getCmaFechaEfectiva(piloto) {
@@ -129,15 +114,49 @@ onMounted(fetchPilotos)
       <div v-if="toast" class="qnt-toast">{{ toast }}</div>
     </Transition>
 
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--blue"><Users class="ki" /></div>
+        <div class="kpi-body">
+          <span class="kpi-val">{{ cantidadTotal }}</span>
+          <span class="kpi-lbl">Total Pilotos</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--green"><UserCheck class="ki" /></div>
+        <div class="kpi-body">
+          <span class="kpi-val">{{ cantidadActivos }}</span>
+          <span class="kpi-lbl">Activos</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--red"><AlertTriangle class="ki" /></div>
+        <div class="kpi-body">
+          <span class="kpi-val">{{ cantidadSinCma }}</span>
+          <span class="kpi-lbl">Sin CMA</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--yellow"><Clock class="ki" /></div>
+        <div class="kpi-body">
+          <span class="kpi-val">{{ horasTotales }}</span>
+          <span class="kpi-lbl">Horas Totales</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
     <div class="qnt-toolbar">
       <div class="search-wrap">
         <Search class="search-icon" />
         <input v-model="searchText" type="text" class="qnt-input search-input" placeholder="Buscar por nombre o email…" />
       </div>
-      <button v-if="hayFiltrosActivos" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
-      <span class="filter-count">{{ cantidadFiltrada }} / {{ cantidadTotal }}</span>
+      <button v-if="searchText.trim()" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
+      <span class="filter-count">{{ filteredPilotos.length }} / {{ cantidadTotal }}</span>
     </div>
 
+    <!-- States -->
     <div v-if="loading" class="qnt-state qnt-state--row">
       <span class="qnt-spinner" /> Cargando pilotos…
     </div>
@@ -154,46 +173,48 @@ onMounted(fetchPilotos)
       <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar filtros</button>
     </div>
 
-    <div v-else class="qnt-table-wrap">
-      <table class="qnt-table">
-        <thead>
-          <tr>
-            <th>Piloto</th>
-            <th>Estado</th>
-            <th>CMA</th>
-            <th>Horas</th>
-            <th>Vuelos</th>
-            <th>Licencias</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in filteredPilotos" :key="p.id">
-            <td>
-              <div class="piloto-cell">
-                <div class="qnt-avatar">{{ getInitial(p) }}</div>
-                <div>
-                  <div class="piloto-nombre">{{ formatNombre(p) }}</div>
-                  <div class="piloto-email">{{ p.email }}</div>
-                </div>
-              </div>
-            </td>
-            <td><StatusBadge :estado="p.estado" /></td>
-            <td>
-              <span class="qnt-badge" :class="`qnt-badge--${cmaBadgeInfo(p).cls.replace('badge--','')}`">
-                {{ cmaBadgeInfo(p).label }}
-              </span>
-            </td>
-            <td>{{ p.horasVuelo ?? '—' }}</td>
-            <td>{{ p.cantidadVuelos ?? '—' }}</td>
-            <td>{{ p.licencias?.length || '—' }}</td>
-            <td class="actions-cell">
-              <button class="btn-action" @click="verPerfil(p)">Ver perfil</button>
-              <button class="btn-action" @click="openDetail(p)">Detalle rápido</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Pilot Cards -->
+    <div v-else class="pilots-grid">
+      <div
+        v-for="p in filteredPilotos"
+        :key="p.id"
+        class="pilot-card"
+        @click="openDetail(p)"
+      >
+        <div class="pilot-card-header">
+          <div class="pilot-avatar">{{ getInitial(p) }}</div>
+          <div class="pilot-info">
+            <div class="pilot-name">{{ formatNombre(p) }}</div>
+            <div class="pilot-email">{{ p.email }}</div>
+          </div>
+          <StatusBadge :estado="p.estado" />
+        </div>
+
+        <div class="pilot-stats">
+          <div class="ps-item">
+            <span class="ps-val">{{ p.horasVuelo ?? '—' }}</span>
+            <span class="ps-lbl">Horas</span>
+          </div>
+          <div class="ps-divider" />
+          <div class="ps-item">
+            <span class="ps-val">{{ p.cantidadVuelos ?? '—' }}</span>
+            <span class="ps-lbl">Vuelos</span>
+          </div>
+          <div class="ps-divider" />
+          <div class="ps-item">
+            <span class="ps-val">{{ p.licencias?.length || '—' }}</span>
+            <span class="ps-lbl">Licencias</span>
+          </div>
+        </div>
+
+        <div class="pilot-footer">
+          <span class="cma-label">CMA:</span>
+          <span class="qnt-badge" :class="`qnt-badge--${cmaBadgeInfo(p).cls.replace('badge--','')}`">
+            {{ cmaBadgeInfo(p).label }}
+          </span>
+          <button class="btn-ver" @click.stop="verPerfil(p)">Ver perfil →</button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal de detalle -->
@@ -259,6 +280,7 @@ onMounted(fetchPilotos)
 
             <div class="modal-actions">
               <button class="qnt-btn qnt-btn--secondary" @click="closeDetail">Cerrar</button>
+              <button class="qnt-btn qnt-btn--primary" @click="verPerfil(detailModal.piloto); closeDetail()">Ver perfil completo</button>
             </div>
           </div>
         </div>
@@ -268,30 +290,117 @@ onMounted(fetchPilotos)
 </template>
 
 <style scoped>
+/* KPI */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  border-radius: 10px;
+}
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon--blue   { background: rgba(30,136,229,.12); color: #1e88e5; }
+.kpi-icon--green  { background: rgba(22,163,74,.12);  color: #16a34a; }
+.kpi-icon--red    { background: rgba(220,38,38,.12);  color: #dc2626; }
+.kpi-icon--yellow { background: rgba(202,138,4,.12);  color: #ca8a04; }
+.ki { width: 18px; height: 18px; }
+.kpi-body { display: flex; flex-direction: column; gap: 0.05rem; }
+.kpi-val  { font-size: 1.35rem; font-weight: 700; color: var(--qnt-text); line-height: 1; }
+.kpi-lbl  { font-size: 0.72rem; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+
+/* Search */
 .search-wrap  { position: relative; flex: 1; min-width: 180px; max-width: 320px; }
 .search-icon  { position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--qnt-text-muted); pointer-events: none; }
 .search-input { width: 100%; padding-left: 2.1rem; }
 .filter-count { font-size: 0.8rem; color: var(--qnt-text-muted); margin-left: auto; }
 
-.piloto-cell  { display: flex; align-items: center; gap: 0.6rem; }
-.piloto-nombre { font-weight: 500; color: var(--qnt-text); font-size: 0.9rem; }
-.piloto-email  { font-size: 0.8rem; color: var(--qnt-text-muted); }
-
-.actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-
-.btn-action {
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--qnt-border);
-  border-radius: 6px;
-  background: var(--qnt-surface);
-  color: var(--qnt-text-secondary);
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
+/* Pilot cards grid */
+.pilots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
 }
-.btn-action:hover { background: var(--qnt-surface-raised); color: var(--qnt-text); }
+.pilot-card {
+  background: var(--qnt-surface);
+  border: 1px solid var(--qnt-border);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.pilot-card:hover { border-color: #1e88e5; box-shadow: 0 2px 12px rgba(30,136,229,.08); }
+
+.pilot-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.pilot-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f4c81, #1e88e5);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pilot-info { flex: 1; min-width: 0; }
+.pilot-name  { font-weight: 600; font-size: 0.9rem; color: var(--qnt-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pilot-email { font-size: 0.78rem; color: var(--qnt-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pilot-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--qnt-surface-raised);
+  border-radius: 8px;
+}
+.ps-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.ps-val  { font-size: 1rem; font-weight: 700; color: var(--qnt-text); }
+.ps-lbl  { font-size: 0.68rem; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.ps-divider { width: 1px; height: 28px; background: var(--qnt-border); }
+
+.pilot-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cma-label { font-size: 0.78rem; color: var(--qnt-text-muted); font-weight: 500; }
+.btn-ver {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #1e88e5;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.btn-ver:hover { text-decoration: underline; }
 
 /* Modal */
 .modal-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
@@ -307,4 +416,12 @@ onMounted(fetchPilotos)
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 .icon-check { color: #166534; font-weight: 700; }
 .text-muted { color: var(--qnt-text-muted); font-size: 0.85rem; }
+
+@media (max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .pilots-grid { grid-template-columns: 1fr; }
+}
 </style>
