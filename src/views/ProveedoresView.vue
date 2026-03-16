@@ -1,7 +1,21 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, RefreshCw, Building2, Phone, Mail, FileText, ShoppingCart } from 'lucide-vue-next'
+import { Search, Plus, RefreshCw, Building2, Phone, Mail, FileText, ShoppingCart, Tag } from 'lucide-vue-next'
+
+const CATEGORIAS = [
+  { value: 'EQUIPAMIENTO', label: 'Equipamiento', color: 'blue' },
+  { value: 'INSUMOS',      label: 'Insumos',      color: 'green' },
+  { value: 'SERVICIOS',    label: 'Servicios',    color: 'purple' },
+  { value: 'MANTENIMIENTO',label: 'Mantenimiento',color: 'yellow' },
+  { value: 'SOFTWARE',     label: 'Software',     color: 'cyan' },
+  { value: 'LOGISTICA',    label: 'Logística',    color: 'orange' },
+  { value: 'OTRO',         label: 'Otro',         color: 'gray' },
+]
+
+function categoriaInfo(val) {
+  return CATEGORIAS.find(c => c.value === val) || null
+}
 import PageHeader from '../components/ui/PageHeader.vue'
 import {
   getProveedores,
@@ -21,12 +35,14 @@ let toastTimer = null
 const hasProveedoresApi = ref(false)
 
 const searchText = ref('')
+const filtroCategoria = ref('')
 const sortField = ref('nombre')
 const sortAsc = ref(true)
 
 const FORM_DEFAULTS = () => ({
   open: false, editing: null,
   nombre: '', cuit: '', contacto: '', direccion: '', telefono: '', email: '', observaciones: '',
+  categoria: '',
   errors: {}, apiError: '', loading: false,
 })
 
@@ -39,6 +55,9 @@ const isAdmin = computed(() => dashboardUser.value?.authorities?.includes('ROLE_
 
 const filteredProveedores = computed(() => {
   let list = proveedores.value
+  if (filtroCategoria.value) {
+    list = list.filter(p => p.categoria === filtroCategoria.value)
+  }
   if (searchText.value.trim()) {
     const q = searchText.value.trim().toLowerCase()
     list = list.filter(p =>
@@ -73,7 +92,7 @@ function showToast(msg) {
   toastTimer = setTimeout(() => { toast.value = '' }, 4000)
 }
 
-function clearFilters() { searchText.value = '' }
+function clearFilters() { searchText.value = ''; filtroCategoria.value = '' }
 
 async function fetchProveedores() {
   loading.value = true
@@ -117,6 +136,7 @@ function openEdit(proveedor) {
     contacto: proveedor.contacto || '', direccion: proveedor.direccion || '',
     telefono: proveedor.telefono || '', email: proveedor.email || '',
     observaciones: proveedor.observaciones || '',
+    categoria: proveedor.categoria || '',
     errors: {}, apiError: '', loading: false,
   }
 }
@@ -141,6 +161,7 @@ function buildBody() {
     contacto: f.contacto?.trim() || null, direccion: f.direccion?.trim() || null,
     telefono: f.telefono?.trim() || null, email: f.email?.trim() || null,
     observaciones: f.observaciones?.trim() || null,
+    categoria: f.categoria || null,
   }
 }
 
@@ -253,7 +274,11 @@ onMounted(() => fetchProveedores())
           <Search class="search-icon" />
           <input v-model="searchText" type="text" class="qnt-input search-input" placeholder="Buscar por nombre, CUIT, contacto, email…" />
         </div>
-        <button v-if="searchText.trim()" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
+        <select v-model="filtroCategoria" class="qnt-input cat-select">
+          <option value="">Todas las categorías</option>
+          <option v-for="c in CATEGORIAS" :key="c.value" :value="c.value">{{ c.label }}</option>
+        </select>
+        <button v-if="searchText.trim() || filtroCategoria" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
         <span class="filter-count">{{ filteredProveedores.length }} / {{ cantidadTotal }}</span>
       </div>
 
@@ -277,7 +302,10 @@ onMounted(() => fetchProveedores())
               <div class="prov-nombre">{{ p.nombre || '—' }}</div>
               <div class="prov-cuit" v-if="p.cuit">CUIT: {{ p.cuit }}</div>
             </div>
-            <div class="prov-compras-badge" v-if="comprasCount(p.id) != null">
+            <span v-if="p.categoria" class="cat-badge" :class="`cat-badge--${categoriaInfo(p.categoria)?.color}`">
+            {{ categoriaInfo(p.categoria)?.label }}
+          </span>
+          <div class="prov-compras-badge" v-if="comprasCount(p.id) != null">
               <ShoppingCart class="pcb-icon" />
               <span>{{ comprasCount(p.id) }}</span>
             </div>
@@ -347,6 +375,13 @@ onMounted(() => fetchProveedores())
                 </div>
               </div>
               <div class="qnt-field">
+                <label class="qnt-label">Categoría</label>
+                <select v-model="formModal.categoria" class="qnt-input" :disabled="formModal.loading">
+                  <option value="">Sin categoría</option>
+                  <option v-for="c in CATEGORIAS" :key="c.value" :value="c.value">{{ c.label }}</option>
+                </select>
+              </div>
+              <div class="qnt-field">
                 <label class="qnt-label">Dirección</label>
                 <textarea v-model="formModal.direccion" rows="2" class="qnt-input qnt-textarea" :disabled="formModal.loading"></textarea>
               </div>
@@ -380,6 +415,12 @@ onMounted(() => fetchProveedores())
               </div>
             </div>
 
+            <div v-if="detailModal.proveedor?.categoria" class="detail-cat-row">
+              <Tag class="dc-icon" />
+              <span class="cat-badge" :class="`cat-badge--${categoriaInfo(detailModal.proveedor.categoria)?.color}`">
+                {{ categoriaInfo(detailModal.proveedor.categoria)?.label }}
+              </span>
+            </div>
             <div class="detail-grid">
               <div v-if="detailModal.proveedor?.contacto" class="detail-item">
                 <span class="detail-label">Contacto</span>
@@ -546,4 +587,24 @@ onMounted(() => fetchProveedores())
 
 .confirm-title { font-size: 1rem; font-weight: 700; color: var(--qnt-text); margin: 0 0 0.5rem; text-align: center; }
 .confirm-msg   { font-size: 0.875rem; color: var(--qnt-text-muted); margin: 0 0 1.5rem; text-align: center; }
+
+/* Categoria */
+.cat-select { width: auto; min-width: 160px; flex-shrink: 0; }
+
+.cat-badge {
+  display: inline-flex; align-items: center;
+  font-size: 0.68rem; font-weight: 700; padding: 0.18rem 0.55rem;
+  border-radius: 6px; text-transform: uppercase; letter-spacing: .04em;
+  white-space: nowrap;
+}
+.cat-badge--blue   { background: rgba(30,136,229,.12);  color: #1e88e5; }
+.cat-badge--green  { background: rgba(22,163,74,.12);   color: #16a34a; }
+.cat-badge--purple { background: rgba(124,58,237,.12);  color: #7c3aed; }
+.cat-badge--yellow { background: rgba(202,138,4,.12);   color: #ca8a04; }
+.cat-badge--cyan   { background: rgba(6,182,212,.12);   color: #0891b2; }
+.cat-badge--orange { background: rgba(234,88,12,.12);   color: #ea580c; }
+.cat-badge--gray   { background: var(--qnt-surface-raised); color: var(--qnt-text-muted); }
+
+.detail-cat-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+.dc-icon { width: 14px; height: 14px; color: var(--qnt-text-muted); }
 </style>
