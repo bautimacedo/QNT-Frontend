@@ -39,12 +39,20 @@ export async function me() {
  * 409 → email duplicado.  400 → validación.  500 → error interno.
  */
 export async function register(nombre, apellido, email, password) {
-  const res = await request('/auth/register', {
-    method: 'POST',
-    body: { nombre, apellido, email, password },
-  }, { skipAuth: true })
-
-  return json(res)
+  try {
+    const res = await request('/auth/register', {
+      method: 'POST',
+      body: { nombre, apellido, email, password },
+    }, { skipAuth: true })
+    return json(res)
+  } catch (err) {
+    const status = err.response?.status || err.status
+    const data   = err.response?.data
+    const message = typeof data === 'string' ? data : (data?.message ?? err.message)
+    const normalized = new Error(message || `HTTP ${status}`)
+    normalized.status = status
+    throw normalized
+  }
 }
 
 export function logout() {
