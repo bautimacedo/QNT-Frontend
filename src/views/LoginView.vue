@@ -195,8 +195,12 @@ async function onForgotSubmit() {
             </button>
           </form>
 
-          <div style="margin-top:2rem;display:flex;align-items:center;justify-content:center;">
-            <router-link to="/" style="display:flex;align-items:center;gap:.375rem;font-size:.875rem;color:#536c6b;text-decoration:none;">
+          <div style="margin-top:1.5rem;text-align:center;">
+            <p style="font-size:.875rem;color:#536c6b;margin:0 0 .75rem;">
+              ¿No tenés cuenta?
+              <router-link to="/register" style="color:#2b555b;font-weight:600;text-decoration:none;">Registrarte</router-link>
+            </p>
+            <router-link to="/" style="display:inline-flex;align-items:center;gap:.375rem;font-size:.875rem;color:#536c6b;text-decoration:none;">
               <ArrowLeft style="width:14px;height:14px;" />
               Volver al inicio
             </router-link>
