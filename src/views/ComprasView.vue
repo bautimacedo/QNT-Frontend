@@ -17,6 +17,9 @@ const TIPO_COMPRA_LABELS = {
   VIATICO: 'Viático',
   SEGURO: 'Seguro',
   EQUIPO: 'Equipo',
+  SERVICIOS: 'Servicios',
+  FLETES: 'Fletes',
+  MOVILIZACION: 'Movilización',
   OTRO: 'Otro',
 }
 
@@ -26,8 +29,11 @@ const TIPO_COMPRA_COLORS = {
   COMBUSTIBLE: { bg: '#fee2e2', color: '#991b1b' },
   VIATICO:     { bg: '#e0e7ff', color: '#3730a3' },
   SEGURO:      { bg: '#dcfce7', color: '#166534' },
-  EQUIPO:      { bg: '#f3e8ff', color: '#6b21a8' },
-  OTRO:        { bg: '#f1f5f9', color: '#64748b' },
+  EQUIPO:        { bg: '#f3e8ff', color: '#6b21a8' },
+  SERVICIOS:     { bg: '#e0f2fe', color: '#0369a1' },
+  FLETES:        { bg: '#fef9c3', color: '#854d0e' },
+  MOVILIZACION:  { bg: '#fce7f3', color: '#9d174d' },
+  OTRO:          { bg: '#f1f5f9', color: '#64748b' },
 }
 
 const METODO_PAGO_LABELS = {
