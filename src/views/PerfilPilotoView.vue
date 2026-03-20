@@ -16,7 +16,7 @@ const licencias = ref([])
 const licenciasLoading = ref(false)
 const licenciasError = ref('')
 
-// Mapa de urls de imágenes cargadas: { [licId]: { cma: url|null, cert: url|null } }
+// Mapa de urls de imágenes cargadas: { [licId]: { cma: { url, isPdf }|null, cert: { url, isPdf }|null } }
 const imageUrls = ref({})
 const loadingImages = ref({})
 
@@ -119,7 +119,7 @@ async function loadImagenesLicencia(lic) {
       const blob = await obtenerImagenCmaLicencia(lic.id)
       if (blob) {
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: url }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf: blob.type === 'application/pdf' } }
       }
     }
   } catch (_) {}
@@ -131,7 +131,7 @@ async function loadImagenesLicencia(lic) {
       const blob = await obtenerImagenCertIdoneidad(lic.id)
       if (blob) {
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: url }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf: blob.type === 'application/pdf' } }
       }
     }
   } catch (_) {}
@@ -211,7 +211,7 @@ async function onFileSelected(event, lic, tipo) {
       const blob = await obtenerImagenCmaLicencia(lic.id)
       if (blob) {
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: url }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf: blob.type === 'application/pdf' } }
       }
     } else {
       await subirImagenCertIdoneidad(lic.id, file)
@@ -219,7 +219,7 @@ async function onFileSelected(event, lic, tipo) {
       const blob = await obtenerImagenCertIdoneidad(lic.id)
       if (blob) {
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: url }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf: blob.type === 'application/pdf' } }
       }
     }
     // Recargar metadata de la licencia
@@ -384,13 +384,22 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 </div>
                 <div class="doc-item__preview">
                   <img
-                    v-if="imageUrls[lic.id]?.cma"
-                    :src="imageUrls[lic.id].cma"
+                    v-if="imageUrls[lic.id]?.cma && !imageUrls[lic.id].cma.isPdf"
+                    :src="imageUrls[lic.id].cma.url"
                     class="doc-thumbnail"
                     alt="CMA"
-                    @click="openImage(imageUrls[lic.id].cma)"
+                    @click="openImage(imageUrls[lic.id].cma.url)"
                     title="Click para ver en tamaño completo"
                   />
+                  <div
+                    v-else-if="imageUrls[lic.id]?.cma && imageUrls[lic.id].cma.isPdf"
+                    class="doc-thumbnail-placeholder doc-thumbnail-placeholder--pdf"
+                    @click="openImage(imageUrls[lic.id].cma.url)"
+                    title="Click para abrir el PDF"
+                  >
+                    <FileText class="placeholder-icon placeholder-icon--pdf" />
+                    <span class="pdf-label">PDF</span>
+                  </div>
                   <div v-else-if="loadingImages[lic.id]?.cma" class="doc-thumbnail-placeholder">
                     <span class="spinner spinner--sm" />
                   </div>
@@ -402,7 +411,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <button
                     v-if="imageUrls[lic.id]?.cma"
                     class="btn-doc"
-                    @click="openImage(imageUrls[lic.id].cma)"
+                    @click="openImage(imageUrls[lic.id].cma.url)"
                     title="Ver en tamaño completo"
                   >
                     <Eye class="btn-icon-sm" /> Ver
@@ -417,7 +426,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <input
                     :ref="el => { if (el) fileInputs[`${lic.id}-cma`] = el }"
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     style="display:none"
                     @change="onFileSelected($event, lic, 'cma')"
                   />
@@ -433,13 +442,22 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 </div>
                 <div class="doc-item__preview">
                   <img
-                    v-if="imageUrls[lic.id]?.cert"
-                    :src="imageUrls[lic.id].cert"
+                    v-if="imageUrls[lic.id]?.cert && !imageUrls[lic.id].cert.isPdf"
+                    :src="imageUrls[lic.id].cert.url"
                     class="doc-thumbnail"
                     alt="Cert. Idoneidad"
-                    @click="openImage(imageUrls[lic.id].cert)"
+                    @click="openImage(imageUrls[lic.id].cert.url)"
                     title="Click para ver en tamaño completo"
                   />
+                  <div
+                    v-else-if="imageUrls[lic.id]?.cert && imageUrls[lic.id].cert.isPdf"
+                    class="doc-thumbnail-placeholder doc-thumbnail-placeholder--pdf"
+                    @click="openImage(imageUrls[lic.id].cert.url)"
+                    title="Click para abrir el PDF"
+                  >
+                    <FileText class="placeholder-icon placeholder-icon--pdf" />
+                    <span class="pdf-label">PDF</span>
+                  </div>
                   <div v-else-if="loadingImages[lic.id]?.cert" class="doc-thumbnail-placeholder">
                     <span class="spinner spinner--sm" />
                   </div>
@@ -451,7 +469,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <button
                     v-if="imageUrls[lic.id]?.cert"
                     class="btn-doc"
-                    @click="openImage(imageUrls[lic.id].cert)"
+                    @click="openImage(imageUrls[lic.id].cert.url)"
                     title="Ver en tamaño completo"
                   >
                     <Eye class="btn-icon-sm" /> Ver
@@ -466,7 +484,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <input
                     :ref="el => { if (el) fileInputs[`${lic.id}-cert`] = el }"
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     style="display:none"
                     @change="onFileSelected($event, lic, 'cert')"
                   />
@@ -614,7 +632,11 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
   display: flex; align-items: center; justify-content: center;
 }
 .doc-thumbnail-placeholder--empty { background: #f8fafa; }
+.doc-thumbnail-placeholder--pdf { background: #fef3c7; border-color: #fde68a; cursor: pointer; flex-direction: column; gap: 0.25rem; }
+.doc-thumbnail-placeholder--pdf:hover { background: #fde68a; }
 .placeholder-icon { width: 28px; height: 28px; color: #cbd5e1; }
+.placeholder-icon--pdf { color: #d97706; }
+.pdf-label { font-size: 0.7rem; font-weight: 700; color: #92400e; letter-spacing: .05em; }
 
 .doc-item__btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 

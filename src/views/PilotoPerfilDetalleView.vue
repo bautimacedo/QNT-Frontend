@@ -14,7 +14,9 @@ const licImageModal = ref({
   open: false,
   licencia: null,
   cmaUrl: null,
+  cmaIsPdf: false,
   certUrl: null,
+  certIsPdf: false,
   loadingCma: false,
   loadingCert: false,
   apiUnavailable: false,
@@ -101,7 +103,9 @@ async function openLicImageModal(lic) {
     open: true,
     licencia: lic,
     cmaUrl: null,
+    cmaIsPdf: false,
     certUrl: null,
+    certIsPdf: false,
     loadingCma: true,
     loadingCert: true,
     apiUnavailable: false,
@@ -111,6 +115,7 @@ async function openLicImageModal(lic) {
     const blobCma = await obtenerImagenCmaLicenciaPiloto(pilotoId, lic.id)
     if (blobCma) {
       licImageModal.value.cmaUrl = URL.createObjectURL(blobCma)
+      licImageModal.value.cmaIsPdf = blobCma.type === 'application/pdf'
     }
   } catch (_) {
     licImageModal.value.apiUnavailable = true
@@ -121,12 +126,17 @@ async function openLicImageModal(lic) {
     const blobCert = await obtenerImagenCertIdoneidadLicenciaPiloto(pilotoId, lic.id)
     if (blobCert) {
       licImageModal.value.certUrl = URL.createObjectURL(blobCert)
+      licImageModal.value.certIsPdf = blobCert.type === 'application/pdf'
     }
   } catch (_) {
     licImageModal.value.apiUnavailable = true
   } finally {
     licImageModal.value.loadingCert = false
   }
+}
+
+function openInTab(url) {
+  if (url) window.open(url, '_blank')
 }
 
 function closeLicImageModal() {
@@ -136,7 +146,9 @@ function closeLicImageModal() {
     open: false,
     licencia: null,
     cmaUrl: null,
+    cmaIsPdf: false,
     certUrl: null,
+    certIsPdf: false,
     loadingCma: false,
     loadingCert: false,
     apiUnavailable: false,
@@ -275,9 +287,18 @@ function closeLicImageModal() {
               <h4 class="image-section__title">Imagen CMA</h4>
               <div v-if="licImageModal.loadingCma" class="state-msg-inline"><span class="spinner" /></div>
               <template v-else>
-                <div v-if="licImageModal.cmaUrl" class="image-preview image-preview--modal">
-                  <img :src="licImageModal.cmaUrl" alt="CMA" />
-                </div>
+                <template v-if="licImageModal.cmaUrl">
+                  <div v-if="licImageModal.cmaIsPdf" class="pdf-preview">
+                    <div class="pdf-icon-block">
+                      <span class="pdf-icon-label">PDF</span>
+                      <p class="pdf-hint">Archivo PDF cargado</p>
+                    </div>
+                    <button class="btn-open-pdf" @click="openInTab(licImageModal.cmaUrl)">Abrir PDF</button>
+                  </div>
+                  <div v-else class="image-preview image-preview--modal">
+                    <img :src="licImageModal.cmaUrl" alt="CMA" />
+                  </div>
+                </template>
                 <div v-else class="empty-state-sm"><p>Sin imagen cargada</p></div>
               </template>
             </div>
@@ -285,9 +306,18 @@ function closeLicImageModal() {
               <h4 class="image-section__title">Certificado de Idoneidad</h4>
               <div v-if="licImageModal.loadingCert" class="state-msg-inline"><span class="spinner" /></div>
               <template v-else>
-                <div v-if="licImageModal.certUrl" class="image-preview image-preview--modal">
-                  <img :src="licImageModal.certUrl" alt="Certificado de Idoneidad" />
-                </div>
+                <template v-if="licImageModal.certUrl">
+                  <div v-if="licImageModal.certIsPdf" class="pdf-preview">
+                    <div class="pdf-icon-block">
+                      <span class="pdf-icon-label">PDF</span>
+                      <p class="pdf-hint">Archivo PDF cargado</p>
+                    </div>
+                    <button class="btn-open-pdf" @click="openInTab(licImageModal.certUrl)">Abrir PDF</button>
+                  </div>
+                  <div v-else class="image-preview image-preview--modal">
+                    <img :src="licImageModal.certUrl" alt="Certificado de Idoneidad" />
+                  </div>
+                </template>
                 <div v-else class="empty-state-sm"><p>Sin imagen cargada</p></div>
               </template>
             </div>
@@ -367,6 +397,13 @@ function closeLicImageModal() {
 .image-preview--modal img { max-width: 100%; }
 .empty-state-sm { text-align: center; padding: 1rem; color: #94a3b8; font-size: 0.85rem; }
 .empty-state-sm p { margin: 0; }
+
+.pdf-preview { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; }
+.pdf-icon-block { flex: 1; }
+.pdf-icon-label { display: inline-block; background: #d97706; color: #fff; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.pdf-hint { margin: 0; font-size: 0.82rem; color: #92400e; }
+.btn-open-pdf { padding: 0.5rem 1rem; background: #113e4c; color: #fff; border: none; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn-open-pdf:hover { background: #2b555b; }
 .state-msg-inline { padding: 1.5rem; text-align: center; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
 .btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
