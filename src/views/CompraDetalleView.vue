@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, ShoppingCart, FileText, Upload, Trash2,
-  Download, Receipt, ClipboardList, CreditCard, FileCheck,
+  Download, Receipt, ClipboardList, CreditCard, FileCheck, Eye,
 } from 'lucide-vue-next'
 import {
   getCompra, getArchivosCompra, subirArchivoCompra,
@@ -105,6 +105,18 @@ async function doDownload(archivo) {
     URL.revokeObjectURL(url)
   } catch {
     showToast('Error al descargar el archivo', 'error')
+  }
+}
+
+// ── Vista previa ──────────────────────────────────────────────────────────────
+async function doPreview(archivo) {
+  try {
+    const blob = await descargarArchivoCompra(id, archivo.id)
+    const url  = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+    // El browser lo revoca cuando cierra la pestaña no es necesario limpiarlo aquí
+  } catch {
+    showToast('Error al abrir el archivo', 'error')
   }
 }
 
@@ -258,6 +270,9 @@ function fileIcon(archivo) {
                 <div class="archivo-fecha">{{ formatFechaSubida(a.fechaSubida) }}</div>
               </div>
               <div class="archivo-actions">
+                <button class="btn-arch" title="Ver" @click="doPreview(a)">
+                  <Eye class="ba-icon" />
+                </button>
                 <button class="btn-arch" title="Descargar" @click="doDownload(a)">
                   <Download class="ba-icon" />
                 </button>
