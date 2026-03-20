@@ -68,6 +68,57 @@ test('detalle del dron muestra número de serie y estado', async ({ page }) => {
   await expect(page.locator('text=/estado|Estado/i').first()).toBeVisible()
 })
 
+test('detalle del dron muestra hero con título y badge de estado', async ({ page }) => {
+  const card = page.locator('.equip-card').first()
+  if (await card.count() === 0) { test.skip(); return }
+  await card.click()
+  await page.waitForLoadState('networkidle')
+  await expect(page.locator('.hero__title').first()).toBeVisible({ timeout: 8000 })
+  await expect(page.locator('.hero__badge').first()).toBeVisible({ timeout: 8000 })
+})
+
+test('detalle del dron muestra card Identificación', async ({ page }) => {
+  const card = page.locator('.equip-card').first()
+  if (await card.count() === 0) { test.skip(); return }
+  await card.click()
+  await page.waitForLoadState('networkidle')
+  await expect(page.locator('.card__title').filter({ hasText: 'Identificación' })).toBeVisible({ timeout: 8000 })
+})
+
+test('detalle — botón Volver al listado navega de regreso', async ({ page }) => {
+  const card = page.locator('.equip-card').first()
+  if (await card.count() === 0) { test.skip(); return }
+  await card.click()
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('button', { name: /Volver al listado/i }).click()
+  await expect(page).toHaveURL(/\/stock\/drones$/, { timeout: 8000 })
+})
+
+test('detalle — botón Editar abre modal de edición', async ({ page }) => {
+  const card = page.locator('.equip-card').first()
+  if (await card.count() === 0) { test.skip(); return }
+  await card.click()
+  await page.waitForLoadState('networkidle')
+  const editBtn = page.getByRole('button', { name: /Editar|Completar datos/i }).last()
+  await expect(editBtn).toBeVisible({ timeout: 8000 })
+  await editBtn.click()
+  await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 8000 })
+  await expect(page.locator('.modal-title')).toBeVisible()
+})
+
+test('detalle — modal Editar se cierra con Cancelar', async ({ page }) => {
+  const card = page.locator('.equip-card').first()
+  if (await card.count() === 0) { test.skip(); return }
+  await card.click()
+  await page.waitForLoadState('networkidle')
+  const editBtn = page.getByRole('button', { name: /Editar|Completar datos/i }).last()
+  await expect(editBtn).toBeVisible({ timeout: 8000 })
+  await editBtn.click()
+  await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 8000 })
+  await page.locator('.modal-card .btn-secondary').click()
+  await expect(page.locator('.modal-overlay')).not.toBeVisible({ timeout: 5000 })
+})
+
 test('breadcrumb Stock navega correctamente', async ({ page }) => {
   await page.locator('a', { hasText: 'Stock' }).first().click()
   await expect(page).toHaveURL(/\/stock/)
