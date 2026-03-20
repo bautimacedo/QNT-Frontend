@@ -12,6 +12,7 @@ import UsuariosView from '../views/UsuariosView.vue'
 import MiPerfilView from '../views/MiPerfilView.vue'
 import PerfilPilotoView from '../views/PerfilPilotoView.vue'
 import ComprasView from '../views/ComprasView.vue'
+import CompraDetalleView from '../views/CompraDetalleView.vue'
 import ProveedoresView from '../views/ProveedoresView.vue'
 import StockView from '../views/stock/StockView.vue'
 import MapaEquiposView from '../views/MapaEquiposView.vue'
@@ -66,6 +67,7 @@ const routes = [
       { path: 'pilotos/:id',             name: 'piloto-perfil-detalle',       component: PilotoPerfilDetalleView    },
       { path: 'proveedores',             name: 'proveedores',                 component: ProveedoresView            },
       { path: 'compras',                 name: 'compras',                     component: ComprasView                },
+      { path: 'compras/:id',             name: 'compra-detalle',              component: CompraDetalleView          },
       { path: 'stock',                   name: 'stock',                       component: StockView                  },
       { path: 'mapa',                    name: 'mapa-equipos',                component: MapaEquiposView            },
       { path: 'stock/drones',            name: 'stock-drones',                component: StockDronesView            },

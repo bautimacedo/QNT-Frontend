@@ -33,27 +33,34 @@ export async function eliminarCompra(id) {
   return null
 }
 
-export async function subirImagenCompra(id, file) {
-  const formData = new FormData()
-  formData.append('file', file)
-  const res = await request(`/compras/${id}/imagen`, {
-    method: 'PUT',
-    body: formData,
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || 'Error al subir imagen')
-  }
-  return null
+// ── Archivos adjuntos ────────────────────────────────────────────────────────
+
+export async function getArchivosCompra(compraId) {
+  const res = await request(`/compras/${compraId}/archivos`, { method: 'GET' })
+  return json(res)
 }
 
-export async function obtenerImagenCompra(id) {
-  const res = await request(`/compras/${id}/imagen`, { method: 'GET', responseType: 'blob' })
-  if (!res.ok) {
-    if (res.status === 404) return null
-    throw new Error('Error al obtener imagen')
-  }
+export async function subirArchivoCompra(compraId, file, tipo) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('tipo', tipo)
+  const res = await request(`/compras/${compraId}/archivos`, { method: 'POST', body: formData })
+  return json(res)
+}
+
+export async function descargarArchivoCompra(compraId, archivoId) {
+  const res = await request(`/compras/${compraId}/archivos/${archivoId}`, {
+    method: 'GET',
+    responseType: 'blob',
+  })
+  if (!res.ok) throw new Error('Error al descargar archivo')
   return res.blob()
+}
+
+export async function eliminarArchivoCompra(compraId, archivoId) {
+  const res = await request(`/compras/${compraId}/archivos/${archivoId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Error al eliminar archivo')
+  return null
 }
 
 export async function getTiposEquipo() {

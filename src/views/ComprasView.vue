@@ -2,8 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  getCompras, crearCompra, actualizarCompra, eliminarCompra,
-  subirImagenCompra, obtenerImagenCompra, getTiposEquipo,
+  getCompras, crearCompra, actualizarCompra, eliminarCompra, getTiposEquipo,
 } from '../api'
 import { Search, Plus, RefreshCw } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
@@ -685,7 +684,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span v-if="c.tieneIva" class="text-muted" title="Incluye IVA"> (incl. IVA)</span>
               </td>
               <td class="actions-cell">
-                <button class="btn-action" @click="openDetail(c)">Ver</button>
+                <button class="btn-action" @click="router.push(`/home/compras/${c.id}`)">Ver</button>
                 <button class="btn-action" @click="openEdit(c)">Editar</button>
                 <button v-if="isAdmin" class="btn-action btn-action--danger" @click="openDelete(c)">Eliminar</button>
               </td>
