@@ -83,6 +83,16 @@ function trackUrl(url) {
   return url
 }
 
+async function detectPdf(blob) {
+  if (blob.type === 'application/pdf') return true
+  if (blob.type && blob.type !== 'application/octet-stream') return false
+  try {
+    const buf = await blob.slice(0, 4).arrayBuffer()
+    const b = new Uint8Array(buf)
+    return b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46
+  } catch { return false }
+}
+
 async function loadPerfil() {
   loading.value = true
   loadError.value = ''
@@ -118,8 +128,9 @@ async function loadImagenesLicencia(lic) {
     if (lic.tieneImagenCma) {
       const blob = await obtenerImagenCmaLicencia(lic.id)
       if (blob) {
+        const isPdf = await detectPdf(blob)
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf: blob.type === 'application/pdf' } }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf } }
       }
     }
   } catch (_) {}
@@ -130,8 +141,9 @@ async function loadImagenesLicencia(lic) {
     if (lic.tieneImagenCertificadoIdoneidad) {
       const blob = await obtenerImagenCertIdoneidad(lic.id)
       if (blob) {
+        const isPdf = await detectPdf(blob)
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf: blob.type === 'application/pdf' } }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf } }
       }
     }
   } catch (_) {}
@@ -210,16 +222,18 @@ async function onFileSelected(event, lic, tipo) {
       showToast('Imagen CMA actualizada.')
       const blob = await obtenerImagenCmaLicencia(lic.id)
       if (blob) {
+        const isPdf = await detectPdf(blob)
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf: blob.type === 'application/pdf' } }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: { url, isPdf } }
       }
     } else {
       await subirImagenCertIdoneidad(lic.id, file)
       showToast('Certificado de Idoneidad actualizado.')
       const blob = await obtenerImagenCertIdoneidad(lic.id)
       if (blob) {
+        const isPdf = await detectPdf(blob)
         const url = trackUrl(URL.createObjectURL(blob))
-        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf: blob.type === 'application/pdf' } }
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: { url, isPdf } }
       }
     }
     // Recargar metadata de la licencia

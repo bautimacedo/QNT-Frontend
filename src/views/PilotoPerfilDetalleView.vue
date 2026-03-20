@@ -114,8 +114,8 @@ async function openLicImageModal(lic) {
   try {
     const blobCma = await obtenerImagenCmaLicenciaPiloto(pilotoId, lic.id)
     if (blobCma) {
+      licImageModal.value.cmaIsPdf = await detectPdf(blobCma)
       licImageModal.value.cmaUrl = URL.createObjectURL(blobCma)
-      licImageModal.value.cmaIsPdf = blobCma.type === 'application/pdf'
     }
   } catch (_) {
     licImageModal.value.apiUnavailable = true
@@ -125,14 +125,24 @@ async function openLicImageModal(lic) {
   try {
     const blobCert = await obtenerImagenCertIdoneidadLicenciaPiloto(pilotoId, lic.id)
     if (blobCert) {
+      licImageModal.value.certIsPdf = await detectPdf(blobCert)
       licImageModal.value.certUrl = URL.createObjectURL(blobCert)
-      licImageModal.value.certIsPdf = blobCert.type === 'application/pdf'
     }
   } catch (_) {
     licImageModal.value.apiUnavailable = true
   } finally {
     licImageModal.value.loadingCert = false
   }
+}
+
+async function detectPdf(blob) {
+  if (blob.type === 'application/pdf') return true
+  if (blob.type && blob.type !== 'application/octet-stream') return false
+  try {
+    const buf = await blob.slice(0, 4).arrayBuffer()
+    const b = new Uint8Array(buf)
+    return b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46
+  } catch { return false }
 }
 
 function openInTab(url) {
