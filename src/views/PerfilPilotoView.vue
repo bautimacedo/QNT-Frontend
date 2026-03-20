@@ -6,6 +6,7 @@ import {
   subirImagenCmaLicencia, obtenerImagenCmaLicencia,
   subirImagenCertIdoneidad, obtenerImagenCertIdoneidad,
 } from '../api'
+import { Upload, Eye, Trash2, Plus, Plane, Clock, FileText, AlertCircle, CheckCircle, XCircle } from 'lucide-vue-next'
 
 const perfil = ref(null)
 const loading = ref(true)
@@ -15,33 +16,19 @@ const licencias = ref([])
 const licenciasLoading = ref(false)
 const licenciasError = ref('')
 
-const licModal = ref({
-  open: false,
-  mode: 'crear',
-  id: null,
-  form: {
-    fechaVencimientoCma: '',
-    fechaEmision: '',
-    activo: true,
-  },
-  saving: false,
-  error: '',
-})
+// Mapa de urls de imágenes cargadas: { [licId]: { cma: url|null, cert: url|null } }
+const imageUrls = ref({})
+const loadingImages = ref({})
 
+const licModal = ref({
+  open: false, mode: 'crear', id: null,
+  form: { fechaVencimientoCma: '', fechaEmision: '', activo: true },
+  saving: false, error: '',
+})
 const licConfirm = ref({ open: false, licencia: null, loading: false })
 
-const licImageModal = ref({
-  open: false,
-  licencia: null,
-  cmaUrl: null,
-  certUrl: null,
-  loadingCma: false,
-  loadingCert: false,
-  uploadingCma: false,
-  uploadingCert: false,
-})
-const licCmaFileInput = ref(null)
-const licCertFileInput = ref(null)
+// File inputs refs keyed by licencia id + tipo
+const fileInputs = ref({})
 
 const toast = ref('')
 let toastTimer = null
@@ -86,9 +73,9 @@ function cmaVencimientoBadge(dateStr) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const diff = (venc - today) / (1000 * 60 * 60 * 24)
-  if (diff < 0) return { class: 'badge--red', text: 'Vencido' }
-  if (diff < 90) return { class: 'badge--yellow', text: 'Próximo a vencer' }
-  return { class: 'badge--green', text: 'Vigente' }
+  if (diff < 0) return { class: 'badge--red', icon: 'x', text: 'Vencido' }
+  if (diff < 90) return { class: 'badge--yellow', icon: 'warn', text: 'Próximo a vencer' }
+  return { class: 'badge--green', icon: 'ok', text: 'Vigente' }
 }
 
 function trackUrl(url) {
@@ -96,7 +83,6 @@ function trackUrl(url) {
   return url
 }
 
-// --- Load ---
 async function loadPerfil() {
   loading.value = true
   loadError.value = ''
@@ -109,17 +95,47 @@ async function loadPerfil() {
   }
 }
 
-// --- Licencias ---
 async function loadLicencias() {
   licenciasLoading.value = true
   licenciasError.value = ''
   try {
     licencias.value = await getMisLicencias()
+    // Cargar imágenes de cada licencia en paralelo
+    licencias.value.forEach(lic => loadImagenesLicencia(lic))
   } catch (e) {
     licenciasError.value = e.message || 'Error al cargar licencias.'
   } finally {
     licenciasLoading.value = false
   }
+}
+
+async function loadImagenesLicencia(lic) {
+  loadingImages.value[lic.id] = { cma: true, cert: true }
+  imageUrls.value[lic.id] = imageUrls.value[lic.id] || { cma: null, cert: null }
+
+  // CMA
+  try {
+    if (lic.tieneImagenCma) {
+      const blob = await obtenerImagenCmaLicencia(lic.id)
+      if (blob) {
+        const url = trackUrl(URL.createObjectURL(blob))
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: url }
+      }
+    }
+  } catch (_) {}
+  finally { loadingImages.value[lic.id] = { ...loadingImages.value[lic.id], cma: false } }
+
+  // Cert
+  try {
+    if (lic.tieneImagenCertificadoIdoneidad) {
+      const blob = await obtenerImagenCertIdoneidad(lic.id)
+      if (blob) {
+        const url = trackUrl(URL.createObjectURL(blob))
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: url }
+      }
+    }
+  } catch (_) {}
+  finally { loadingImages.value[lic.id] = { ...loadingImages.value[lic.id], cert: false } }
 }
 
 function openLicModal(mode, lic = null) {
@@ -176,74 +192,48 @@ async function doDeleteLicencia() {
   }
 }
 
-// --- Imágenes de licencia (CMA + Cert. Idoneidad) ---
-async function openLicImageModal(lic) {
-  licImageModal.value = {
-    open: true, licencia: lic,
-    cmaUrl: null, certUrl: null,
-    loadingCma: true, loadingCert: true,
-    uploadingCma: false, uploadingCert: false,
-  }
-  try {
-    const blob = await obtenerImagenCmaLicencia(lic.id)
-    if (blob) licImageModal.value.cmaUrl = trackUrl(URL.createObjectURL(blob))
-  } catch (_) {}
-  finally { licImageModal.value.loadingCma = false }
-
-  try {
-    const blob = await obtenerImagenCertIdoneidad(lic.id)
-    if (blob) licImageModal.value.certUrl = trackUrl(URL.createObjectURL(blob))
-  } catch (_) {}
-  finally { licImageModal.value.loadingCert = false }
-}
-
-function closeLicImageModal() {
-  if (licImageModal.value.cmaUrl) {
-    URL.revokeObjectURL(licImageModal.value.cmaUrl)
-  }
-  if (licImageModal.value.certUrl) {
-    URL.revokeObjectURL(licImageModal.value.certUrl)
-  }
-  licImageModal.value = {
-    open: false, licencia: null,
-    cmaUrl: null, certUrl: null,
-    loadingCma: false, loadingCert: false,
-    uploadingCma: false, uploadingCert: false,
+function triggerFileInput(licId, tipo) {
+  const key = `${licId}-${tipo}`
+  if (fileInputs.value[key]) {
+    fileInputs.value[key].click()
   }
 }
 
-async function onCmaImageSelected(event) {
+async function onFileSelected(event, lic, tipo) {
   const file = event.target.files?.[0]
   if (!file) return
   if (file.size > 10 * 1024 * 1024) { showToast('Máximo 10 MB.'); return }
-  licImageModal.value.uploadingCma = true
+
   try {
-    await subirImagenCmaLicencia(licImageModal.value.licencia.id, file)
-    showToast('Imagen CMA cargada.')
-    const blob = await obtenerImagenCmaLicencia(licImageModal.value.licencia.id)
-    if (blob) licImageModal.value.cmaUrl = trackUrl(URL.createObjectURL(blob))
-  } catch (e) { showToast(e.message || 'Error al subir imagen CMA.') }
-  finally {
-    licImageModal.value.uploadingCma = false
-    if (licCmaFileInput.value) licCmaFileInput.value.value = ''
+    if (tipo === 'cma') {
+      await subirImagenCmaLicencia(lic.id, file)
+      showToast('Imagen CMA actualizada.')
+      const blob = await obtenerImagenCmaLicencia(lic.id)
+      if (blob) {
+        const url = trackUrl(URL.createObjectURL(blob))
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cma: url }
+      }
+    } else {
+      await subirImagenCertIdoneidad(lic.id, file)
+      showToast('Certificado de Idoneidad actualizado.')
+      const blob = await obtenerImagenCertIdoneidad(lic.id)
+      if (blob) {
+        const url = trackUrl(URL.createObjectURL(blob))
+        imageUrls.value[lic.id] = { ...imageUrls.value[lic.id], cert: url }
+      }
+    }
+    // Recargar metadata de la licencia
+    await loadLicencias()
+  } catch (e) {
+    showToast(e.message || 'Error al subir imagen.')
+  } finally {
+    event.target.value = ''
   }
 }
 
-async function onCertImageSelected(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  if (file.size > 10 * 1024 * 1024) { showToast('Máximo 10 MB.'); return }
-  licImageModal.value.uploadingCert = true
-  try {
-    await subirImagenCertIdoneidad(licImageModal.value.licencia.id, file)
-    showToast('Certificado de Idoneidad cargado.')
-    const blob = await obtenerImagenCertIdoneidad(licImageModal.value.licencia.id)
-    if (blob) licImageModal.value.certUrl = trackUrl(URL.createObjectURL(blob))
-  } catch (e) { showToast(e.message || 'Error al subir certificado.') }
-  finally {
-    licImageModal.value.uploadingCert = false
-    if (licCertFileInput.value) licCertFileInput.value.value = ''
-  }
+function openImage(url) {
+  if (!url) return
+  window.open(url, '_blank')
 }
 
 watch(esPilotoOAdmin, (newVal) => {
@@ -264,9 +254,10 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
 <template>
   <div class="piloto-page">
-    <header class="page-header">
+    <div class="page-header">
       <h1 class="page-title">Perfil Piloto</h1>
-    </header>
+      <p class="page-subtitle">Gestioná tus licencias ANAC y documentación</p>
+    </div>
 
     <Transition name="toast">
       <div v-if="toast" class="toast">{{ toast }}</div>
@@ -286,44 +277,54 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
     </div>
 
     <template v-else>
-      <!-- Info de vuelo -->
-      <section class="card">
-        <h2 class="card__title">Información de vuelo</h2>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">Horas de vuelo</span>
-            <span class="info-value info-value--big">{{ perfil.horasVuelo != null ? perfil.horasVuelo : 'Sin registro' }}</span>
+      <!-- Stats de vuelo -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card__icon">
+            <Plane class="icon" />
           </div>
-          <div class="info-item">
-            <span class="info-label">Cantidad de vuelos</span>
-            <span class="info-value info-value--big">{{ perfil.cantidadVuelos != null ? perfil.cantidadVuelos : 'Sin registro' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">CMA Vencimiento</span>
-            <span class="info-value">
-              <template v-if="licenciaCmaVigente">
-                {{ formatDate(licenciaCmaVigente.fechaVencimientoCma) }}
-                <span v-if="cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma)"
-                      class="badge" :class="cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma).class"
-                      style="margin-left:0.4rem">
-                  {{ cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma).text }}
-                </span>
-              </template>
-              <template v-else>Sin licencia con CMA</template>
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Password de misión</span>
-            <span class="info-value">{{ perfil.passwordMission ? 'Configurado' : 'No configurado' }}</span>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ perfil.horasVuelo ?? '—' }}</span>
+            <span class="stat-card__lbl">Horas de vuelo</span>
           </div>
         </div>
-      </section>
+        <div class="stat-card">
+          <div class="stat-card__icon">
+            <Clock class="icon" />
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ perfil.cantidadVuelos ?? '—' }}</span>
+            <span class="stat-card__lbl">Vuelos realizados</span>
+          </div>
+        </div>
+        <div class="stat-card" :class="licenciaCmaVigente ? 'stat-card--' + (cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma)?.class || '') : ''">
+          <div class="stat-card__icon">
+            <FileText class="icon" />
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">
+              {{ licenciaCmaVigente ? formatDate(licenciaCmaVigente.fechaVencimientoCma) : '—' }}
+            </span>
+            <span class="stat-card__lbl">Vencimiento CMA</span>
+          </div>
+          <span v-if="licenciaCmaVigente && cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma)"
+                class="badge"
+                :class="cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma).class">
+            {{ cmaVencimientoBadge(licenciaCmaVigente.fechaVencimientoCma).text }}
+          </span>
+        </div>
+      </div>
 
       <!-- Licencias ANAC -->
       <section class="card">
         <div class="card__header-row">
-          <h2 class="card__title" style="margin-bottom:0">Licencias ANAC</h2>
-          <button class="btn-primary btn-sm" @click="openLicModal('crear')">Agregar licencia</button>
+          <div>
+            <h2 class="card__title">Licencias ANAC</h2>
+            <p class="card__subtitle">Tus licencias y documentos de habilitación</p>
+          </div>
+          <button class="btn-primary btn-sm" @click="openLicModal('crear')">
+            <Plus class="btn-icon" /> Agregar licencia
+          </button>
         </div>
 
         <div v-if="licenciasLoading" class="state-msg-inline">
@@ -334,52 +335,145 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
           <button class="btn-retry btn-sm" @click="loadLicencias">Reintentar</button>
         </div>
         <div v-else-if="licencias.length === 0" class="empty-state">
-          <p>No tenés licencias cargadas.</p>
-          <button class="btn-primary btn-sm" @click="openLicModal('crear')">Agregá tu primera licencia</button>
+          <FileText class="empty-icon" />
+          <p class="empty-title">No tenés licencias cargadas</p>
+          <p class="empty-desc">Agregá tu licencia ANAC para registrar tu CMA y certificado de idoneidad.</p>
+          <button class="btn-primary btn-sm" @click="openLicModal('crear')">
+            <Plus class="btn-icon" /> Agregar primera licencia
+          </button>
         </div>
-        <div v-else class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Vto. CMA</th>
-                <th>Emisión</th>
-                <th>Estado</th>
-                <th>Imágenes</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="lic in licencias" :key="lic.id">
-                <td>
-                  {{ lic.fechaVencimientoCma ? formatDate(lic.fechaVencimientoCma) : '—' }}
-                  <span v-if="cmaVencimientoBadge(lic.fechaVencimientoCma)"
-                        class="badge" :class="cmaVencimientoBadge(lic.fechaVencimientoCma).class"
-                        style="margin-left:0.3rem">
-                    {{ cmaVencimientoBadge(lic.fechaVencimientoCma).text }}
-                  </span>
-                </td>
-                <td>{{ lic.fechaEmision ? formatDate(lic.fechaEmision) : '—' }}</td>
-                <td>
-                  <span class="badge" :class="lic.activo ? 'badge--green' : 'badge--gray'">
-                    {{ lic.activo ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </td>
-                <td>
-                  <span :class="lic.tieneImagenCma ? 'badge badge--green' : 'badge badge--gray'" style="margin-right:0.3rem">
-                    CMA {{ lic.tieneImagenCma ? '✓' : '✗' }}
-                  </span>
-                  <span :class="lic.tieneImagenCertificadoIdoneidad ? 'badge badge--green' : 'badge badge--gray'">
-                    Cert. {{ lic.tieneImagenCertificadoIdoneidad ? '✓' : '✗' }}
-                  </span>
-                </td>
-                <td class="actions-cell">
-                  <button class="btn-action" @click="openLicModal('editar', lic)">Editar</button>
-                  <button class="btn-action" @click="openLicImageModal(lic)">Ver imágenes</button>
-                  <button class="btn-action btn-action--danger" @click="openLicConfirm(lic)">Eliminar</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <!-- Licencias cards -->
+        <div v-else class="lic-list">
+          <div v-for="lic in licencias" :key="lic.id" class="lic-card">
+            <!-- Header de la licencia -->
+            <div class="lic-card__head">
+              <div class="lic-card__dates">
+                <div class="lic-date-item">
+                  <span class="lic-date-lbl">Emisión</span>
+                  <span class="lic-date-val">{{ lic.fechaEmision ? formatDate(lic.fechaEmision) : '—' }}</span>
+                </div>
+                <div class="lic-date-sep" />
+                <div class="lic-date-item">
+                  <span class="lic-date-lbl">Venc. CMA</span>
+                  <span class="lic-date-val">{{ lic.fechaVencimientoCma ? formatDate(lic.fechaVencimientoCma) : '—' }}</span>
+                </div>
+                <span v-if="cmaVencimientoBadge(lic.fechaVencimientoCma)" class="badge" :class="cmaVencimientoBadge(lic.fechaVencimientoCma).class">
+                  {{ cmaVencimientoBadge(lic.fechaVencimientoCma).text }}
+                </span>
+                <span class="badge" :class="lic.activo ? 'badge--green' : 'badge--gray'">
+                  {{ lic.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </div>
+              <div class="lic-card__actions">
+                <button class="btn-action" @click="openLicModal('editar', lic)">Editar</button>
+                <button class="btn-action btn-action--danger" @click="openLicConfirm(lic)">
+                  <Trash2 class="btn-icon-sm" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Documentos de la licencia -->
+            <div class="lic-docs">
+              <!-- Imagen CMA -->
+              <div class="doc-item">
+                <div class="doc-item__label">
+                  <CheckCircle v-if="lic.tieneImagenCma" class="doc-status-icon doc-status-icon--ok" />
+                  <XCircle v-else class="doc-status-icon doc-status-icon--missing" />
+                  Imagen CMA
+                </div>
+                <div class="doc-item__preview">
+                  <img
+                    v-if="imageUrls[lic.id]?.cma"
+                    :src="imageUrls[lic.id].cma"
+                    class="doc-thumbnail"
+                    alt="CMA"
+                    @click="openImage(imageUrls[lic.id].cma)"
+                    title="Click para ver en tamaño completo"
+                  />
+                  <div v-else-if="loadingImages[lic.id]?.cma" class="doc-thumbnail-placeholder">
+                    <span class="spinner spinner--sm" />
+                  </div>
+                  <div v-else class="doc-thumbnail-placeholder doc-thumbnail-placeholder--empty">
+                    <FileText class="placeholder-icon" />
+                  </div>
+                </div>
+                <div class="doc-item__btns">
+                  <button
+                    v-if="imageUrls[lic.id]?.cma"
+                    class="btn-doc"
+                    @click="openImage(imageUrls[lic.id].cma)"
+                    title="Ver en tamaño completo"
+                  >
+                    <Eye class="btn-icon-sm" /> Ver
+                  </button>
+                  <button
+                    class="btn-doc btn-doc--upload"
+                    @click="triggerFileInput(lic.id, 'cma')"
+                  >
+                    <Upload class="btn-icon-sm" />
+                    {{ lic.tieneImagenCma ? 'Reemplazar' : 'Subir' }}
+                  </button>
+                  <input
+                    :ref="el => { if (el) fileInputs[`${lic.id}-cma`] = el }"
+                    type="file"
+                    accept="image/*"
+                    style="display:none"
+                    @change="onFileSelected($event, lic, 'cma')"
+                  />
+                </div>
+              </div>
+
+              <!-- Certificado de Idoneidad -->
+              <div class="doc-item">
+                <div class="doc-item__label">
+                  <CheckCircle v-if="lic.tieneImagenCertificadoIdoneidad" class="doc-status-icon doc-status-icon--ok" />
+                  <XCircle v-else class="doc-status-icon doc-status-icon--missing" />
+                  Cert. Idoneidad
+                </div>
+                <div class="doc-item__preview">
+                  <img
+                    v-if="imageUrls[lic.id]?.cert"
+                    :src="imageUrls[lic.id].cert"
+                    class="doc-thumbnail"
+                    alt="Cert. Idoneidad"
+                    @click="openImage(imageUrls[lic.id].cert)"
+                    title="Click para ver en tamaño completo"
+                  />
+                  <div v-else-if="loadingImages[lic.id]?.cert" class="doc-thumbnail-placeholder">
+                    <span class="spinner spinner--sm" />
+                  </div>
+                  <div v-else class="doc-thumbnail-placeholder doc-thumbnail-placeholder--empty">
+                    <FileText class="placeholder-icon" />
+                  </div>
+                </div>
+                <div class="doc-item__btns">
+                  <button
+                    v-if="imageUrls[lic.id]?.cert"
+                    class="btn-doc"
+                    @click="openImage(imageUrls[lic.id].cert)"
+                    title="Ver en tamaño completo"
+                  >
+                    <Eye class="btn-icon-sm" /> Ver
+                  </button>
+                  <button
+                    class="btn-doc btn-doc--upload"
+                    @click="triggerFileInput(lic.id, 'cert')"
+                  >
+                    <Upload class="btn-icon-sm" />
+                    {{ lic.tieneImagenCertificadoIdoneidad ? 'Reemplazar' : 'Subir' }}
+                  </button>
+                  <input
+                    :ref="el => { if (el) fileInputs[`${lic.id}-cert`] = el }"
+                    type="file"
+                    accept="image/*"
+                    style="display:none"
+                    @change="onFileSelected($event, lic, 'cert')"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </template>
@@ -435,151 +529,149 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
         </div>
       </Transition>
     </Teleport>
-
-    <!-- Modal: Imágenes de licencia ANAC -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="licImageModal.open" class="modal-overlay" @click.self="closeLicImageModal">
-          <div class="modal-card modal-card--wide">
-            <h3 class="modal-title">Imágenes de licencia</h3>
-
-            <!-- Imagen CMA -->
-            <div class="image-section">
-              <h4 class="image-section__title">Imagen CMA</h4>
-              <div v-if="licImageModal.loadingCma" class="state-msg-inline"><span class="spinner" /></div>
-              <template v-else>
-                <div v-if="licImageModal.cmaUrl" class="image-preview image-preview--modal">
-                  <img :src="licImageModal.cmaUrl" alt="CMA" />
-                </div>
-                <div v-else class="empty-state-sm"><p>Sin imagen CMA cargada.</p></div>
-              </template>
-              <div class="image-section__actions">
-                <button class="btn-primary btn-sm" :disabled="licImageModal.uploadingCma" @click="licCmaFileInput?.click()">
-                  {{ licImageModal.uploadingCma ? 'Subiendo…' : (licImageModal.cmaUrl ? 'Cambiar CMA' : 'Subir CMA') }}
-                </button>
-              </div>
-              <input ref="licCmaFileInput" type="file" accept="image/*" style="display:none" @change="onCmaImageSelected" />
-            </div>
-
-            <!-- Imagen Certificado de Idoneidad -->
-            <div class="image-section">
-              <h4 class="image-section__title">Certificado de Idoneidad</h4>
-              <div v-if="licImageModal.loadingCert" class="state-msg-inline"><span class="spinner" /></div>
-              <template v-else>
-                <div v-if="licImageModal.certUrl" class="image-preview image-preview--modal">
-                  <img :src="licImageModal.certUrl" alt="Certificado de Idoneidad" />
-                </div>
-                <div v-else class="empty-state-sm"><p>Sin certificado de idoneidad cargado.</p></div>
-              </template>
-              <div class="image-section__actions">
-                <button class="btn-primary btn-sm" :disabled="licImageModal.uploadingCert" @click="licCertFileInput?.click()">
-                  {{ licImageModal.uploadingCert ? 'Subiendo…' : (licImageModal.certUrl ? 'Cambiar cert.' : 'Subir cert.') }}
-                </button>
-              </div>
-              <input ref="licCertFileInput" type="file" accept="image/*" style="display:none" @change="onCertImageSelected" />
-            </div>
-
-            <div class="modal-actions" style="margin-top:1rem">
-              <button class="btn-secondary" @click="closeLicImageModal">Cerrar</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
 <style scoped>
 .piloto-page { display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem; flex: 1; min-height: 0; overflow-y: auto; }
+
 .page-header { margin: 0; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+.page-title { margin: 0 0 0.2rem; font-size: 1.5rem; font-weight: 700; color: var(--qnt-text, #1e293b); }
+.page-subtitle { margin: 0; font-size: 0.88rem; color: var(--qnt-text-muted, #64748b); }
 
-.card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 1.5rem; }
-.card__title { margin: 0 0 1.25rem; font-size: 1.15rem; font-weight: 600; color: #1e293b; }
-.card__header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; gap: 1rem; flex-wrap: wrap; }
-
-/* Info grid */
-.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; }
-.info-item { display: flex; flex-direction: column; gap: 0.25rem; }
-.info-label { font-size: 0.85rem; color: #64748b; font-weight: 500; }
-.info-value { font-size: 1.1rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; flex-wrap: wrap; }
-.info-value--big { font-size: 1.5rem; }
-
-.field label { display: block; font-size: 0.9rem; font-weight: 500; color: #475569; margin-bottom: 0.4rem; }
-
-.field--checkbox label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.stat-card {
+  background: #fff; border: 1px solid #e0e5e5; border-radius: 12px;
+  padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem;
+  position: relative;
 }
-.field--checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #113e4c;
+.stat-card--badge--green { border-color: #86efac; }
+.stat-card--badge--yellow { border-color: #fde68a; }
+.stat-card--badge--red { border-color: #fca5a5; }
+.stat-card__icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(17, 62, 76, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.stat-card__icon .icon { width: 20px; height: 20px; color: #113e4c; }
+.stat-card__body { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
+.stat-card__val { font-size: 1.25rem; font-weight: 700; color: #1e293b; white-space: nowrap; }
+.stat-card__lbl { font-size: 0.78rem; color: #64748b; }
+.stat-card .badge { position: absolute; top: 0.6rem; right: 0.75rem; }
+
+/* Card */
+.card { background: #fff; border-radius: 12px; border: 1px solid #e0e5e5; padding: 1.5rem; }
+.card__header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; gap: 1rem; flex-wrap: wrap; }
+.card__title { margin: 0 0 0.15rem; font-size: 1.1rem; font-weight: 600; color: #1e293b; }
+.card__subtitle { margin: 0; font-size: 0.82rem; color: #64748b; }
+
+/* Licencias list */
+.lic-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.lic-card {
+  border: 1px solid #e0e5e5; border-radius: 10px; overflow: hidden;
 }
 
-.input-field {
-  width: 100%; box-sizing: border-box; padding: 0.75rem 1rem;
-  border: 1px solid #e0e5e5; border-radius: 8px; background: #fff; color: #1e293b; font-size: 1rem;
+.lic-card__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.9rem 1rem; background: #f8fafa; border-bottom: 1px solid #e0e5e5;
+  gap: 0.75rem; flex-wrap: wrap;
 }
-.input-field:focus { outline: none; border-color: #113e4c; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
-.input-field:disabled { opacity: 0.6; cursor: not-allowed; }
+.lic-card__dates { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.lic-date-item { display: flex; flex-direction: column; gap: 0.1rem; }
+.lic-date-lbl { font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.lic-date-val { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
+.lic-date-sep { width: 1px; height: 30px; background: #e0e5e5; }
+.lic-card__actions { display: flex; gap: 0.4rem; }
 
-.field-error { color: #dc2626; font-size: 0.85rem; margin: 0.4rem 0 0; }
+/* Documentos grid */
+.lic-docs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.doc-item {
+  padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+  border-right: 1px solid #e0e5e5;
+}
+.doc-item:last-child { border-right: none; }
 
-.image-preview img { max-width: 400px; width: 100%; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: block; }
-.image-preview--modal img { max-width: 100%; }
+.doc-item__label {
+  font-size: 0.85rem; font-weight: 600; color: #334155;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.doc-status-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.doc-status-icon--ok { color: #16a34a; }
+.doc-status-icon--missing { color: #94a3b8; }
 
-/* Image sections (modal de imágenes) */
-.image-section { border-top: 1px solid #e0e5e5; padding-top: 1.25rem; margin-top: 1.25rem; }
-.image-section:first-of-type { border-top: none; margin-top: 0.5rem; }
-.image-section__title { margin: 0 0 0.75rem; font-size: 0.95rem; font-weight: 600; color: #334155; }
-.image-section__actions { margin-top: 0.75rem; }
-.empty-state-sm { text-align: center; padding: 1rem; color: #94a3b8; font-size: 0.85rem; }
-.empty-state-sm p { margin: 0; }
+.doc-item__preview { height: 100px; display: flex; align-items: center; justify-content: center; }
+.doc-thumbnail {
+  max-height: 100px; max-width: 100%; border-radius: 6px; object-fit: contain;
+  cursor: pointer; transition: opacity 0.15s; border: 1px solid #e0e5e5;
+}
+.doc-thumbnail:hover { opacity: 0.85; }
+
+.doc-thumbnail-placeholder {
+  width: 100%; height: 100%; border-radius: 6px; border: 1.5px dashed #e0e5e5;
+  display: flex; align-items: center; justify-content: center;
+}
+.doc-thumbnail-placeholder--empty { background: #f8fafa; }
+.placeholder-icon { width: 28px; height: 28px; color: #cbd5e1; }
+
+.doc-item__btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.btn-doc {
+  display: flex; align-items: center; gap: 0.3rem;
+  padding: 0.35rem 0.75rem; border: 1px solid #e0e5e5; border-radius: 6px;
+  background: #fff; color: #475569; font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.btn-doc:hover { background: #f1f5f9; }
+.btn-doc--upload { border-color: #bfdbfe; color: #1e40af; background: #eff6ff; }
+.btn-doc--upload:hover { background: #dbeafe; }
+.btn-icon-sm { width: 13px; height: 13px; }
 
 /* Badges */
-.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .badge--green { background: #dcfce7; color: #166534; }
 .badge--yellow { background: #fef3c7; color: #92400e; }
 .badge--red { background: #fee2e2; color: #991b1b; }
 .badge--gray { background: #f1f5f9; color: #64748b; }
 
-/* Table */
-.table-wrap { background: #fff; border-radius: 12px; overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 0.85rem 1rem; font-weight: 600; color: #475569; background: #f8fafa; border-bottom: 1px solid #e0e5e5; white-space: nowrap; }
-.data-table td { padding: 0.75rem 1rem; color: #334155; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f8fafa; }
-.actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-
-.btn-action { padding: 0.35rem 0.7rem; border: 1px solid #e0e5e5; border-radius: 6px; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
-.btn-action:hover { background: #f1f5f9; color: #334155; }
-.btn-action--danger { color: #991b1b; border-color: #fecaca; }
-.btn-action--danger:hover { background: #fee2e2; }
-
-.empty-state { text-align: center; padding: 2rem 1rem; color: #64748b; }
-.empty-state p { margin: 0 0 0.75rem; }
+/* Empty state */
+.empty-state { text-align: center; padding: 3rem 1rem; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.empty-icon { width: 40px; height: 40px; color: #cbd5e1; margin-bottom: 0.25rem; }
+.empty-title { margin: 0; font-size: 1rem; font-weight: 600; color: #475569; }
+.empty-desc { margin: 0; font-size: 0.85rem; max-width: 360px; }
 
 /* Buttons */
-.btn-primary { padding: 0.75rem 1.5rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-primary { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.65rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .btn-primary:hover:not(:disabled) { background: #2b555b; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary--danger { background: #dc2626; }
 .btn-primary--danger:hover:not(:disabled) { background: #b91c1c; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+.btn-sm { padding: 0.45rem 0.9rem; font-size: 0.82rem; }
+.btn-icon { width: 14px; height: 14px; }
 
 .btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
 .btn-secondary:hover:not(:disabled) { background: #e0e5e5; }
 .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.btn-action { padding: 0.35rem 0.7rem; border: 1px solid #e0e5e5; border-radius: 6px; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s; display: inline-flex; align-items: center; gap: 0.3rem; }
+.btn-action:hover { background: #f1f5f9; }
+.btn-action--danger { color: #991b1b; border-color: #fecaca; padding: 0.35rem 0.5rem; }
+.btn-action--danger:hover { background: #fee2e2; }
+
 .btn-retry { padding: 0.5rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
 .btn-retry:hover { background: #2b555b; }
+
+/* Fields */
+.field { display: flex; flex-direction: column; gap: 0.35rem; }
+.field label { font-size: 0.88rem; font-weight: 500; color: #475569; }
+.field--checkbox label { flex-direction: row; align-items: center; gap: 0.5rem; cursor: pointer; }
+.field--checkbox input[type="checkbox"] { width: 16px; height: 16px; accent-color: #113e4c; }
+.field-error { color: #dc2626; font-size: 0.82rem; margin: 0.2rem 0 0; }
+.input-field { width: 100%; box-sizing: border-box; padding: 0.65rem 0.9rem; border: 1px solid #e0e5e5; border-radius: 8px; background: #fff; color: #1e293b; font-size: 0.95rem; }
+.input-field:focus { outline: none; border-color: #113e4c; box-shadow: 0 0 0 2px rgba(17,62,76,0.1); }
+.input-field:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* States */
 .state-msg { text-align: center; padding: 3rem 1rem; color: #64748b; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
@@ -587,32 +679,29 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .state-msg-inline { padding: 1.5rem; text-align: center; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 
 .spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid #e0e5e5; border-top-color: #113e4c; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner--sm { width: 16px; height: 16px; border-width: 2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 9000; padding: 1rem; }
 .modal-card { background: #fff; border-radius: 12px; padding: 2rem; width: 100%; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
-.modal-card--wide { max-width: 560px; }
-.modal-title { margin: 0 0 0.5rem; font-size: 1.2rem; font-weight: 700; color: #1e293b; }
-.modal-subtitle { margin: 0 0 1.25rem; font-size: 0.9rem; color: #64748b; }
+.modal-title { margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 700; color: #1e293b; }
+.modal-subtitle { margin: 0 0 1.25rem; font-size: 0.88rem; color: #64748b; }
 .modal-form { display: flex; flex-direction: column; gap: 1rem; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
-
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
-.modal-enter-active .modal-card, .modal-leave-active .modal-card { transition: transform 0.2s; }
-.modal-enter-from { opacity: 0; }
-.modal-enter-from .modal-card { transform: scale(0.95); }
-.modal-leave-to { opacity: 0; }
-.modal-leave-to .modal-card { transform: scale(0.95); }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
 
 /* Toast */
 .toast { position: fixed; top: 1.25rem; right: 1.25rem; background: #166534; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 9999; }
 .toast-enter-active, .toast-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.toast-enter-from { opacity: 0; transform: translateY(-12px); }
-.toast-leave-to { opacity: 0; transform: translateY(-12px); }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(-12px); }
 
 @media (max-width: 768px) {
   .piloto-page { padding: 1rem; }
-  .info-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr; }
+  .lic-docs { grid-template-columns: 1fr; }
+  .doc-item { border-right: none; border-bottom: 1px solid #e0e5e5; }
+  .doc-item:last-child { border-bottom: none; }
 }
 </style>

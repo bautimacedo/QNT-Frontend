@@ -1,8 +1,17 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil, subirFotoPerfil, obtenerFotoPerfil } from '../api'
+import { useRouter } from 'vue-router'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle, Camera } from 'lucide-vue-next'
+
+const router = useRouter()
+const dashboardUser = inject('dashboardUser', ref(null))
+const esPiloto = computed(() => {
+  const u = dashboardUser.value
+  if (!u) return false
+  return (u.authorities || []).some(a => a === 'ROLE_PILOTO')
+})
 
 const perfil = ref(null)
 const loading = ref(true)
@@ -198,6 +207,9 @@ onMounted(loadPerfil)
         </button>
         <button class="tab-btn" :class="{ active: activeTab === 'pw' }" @click="activeTab = 'pw'">
           <Lock class="tab-icon" /> Cambiar Contraseña
+        </button>
+        <button v-if="esPiloto" class="tab-btn tab-btn--pilot" @click="router.push('/home/perfil-piloto')">
+          <Plane class="tab-icon" /> Licencias &amp; Documentos
         </button>
       </div>
 
@@ -427,6 +439,8 @@ onMounted(loadPerfil)
 }
 .tab-btn:hover { color: var(--qnt-text); }
 .tab-btn.active { color: #1e88e5; border-bottom-color: #1e88e5; }
+.tab-btn--pilot { color: #113e4c; font-weight: 600; }
+.tab-btn--pilot:hover { color: #113e4c; background: rgba(17,62,76,0.05); border-radius: 4px 4px 0 0; }
 .tab-icon { width: 14px; height: 14px; }
 
 /* Field Cards Grid */

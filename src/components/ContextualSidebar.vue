@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   LayoutDashboard,
@@ -20,6 +20,7 @@ import {
   FileCheck,
   ChevronLeft,
   ChevronRight,
+  Plane,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -30,29 +31,39 @@ const props = defineProps({
 const emit = defineEmits(['update:collapsed', 'navigate'])
 
 const route = useRoute()
+const dashboardUser = inject('dashboardUser', ref(null))
 
-const sidebarSections = {
+const isPiloto = computed(() => {
+  const u = dashboardUser.value
+  if (!u) return false
+  const auths = u.authorities || []
+  // Es SOLO piloto si tiene ROLE_PILOTO y NO tiene ROLE_ADMIN
+  return auths.includes('ROLE_PILOTO') && !auths.includes('ROLE_ADMIN')
+})
+
+const allSections = {
   dashboard: [
     { id: 'home',   label: 'Resumen',           icon: LayoutDashboard, to: '/home'        },
-    { id: 'tareas', label: 'Tablero de Tareas',  icon: ClipboardList,   to: '/home/tareas' },
+    { id: 'tareas', label: 'Tablero de Tareas',  icon: ClipboardList,   to: '/home/tareas', adminOnly: true },
   ],
   operaciones: [
     { id: 'misiones',      label: 'Misiones',            icon: Target,        to: '/home/misiones'      },
-    { id: 'reportes',      label: 'Reportes',             icon: FileBarChart2, to: '/home/reportes'      },
-    { id: 'cobertura',     label: 'Cobertura Operativa',  icon: Shield,        to: '/home/cobertura'     },
-    { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias'   },
-    { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock'         },
-    { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento' },
+    { id: 'reportes',      label: 'Reportes',             icon: FileBarChart2, to: '/home/reportes',      adminOnly: true },
+    { id: 'cobertura',     label: 'Cobertura Operativa',  icon: Shield,        to: '/home/cobertura',     adminOnly: true },
+    { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias',   adminOnly: true },
+    { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock',         adminOnly: true },
+    { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento', adminOnly: true },
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
   ],
   administracion: [
-    { id: 'mi-perfil',    label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'    },
-    { id: 'pilotos',      label: 'Pilotos',              icon: Users,        to: '/home/pilotos'      },
-    { id: 'proveedores',  label: 'Proveedores',          icon: Building2,    to: '/home/proveedores'  },
-    { id: 'compras',      label: 'Compras',              icon: ShoppingCart, to: '/home/compras'      },
-    { id: 'usuarios',     label: 'Gestión de Usuarios',  icon: Settings,     to: '/home/usuarios'     },
-    { id: 'licencias',    label: 'Licencias',            icon: Key,          to: '/home/licencias'    },
-    { id: 'seguros',      label: 'Seguros',              icon: FileCheck,    to: '/home/seguros'      },
+    { id: 'mi-perfil',      label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'     },
+    { id: 'perfil-piloto',  label: 'Perfil Piloto',        icon: Plane,        to: '/home/perfil-piloto' },
+    { id: 'pilotos',        label: 'Pilotos',              icon: Users,        to: '/home/pilotos',        adminOnly: true },
+    { id: 'proveedores',    label: 'Proveedores',          icon: Building2,    to: '/home/proveedores',    adminOnly: true },
+    { id: 'compras',        label: 'Compras',              icon: ShoppingCart, to: '/home/compras',        adminOnly: true },
+    { id: 'usuarios',       label: 'Gestión de Usuarios',  icon: Settings,     to: '/home/usuarios',       adminOnly: true },
+    { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias',      adminOnly: true },
+    { id: 'seguros',        label: 'Seguros',              icon: FileCheck,    to: '/home/seguros',        adminOnly: true },
   ],
 }
 
@@ -62,7 +73,13 @@ const tabLabels = {
   administracion: 'Administración',
 }
 
-const items = computed(() => sidebarSections[props.activeTab] || [])
+const items = computed(() => {
+  const section = allSections[props.activeTab] || []
+  if (isPiloto.value) {
+    return section.filter(i => !i.adminOnly)
+  }
+  return section
+})
 
 function isActive(item) {
   const path = route.path

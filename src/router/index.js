@@ -1,5 +1,35 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '../api'
+import { getToken as getRawToken } from '../api/storage.js'
+
+// Decodifica el payload del JWT para obtener las authorities sin llamar al backend
+function getAuthoritiesFromToken() {
+  const token = getRawToken()
+  if (!token) return []
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.authorities || []
+  } catch {
+    return []
+  }
+}
+
+// Rutas que los pilotos (ROLE_PILOTO sin ROLE_ADMIN) NO pueden visitar
+const PILOT_FORBIDDEN_PREFIXES = [
+  '/home/tareas',
+  '/home/reportes',
+  '/home/cobertura',
+  '/home/emergencias',
+  '/home/stock',
+  '/home/mapa',
+  '/home/mantenimiento',
+  '/home/pilotos',
+  '/home/proveedores',
+  '/home/compras',
+  '/home/usuarios',
+  '/home/licencias',
+  '/home/seguros',
+]
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -111,6 +141,18 @@ router.beforeEach((to) => {
   // Si no tiene token y la ruta requiere auth → redirigir al login
   if (to.meta.requiresAuth && !hasToken) {
     return { name: 'login' }
+  }
+
+  // Guard de rol: pilotos puros no pueden acceder a rutas de administración
+  if (hasToken) {
+    const authorities = getAuthoritiesFromToken()
+    const isPilotoOnly = authorities.includes('ROLE_PILOTO') && !authorities.includes('ROLE_ADMIN')
+    if (isPilotoOnly) {
+      const forbidden = PILOT_FORBIDDEN_PREFIXES.some(prefix => to.path.startsWith(prefix))
+      if (forbidden) {
+        return { name: 'perfil-piloto' }
+      }
+    }
   }
 
   return true
