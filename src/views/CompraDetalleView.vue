@@ -44,6 +44,10 @@ const TIPO_COMPRA_LABELS = {
 const METODO_PAGO_LABELS = {
   EFECTIVO: 'Efectivo', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta', OTRO: 'Otro',
 }
+const TIPO_EQUIPO_LABELS = {
+  DRON: 'Dron', DOCK: 'Dock', ANTENA_RTK: 'Antena RTK', ANTENA_STARLINK: 'Antena Starlink',
+  CAMARA: 'Cámara', BATERIA: 'Batería', CARGADOR: 'Cargador', OTRO: 'Otro',
+}
 
 // ── Carga ─────────────────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -222,11 +226,20 @@ function fileIcon(archivo) {
           <span class="ds-label">Documentos</span>
           <span class="ds-value ds-value--accent">{{ archivos.length }} archivo{{ archivos.length !== 1 ? 's' : '' }}</span>
         </div>
-        <div v-if="compra.tipoEquipo" class="det-stat-div" />
-        <div v-if="compra.tipoEquipo" class="det-stat">
-          <span class="ds-label">Equipo</span>
-          <span class="ds-value">{{ compra.tipoEquipo }}</span>
-        </div>
+        <template v-if="compra.items?.length">
+          <div class="det-stat-div" />
+          <div class="det-stat">
+            <span class="ds-label">Ítems</span>
+            <span class="ds-value ds-value--accent">{{ compra.items.length }}</span>
+          </div>
+        </template>
+        <template v-else-if="compra.tipoEquipo">
+          <div class="det-stat-div" />
+          <div class="det-stat">
+            <span class="ds-label">Equipo</span>
+            <span class="ds-value">{{ compra.tipoEquipo }}</span>
+          </div>
+        </template>
       </div>
 
       <!-- Content grid -->
@@ -273,11 +286,31 @@ function fileIcon(archivo) {
               <span class="df-label">Site</span>
               <span class="df-val">{{ compra.site.nombre }}</span>
             </div>
-            <div v-if="compra.tipoEquipo" class="det-field">
+            <div v-if="!compra.items?.length && compra.tipoEquipo" class="det-field">
               <span class="df-label">Equipo</span>
               <span class="df-val">{{ compra.tipoEquipo }}{{ compra.descripcionEquipo ? ' — ' + compra.descripcionEquipo : '' }}</span>
             </div>
           </div>
+
+          <!-- Items section -->
+          <template v-if="compra.items?.length">
+            <div class="det-divider" />
+            <div class="det-items-title">Ítems de la compra</div>
+            <div class="det-items-list">
+              <div v-for="item in compra.items" :key="item.id" class="det-item-row">
+                <span class="di-badge" :class="`di-badge--${item.tipoCompra?.toLowerCase()}`">
+                  {{ TIPO_COMPRA_LABELS[item.tipoCompra] || item.tipoCompra }}
+                </span>
+                <span v-if="item.tipoEquipo" class="di-equipo">
+                  {{ TIPO_EQUIPO_LABELS[item.tipoEquipo] || item.tipoEquipo }}
+                </span>
+                <span class="di-desc">{{ item.descripcion }}</span>
+                <span v-if="item.importe != null" class="di-importe">
+                  {{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: compra.moneda || 'ARS' }).format(item.importe) }}
+                </span>
+              </div>
+            </div>
+          </template>
 
           <template v-if="compra.descripcion || compra.observaciones">
             <div class="det-divider" />
@@ -569,4 +602,32 @@ function fileIcon(archivo) {
 /* Transitions */
 .slide-down-enter-active, .slide-down-leave-active { transition: all .2s ease; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-6px); }
+
+/* Items section */
+.det-items-title {
+  font-size: 0.68rem; font-weight: 700; color: var(--qnt-text-muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 0.5rem;
+}
+.det-items-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.det-item-row {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface-raised); font-size: 0.82rem;
+}
+.di-badge {
+  font-size: 0.66rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 20px;
+  background: #e0e7ff; color: #3730a3; flex-shrink: 0;
+}
+.di-badge--equipo    { background: #dbeafe; color: #1e40af; }
+.di-badge--licencia_sw { background: #f0fdf4; color: #166534; }
+.di-badge--seguro    { background: #fef3c7; color: #92400e; }
+.di-badge--combustible { background: #fce7f3; color: #9d174d; }
+.di-badge--repuesto  { background: #f3e8ff; color: #6b21a8; }
+.di-equipo {
+  font-size: 0.72rem; font-weight: 600; color: var(--qnt-text-muted);
+  background: var(--qnt-surface); border: 1px solid var(--qnt-border);
+  padding: 0.1rem 0.4rem; border-radius: 5px; flex-shrink: 0;
+}
+.di-desc { flex: 1; color: var(--qnt-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.di-importe { font-weight: 700; color: #2563eb; flex-shrink: 0; }
 </style>

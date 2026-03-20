@@ -60,6 +60,10 @@ const filtroFechaHasta = ref('')
 const sortField = ref('fechaCompra')
 const sortAsc = ref(false)
 
+function newItemDefault() {
+  return { tipoCompra: '', tipoEquipo: '', descripcion: '', importe: '' }
+}
+
 const FORM_DEFAULTS = () => ({
   open: false,
   editing: null,
@@ -70,16 +74,14 @@ const FORM_DEFAULTS = () => ({
   fechaFactura: '',
   importe: '',
   moneda: 'ARS',
-  tipoCompra: '',
   metodoPago: 'EFECTIVO',
   tieneIva: false,
   ivaPorcentaje: '',
   companiaTarjeta: '',
   ultimos4Tarjeta: '',
-  tipoEquipo: '',
-  descripcionEquipo: '',
   descripcion: '',
   observaciones: '',
+  items: [newItemDefault()],
   errors: {},
   apiError: '',
   loading: false,
@@ -280,6 +282,23 @@ function openCreate() {
 }
 
 function openEdit(compra) {
+  // Reconstruir items: usar compra.items si existen, sino hacer uno legacy desde tipoCompra
+  let items
+  if (compra.items && compra.items.length > 0) {
+    items = compra.items.map(i => ({
+      tipoCompra: i.tipoCompra || '',
+      tipoEquipo: i.tipoEquipo || '',
+      descripcion: i.descripcion || '',
+      importe: i.importe != null ? String(i.importe) : '',
+    }))
+  } else {
+    items = [{
+      tipoCompra: compra.tipoCompra || '',
+      tipoEquipo: compra.tipoEquipo || '',
+      descripcion: compra.descripcionEquipo || compra.descripcion || '',
+      importe: '',
+    }]
+  }
   formModal.value = {
     open: true,
     editing: compra,
@@ -290,21 +309,29 @@ function openEdit(compra) {
     fechaFactura: compra.fechaFactura || '',
     importe: compra.importe != null ? String(compra.importe) : '',
     moneda: compra.moneda || 'ARS',
-    tipoCompra: compra.tipoCompra || '',
     metodoPago: compra.metodoPago || 'EFECTIVO',
     tieneIva: compra.tieneIva ?? false,
     ivaPorcentaje: compra.ivaPorcentaje != null ? String(compra.ivaPorcentaje) : '',
     companiaTarjeta: compra.companiaTarjeta || '',
     ultimos4Tarjeta: compra.ultimos4Tarjeta || '',
-    tipoEquipo: compra.tipoEquipo || '',
-    descripcionEquipo: compra.descripcionEquipo || '',
     descripcion: compra.descripcion || '',
     observaciones: compra.observaciones || '',
+    items,
     errors: {},
     apiError: '',
     loading: false,
   }
   if (!tiposEquipo.value.length) fetchTiposEquipo()
+}
+
+function addItem() {
+  formModal.value.items.push(newItemDefault())
+}
+
+function removeItem(idx) {
+  if (formModal.value.items.length > 1) {
+    formModal.value.items.splice(idx, 1)
+  }
 }
 
 function closeFormModal() {
@@ -335,13 +362,6 @@ function onProveedorInput() {
   formModal.value.proveedorDropdownOpen = true
 }
 
-watch(() => formModal.value.tipoCompra, (val) => {
-  if (val !== 'EQUIPO') {
-    formModal.value.tipoEquipo = ''
-    formModal.value.descripcionEquipo = ''
-  }
-})
-
 watch(() => formModal.value.metodoPago, (val) => {
   if (val !== 'TARJETA') {
     formModal.value.companiaTarjeta = ''
@@ -361,9 +381,6 @@ function validateForm() {
   if (!f.importe || parseFloat(f.importe) <= 0) {
     errors.importe = 'El importe debe ser mayor a 0.'
   }
-  if (!f.tipoCompra) {
-    errors.tipoCompra = 'Seleccioná un tipo de compra.'
-  }
   if (!f.metodoPago) {
     errors.metodoPago = 'Seleccioná un método de pago.'
   }
@@ -376,13 +393,20 @@ function validateForm() {
       errors.ultimos4Tarjeta = 'Ingresá exactamente 4 dígitos de la tarjeta.'
     }
   }
-  if (f.tipoCompra === 'EQUIPO' && !f.tipoEquipo) {
-    errors.tipoEquipo = 'Seleccioná un tipo de equipo.'
-  }
   if (f.tieneIva) {
     const pct = parseFloat(f.ivaPorcentaje)
     if (f.ivaPorcentaje === '' || f.ivaPorcentaje === null || f.ivaPorcentaje === undefined || isNaN(pct) || pct < 0 || pct > 100) {
       errors.ivaPorcentaje = 'Ingresá el porcentaje de IVA (0–100).'
+    }
+  }
+  // Validar ítems
+  if (!f.items || f.items.length === 0) {
+    errors.items = 'Agregá al menos un ítem a la compra.'
+  } else {
+    for (const item of f.items) {
+      if (!item.tipoCompra) { errors.items = 'Todos los ítems deben tener un tipo.'; break }
+      if (!item.descripcion?.trim()) { errors.items = 'Todos los ítems deben tener una descripción.'; break }
+      if (item.tipoCompra === 'EQUIPO' && !item.tipoEquipo) { errors.items = 'Los ítems de tipo Equipo deben tener el tipo de equipo.'; break }
     }
   }
   formModal.value.errors = errors
@@ -396,10 +420,15 @@ function buildBody() {
     fechaFactura: f.fechaFactura || null,
     importe: parseFloat(f.importe),
     moneda: f.moneda || 'ARS',
-    tipoCompra: f.tipoCompra,
     metodoPago: f.metodoPago || 'EFECTIVO',
     descripcion: f.descripcion?.trim() || null,
     observaciones: f.observaciones?.trim() || null,
+    items: f.items.map(item => ({
+      tipoCompra: item.tipoCompra,
+      tipoEquipo: item.tipoEquipo || null,
+      descripcion: item.descripcion.trim(),
+      importe: item.importe !== '' && item.importe != null ? parseFloat(item.importe) : null,
+    })),
   }
   if (f.metodoPago === 'TARJETA') {
     body.companiaTarjeta = f.companiaTarjeta?.trim() || null
@@ -409,10 +438,6 @@ function buildBody() {
     body.proveedorId = f.proveedorId
   } else {
     body.proveedorNombre = f.proveedorText.trim()
-  }
-  if (f.tipoCompra === 'EQUIPO') {
-    body.tipoEquipo = f.tipoEquipo
-    body.descripcionEquipo = f.descripcionEquipo?.trim() || null
   }
   body.tieneIva = !!f.tieneIva
   if (body.tieneIva) {
@@ -433,23 +458,17 @@ async function saveCompra() {
       await actualizarCompra(formModal.value.editing.id, body)
       showToast('Compra actualizada exitosamente.')
     } else {
-      const compraCreada = await crearCompra(body)
-      if (body.tipoCompra === 'EQUIPO') {
-        const rutasStock = {
-          DRON:    '/home/stock/drones',
-          BATERIA: '/home/stock/baterias',
-          HELICE:  '/home/stock/helices',
-        }
-        const destino = rutasStock[body.tipoEquipo]
-        if (destino) {
-          showToast(`Equipo agregado al stock con estado "Pendiente de llegada". Podés completar los datos desde el stock.`)
-          closeFormModal()
-          fetchCompras()
-          setTimeout(() => router.push(destino), 1500)
-          return
-        } else {
-          showToast(`Compra registrada. El equipo de tipo ${body.tipoEquipo} debe crearse manualmente en el inventario.`)
-        }
+      await crearCompra(body)
+      const tiposCreados = body.items.map(i => i.tipoCompra)
+      const tieneEquipo = tiposCreados.includes('EQUIPO')
+      const tieneLicencia = tiposCreados.includes('LICENCIA_SW')
+      const tieneSeguro = tiposCreados.includes('SEGURO')
+      const entidades = []
+      if (tieneEquipo) entidades.push('equipo/s en stock')
+      if (tieneLicencia) entidades.push('licencia/s de software')
+      if (tieneSeguro) entidades.push('seguro/s')
+      if (entidades.length > 0) {
+        showToast(`Compra registrada. Se crearon automáticamente: ${entidades.join(', ')}.`)
       } else {
         showToast('Compra creada exitosamente.')
       }
@@ -810,7 +829,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 </div>
               </Transition>
 
-              <!-- Moneda + Tipo compra -->
+              <!-- Moneda -->
               <div class="qnt-field">
                 <label>Moneda</label>
                 <select v-model="formModal.moneda" class="qnt-select" :disabled="formModal.loading">
@@ -819,32 +838,78 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <option value="EUR">EUR</option>
                 </select>
               </div>
-              <div class="qnt-field">
-                <label>Tipo de compra <span class="required">*</span></label>
-                <select v-model="formModal.tipoCompra" class="qnt-select" :disabled="formModal.loading">
-                  <option value="" disabled>Seleccionar…</option>
-                  <option v-for="(label, key) in TIPO_COMPRA_LABELS" :key="key" :value="key">{{ label }}</option>
-                </select>
-                <p v-if="formModal.errors.tipoCompra" class="qnt-field-error">{{ formModal.errors.tipoCompra }}</p>
-              </div>
+              <div class="qnt-field" />
 
-              <!-- Condicional: EQUIPO -->
-              <Transition name="slide">
-                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="qnt-field">
-                  <label>Tipo de equipo <span class="required">*</span></label>
-                  <select v-model="formModal.tipoEquipo" class="qnt-select" :disabled="formModal.loading">
-                    <option value="" disabled>Seleccionar…</option>
-                    <option v-for="te in tiposEquipo" :key="te" :value="te">{{ te }}</option>
-                  </select>
-                  <p v-if="formModal.errors.tipoEquipo" class="qnt-field-error">{{ formModal.errors.tipoEquipo }}</p>
+              <!-- Ítems de la compra (span 2) -->
+              <div class="qnt-field span-2 items-section">
+                <div class="items-section__header">
+                  <label>Ítems de la compra <span class="required">*</span></label>
+                  <button type="button" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="addItem" :disabled="formModal.loading">
+                    + Agregar ítem
+                  </button>
                 </div>
-              </Transition>
-              <Transition name="slide">
-                <div v-if="formModal.tipoCompra === 'EQUIPO'" class="qnt-field">
-                  <label>Descripción equipo</label>
-                  <input v-model="formModal.descripcionEquipo" type="text" maxlength="255" class="qnt-input" :disabled="formModal.loading" />
+
+                <div class="items-list">
+                  <div v-for="(item, idx) in formModal.items" :key="idx" class="item-row">
+                    <!-- Tipo compra -->
+                    <div class="item-field item-field--tipo">
+                      <select v-model="item.tipoCompra" class="qnt-select" :disabled="formModal.loading">
+                        <option value="" disabled>Tipo…</option>
+                        <option v-for="(label, key) in TIPO_COMPRA_LABELS" :key="key" :value="key">{{ label }}</option>
+                      </select>
+                    </div>
+
+                    <!-- Tipo equipo (solo si EQUIPO) -->
+                    <div class="item-field item-field--equipo">
+                      <select
+                        v-if="item.tipoCompra === 'EQUIPO'"
+                        v-model="item.tipoEquipo"
+                        class="qnt-select"
+                        :disabled="formModal.loading"
+                      >
+                        <option value="" disabled>Equipo…</option>
+                        <option v-for="te in tiposEquipo" :key="te" :value="te">{{ te }}</option>
+                      </select>
+                      <div v-else class="item-field--placeholder" />
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="item-field item-field--desc">
+                      <input
+                        v-model="item.descripcion"
+                        type="text"
+                        class="qnt-input"
+                        placeholder="Descripción del ítem"
+                        :disabled="formModal.loading"
+                      />
+                    </div>
+
+                    <!-- Importe parcial -->
+                    <div class="item-field item-field--importe">
+                      <input
+                        v-model="item.importe"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="qnt-input"
+                        placeholder="Importe (opcional)"
+                        :disabled="formModal.loading"
+                      />
+                    </div>
+
+                    <!-- Quitar ítem -->
+                    <button
+                      type="button"
+                      class="item-remove-btn"
+                      :disabled="formModal.items.length <= 1 || formModal.loading"
+                      @click="removeItem(idx)"
+                      title="Quitar ítem"
+                    >×</button>
+                  </div>
                 </div>
-              </Transition>
+
+                <p v-if="formModal.errors.items" class="qnt-field-error">{{ formModal.errors.items }}</p>
+              </div>
 
               <!-- Descripción (span 2) -->
               <div class="qnt-field span-2">
@@ -1124,6 +1189,39 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .checkbox-label input[type="checkbox"] { width: auto; cursor: pointer; }
 
 .qnt-textarea { resize: vertical; min-height: 80px; }
+
+/* Items section */
+.items-section { display: flex; flex-direction: column; gap: 0.6rem; }
+.items-section__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+.items-section__header label { margin: 0; }
+
+.items-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.item-row {
+  display: grid;
+  grid-template-columns: 160px 140px 1fr 130px 32px;
+  gap: 0.4rem;
+  align-items: center;
+}
+.item-field--placeholder { height: 38px; }
+.item-remove-btn {
+  width: 28px; height: 28px; border: 1px solid #fecaca; border-radius: 6px;
+  background: #fff; color: #991b1b; font-size: 1rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+  padding: 0;
+}
+.item-remove-btn:hover:not(:disabled) { background: #fee2e2; }
+.item-remove-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+@media (max-width: 700px) {
+  .item-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; }
+  .item-field--tipo { grid-column: 1; }
+  .item-field--equipo { grid-column: 2; }
+  .item-field--desc { grid-column: 1 / -1; }
+  .item-field--importe { grid-column: 1; }
+  .item-remove-btn { grid-column: 2; justify-self: end; }
+}
 
 /* Proveedor combo */
 .proveedor-combo { position: relative; }
