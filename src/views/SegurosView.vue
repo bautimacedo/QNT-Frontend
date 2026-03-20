@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Shield, Plus, Pencil, Trash2, X, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getSeguros, crearSeguro, actualizarSeguro, eliminarSeguro } from '../api/seguros.js'
+import { getSeguros, crearSeguro, actualizarSeguro, eliminarSeguro, subirImagenSeguro, getImagenSeguro } from '../api/seguros.js'
 
 const seguros  = ref([])
 const loading  = ref(false)
@@ -17,13 +17,13 @@ function showToast(msg, type = 'ok') {
 }
 
 onMounted(() => fetchSeguros())
-onUnmounted(() => clearTimeout(toastTimer))
 
 async function fetchSeguros() {
   loading.value = true
   error.value   = ''
   try {
     seguros.value = await getSeguros()
+    await loadAllImages()
   } catch {
     error.value = 'No se pudo cargar los seguros.'
   } finally {
@@ -51,15 +51,50 @@ const vigentes   = computed(() => seguros.value.filter(s => vigenciaInfo(s.vigen
 const porVencer  = computed(() => seguros.value.filter(s => vigenciaInfo(s.vigenciaHasta)?.cls === 'badge--yellow').length)
 const vencidos   = computed(() => seguros.value.filter(s => vigenciaInfo(s.vigenciaHasta)?.cls === 'badge--red').length)
 
+// ── Image management ────────────────────────────────────────────────────────
+const imageUrls = ref({})  // id -> objectURL
+
+async function loadImage(id) {
+  try {
+    const blob = await getImagenSeguro(id)
+    if (blob) imageUrls.value[id] = URL.createObjectURL(blob)
+  } catch { /* silent */ }
+}
+
+function revokeImages() {
+  Object.values(imageUrls.value).forEach(url => URL.revokeObjectURL(url))
+}
+
+onUnmounted(() => { clearTimeout(toastTimer); revokeImages() })
+
+async function loadAllImages() {
+  for (const s of seguros.value) {
+    if (s.tieneImagen && !imageUrls.value[s.id]) await loadImage(s.id)
+  }
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
 const modal = ref({ open: false, loading: false, seguro: null })
 const form  = ref(emptyForm())
+const imagenFile = ref(null)
+const imagenPreviewUrl = ref(null)
+
+watch(imagenFile, (file) => {
+  if (imagenPreviewUrl.value) URL.revokeObjectURL(imagenPreviewUrl.value)
+  imagenPreviewUrl.value = file ? URL.createObjectURL(file) : null
+})
 
 function emptyForm() {
   return { aseguradora: '', numeroPoliza: '', vigenciaDesde: '', vigenciaHasta: '', observaciones: '' }
 }
 
+function onFileChange(e) {
+  imagenFile.value = e.target.files[0] || null
+}
+
 function openCreate() {
   form.value  = emptyForm()
+  imagenFile.value = null
   modal.value = { open: true, loading: false, seguro: null }
 }
 
@@ -71,10 +106,14 @@ function openEdit(s) {
     vigenciaHasta: s.vigenciaHasta ? s.vigenciaHasta.split('T')[0] : '',
     observaciones: s.observaciones || '',
   }
+  imagenFile.value = null
   modal.value = { open: true, loading: false, seguro: s }
 }
 
-function closeModal() { modal.value.open = false }
+function closeModal() {
+  modal.value.open = false
+  imagenFile.value = null
+}
 
 async function submitModal() {
   if (!form.value.aseguradora?.trim()) return
@@ -89,11 +128,22 @@ async function submitModal() {
     }
     if (modal.value.seguro) {
       const updated = await actualizarSeguro(modal.value.seguro.id, payload)
+      if (imagenFile.value) {
+        await subirImagenSeguro(updated.id, imagenFile.value)
+        updated.tieneImagen = true
+        if (imageUrls.value[updated.id]) URL.revokeObjectURL(imageUrls.value[updated.id])
+        await loadImage(updated.id)
+      }
       const idx = seguros.value.findIndex(s => s.id === updated.id)
       if (idx !== -1) seguros.value[idx] = updated
       showToast('Seguro actualizado')
     } else {
       const created = await crearSeguro(payload)
+      if (imagenFile.value) {
+        await subirImagenSeguro(created.id, imagenFile.value)
+        created.tieneImagen = true
+        await loadImage(created.id)
+      }
       seguros.value.unshift(created)
       showToast('Seguro creado')
     }
@@ -175,7 +225,10 @@ async function doDelete() {
     <div v-else class="seg-grid">
       <div v-for="s in seguros" :key="s.id" class="seg-card">
         <div class="seg-card-header">
-          <div class="seg-icon-wrap"><Shield class="seg-icon" /></div>
+          <div class="seg-icon-wrap">
+            <img v-if="imageUrls[s.id]" :src="imageUrls[s.id]" class="seg-thumb" alt="Póliza" />
+            <Shield v-else class="seg-icon" />
+          </div>
           <div class="seg-title-wrap">
             <div class="seg-aseg">{{ s.aseguradora }}</div>
             <div class="seg-pol" v-if="s.numeroPoliza">Póliza: {{ s.numeroPoliza }}</div>
@@ -234,6 +287,17 @@ async function doDelete() {
               <div class="qnt-field">
                 <label class="qnt-label">Observaciones</label>
                 <textarea v-model="form.observaciones" rows="3" class="qnt-input qnt-textarea" placeholder="Notas adicionales sobre la póliza…" />
+              </div>
+              <div class="qnt-field">
+                <label class="qnt-label">Imagen de la póliza</label>
+                <div class="img-upload-wrap">
+                  <label class="img-upload-btn">
+                    <span>{{ imagenFile ? imagenFile.name : 'Seleccionar imagen…' }}</span>
+                    <input type="file" accept="image/*" class="img-file-input" @change="onFileChange" />
+                  </label>
+                  <img v-if="imagenPreviewUrl" :src="imagenPreviewUrl" class="img-preview" alt="Vista previa" />
+                  <img v-else-if="modal.seguro && imageUrls[modal.seguro.id]" :src="imageUrls[modal.seguro.id]" class="img-preview" alt="Imagen actual" />
+                </div>
               </div>
             </div>
             <div class="modal-footer">
@@ -351,4 +415,22 @@ async function doDelete() {
 .confirm-title { text-align: center; font-size: 1rem; font-weight: 700; color: var(--qnt-text); margin: 0 0 0.5rem; }
 .confirm-msg   { text-align: center; font-size: 0.875rem; color: var(--qnt-text-muted); margin: 0 0 1.5rem; }
 .required { color: #dc2626; }
+
+.seg-thumb {
+  width: 36px; height: 36px; border-radius: 9px; object-fit: cover;
+}
+
+.img-upload-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+.img-upload-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px dashed var(--qnt-border);
+  background: var(--qnt-surface); cursor: pointer; font-size: 0.8rem; color: var(--qnt-text-muted);
+  transition: border-color .15s;
+}
+.img-upload-btn:hover { border-color: #1e88e5; color: var(--qnt-text); }
+.img-file-input { display: none; }
+.img-preview {
+  max-width: 100%; max-height: 160px; border-radius: 8px; object-fit: contain;
+  border: 1px solid var(--qnt-border);
+}
 </style>

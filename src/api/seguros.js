@@ -33,3 +33,16 @@ export async function eliminarSeguro(id) {
   if (res.status === 204) return null
   return json(res)
 }
+
+export async function subirImagenSeguro(id, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await request(`/seguros/${id}/imagen`, { method: 'PUT', body: formData })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export async function getImagenSeguro(id) {
+  const res = await request(`/seguros/${id}/imagen`, { method: 'GET', responseType: 'blob' })
+  if (!res.ok) return null
+  return res.blob()
+}
