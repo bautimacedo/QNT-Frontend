@@ -154,7 +154,7 @@ function fileIcon(archivo) {
 </script>
 
 <template>
-  <div class="qnt-page">
+  <div class="qnt-page det-page">
     <Transition name="qnt-toast">
       <div v-if="toast.show" class="qnt-toast" :class="toast.type === 'error' ? 'qnt-toast--error' : ''">
         {{ toast.msg }}
@@ -177,57 +177,129 @@ function fileIcon(archivo) {
         <span class="bc-current">Compra #{{ compra.id }}</span>
       </nav>
 
-      <!-- Hero -->
+      <!-- Hero banner -->
       <div class="det-hero">
-        <div class="det-hero-icon">
-          <ShoppingCart class="dh-icon" />
-        </div>
-        <div class="det-hero-body">
-          <div class="det-hero-top">
-            <div>
-              <h1 class="det-titulo">{{ compra.proveedor?.nombre || '—' }}</h1>
-              <p class="det-subtitulo">{{ TIPO_COMPRA_LABELS[compra.tipoCompra] || compra.tipoCompra }} · {{ formatDate(compra.fechaCompra) }}</p>
+        <div class="det-hero-bg" />
+        <div class="det-hero-content">
+          <div class="det-hero-left">
+            <div class="det-hero-icon">
+              <ShoppingCart class="dh-icon" />
             </div>
-            <div class="det-importe">{{ formatMonto(compra) }}</div>
+            <div>
+              <p class="det-hero-eyebrow">Compra #{{ compra.id }}</p>
+              <h1 class="det-hero-title">{{ compra.proveedor?.nombre || '—' }}</h1>
+              <div class="det-hero-badges">
+                <span class="det-badge det-badge--tipo">{{ TIPO_COMPRA_LABELS[compra.tipoCompra] || compra.tipoCompra }}</span>
+                <span class="det-badge det-badge--fecha">{{ formatDate(compra.fechaCompra) }}</span>
+                <span v-if="compra.site" class="det-badge det-badge--site">{{ compra.site.nombre }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="det-hero-right">
+            <p class="det-hero-importe-label">Importe total</p>
+            <p class="det-hero-importe">{{ formatMonto(compra) }}</p>
+            <p v-if="compra.tieneIva" class="det-hero-iva">IVA {{ compra.ivaPorcentaje }}% incluido</p>
           </div>
         </div>
       </div>
 
-      <!-- Info grid -->
+      <!-- Stats strip -->
+      <div class="det-stats">
+        <div class="det-stat">
+          <span class="ds-label">Método de pago</span>
+          <span class="ds-value">
+            {{ METODO_PAGO_LABELS[compra.metodoPago] || compra.metodoPago }}
+            <template v-if="compra.metodoPago === 'TARJETA'"> · ****{{ compra.ultimos4Tarjeta }}</template>
+          </span>
+        </div>
+        <div class="det-stat-div" />
+        <div class="det-stat">
+          <span class="ds-label">Fecha factura</span>
+          <span class="ds-value">{{ formatDate(compra.fechaFactura) }}</span>
+        </div>
+        <div class="det-stat-div" />
+        <div class="det-stat">
+          <span class="ds-label">Documentos</span>
+          <span class="ds-value ds-value--accent">{{ archivos.length }} archivo{{ archivos.length !== 1 ? 's' : '' }}</span>
+        </div>
+        <div v-if="compra.tipoEquipo" class="det-stat-div" />
+        <div v-if="compra.tipoEquipo" class="det-stat">
+          <span class="ds-label">Equipo</span>
+          <span class="ds-value">{{ compra.tipoEquipo }}</span>
+        </div>
+      </div>
+
+      <!-- Content grid -->
       <div class="det-grid">
+        <!-- Datos -->
         <div class="det-card">
-          <div class="det-card-title">Datos de la compra</div>
+          <div class="det-card-title">
+            <span class="det-card-title-dot det-card-title-dot--blue" />
+            Datos de la compra
+          </div>
           <div class="det-fields">
-            <div class="det-field"><span class="df-label">Proveedor</span><span class="df-val">{{ compra.proveedor?.nombre || '—' }}</span></div>
-            <div class="det-field"><span class="df-label">Tipo</span><span class="df-val">{{ TIPO_COMPRA_LABELS[compra.tipoCompra] || compra.tipoCompra }}</span></div>
-            <div class="det-field"><span class="df-label">Fecha compra</span><span class="df-val">{{ formatDate(compra.fechaCompra) }}</span></div>
-            <div class="det-field"><span class="df-label">Fecha factura</span><span class="df-val">{{ formatDate(compra.fechaFactura) }}</span></div>
-            <div class="det-field"><span class="df-label">Importe</span><span class="df-val">{{ formatMonto(compra) }}</span></div>
-            <div class="det-field" v-if="compra.tieneIva">
-              <span class="df-label">IVA</span>
-              <span class="df-val">{{ compra.ivaPorcentaje }}% — Subtotal: {{ new Intl.NumberFormat('es-AR',{style:'currency',currency:compra.moneda||'ARS'}).format(compra.subtotal) }}</span>
+            <div class="det-field">
+              <span class="df-label">Proveedor</span>
+              <span class="df-val">{{ compra.proveedor?.nombre || '—' }}</span>
             </div>
-            <div class="det-field"><span class="df-label">Método de pago</span><span class="df-val">
-              {{ METODO_PAGO_LABELS[compra.metodoPago] || compra.metodoPago }}
-              <template v-if="compra.metodoPago === 'TARJETA'"> — {{ compra.companiaTarjeta }} ****{{ compra.ultimos4Tarjeta }}</template>
-            </span></div>
-            <div class="det-field" v-if="compra.site"><span class="df-label">Site</span><span class="df-val">{{ compra.site.nombre }}</span></div>
-            <div class="det-field" v-if="compra.tipoEquipo"><span class="df-label">Equipo</span><span class="df-val">{{ compra.tipoEquipo }} — {{ compra.descripcionEquipo }}</span></div>
+            <div class="det-field">
+              <span class="df-label">Tipo</span>
+              <span class="df-val">{{ TIPO_COMPRA_LABELS[compra.tipoCompra] || compra.tipoCompra }}</span>
+            </div>
+            <div class="det-field">
+              <span class="df-label">Fecha compra</span>
+              <span class="df-val">{{ formatDate(compra.fechaCompra) }}</span>
+            </div>
+            <div class="det-field">
+              <span class="df-label">Fecha factura</span>
+              <span class="df-val">{{ formatDate(compra.fechaFactura) }}</span>
+            </div>
+            <div class="det-field">
+              <span class="df-label">Importe</span>
+              <span class="df-val df-val--importe">{{ formatMonto(compra) }}</span>
+            </div>
+            <div v-if="compra.tieneIva" class="det-field">
+              <span class="df-label">IVA</span>
+              <span class="df-val">{{ compra.ivaPorcentaje }}% — {{ new Intl.NumberFormat('es-AR',{style:'currency',currency:compra.moneda||'ARS'}).format(compra.subtotal) }} s/IVA</span>
+            </div>
+            <div class="det-field">
+              <span class="df-label">Método de pago</span>
+              <span class="df-val">
+                {{ METODO_PAGO_LABELS[compra.metodoPago] || compra.metodoPago }}
+                <template v-if="compra.metodoPago === 'TARJETA'"> · {{ compra.companiaTarjeta }} ****{{ compra.ultimos4Tarjeta }}</template>
+              </span>
+            </div>
+            <div v-if="compra.site" class="det-field">
+              <span class="df-label">Site</span>
+              <span class="df-val">{{ compra.site.nombre }}</span>
+            </div>
+            <div v-if="compra.tipoEquipo" class="det-field">
+              <span class="df-label">Equipo</span>
+              <span class="df-val">{{ compra.tipoEquipo }}{{ compra.descripcionEquipo ? ' — ' + compra.descripcionEquipo : '' }}</span>
+            </div>
           </div>
-          <div v-if="compra.descripcion" class="det-obs">
-            <span class="df-label">Descripción</span>
-            <p class="df-text">{{ compra.descripcion }}</p>
-          </div>
-          <div v-if="compra.observaciones" class="det-obs">
-            <span class="df-label">Observaciones</span>
-            <p class="df-text">{{ compra.observaciones }}</p>
-          </div>
+
+          <template v-if="compra.descripcion || compra.observaciones">
+            <div class="det-divider" />
+            <div v-if="compra.descripcion" class="det-obs">
+              <span class="df-label">Descripción</span>
+              <p class="df-text">{{ compra.descripcion }}</p>
+            </div>
+            <div v-if="compra.observaciones" class="det-obs">
+              <span class="df-label">Observaciones</span>
+              <p class="df-text">{{ compra.observaciones }}</p>
+            </div>
+          </template>
         </div>
 
         <!-- Archivos -->
         <div class="det-card det-card--archivos">
           <div class="det-card-header">
-            <div class="det-card-title">Documentos adjuntos</div>
+            <div class="det-card-title">
+              <span class="det-card-title-dot det-card-title-dot--purple" />
+              Documentos adjuntos
+              <span v-if="archivos.length" class="arch-count">{{ archivos.length }}</span>
+            </div>
             <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="uploadPanel = !uploadPanel">
               <Upload class="w-4 h-4" /> Subir archivo
             </button>
@@ -236,11 +308,21 @@ function fileIcon(archivo) {
           <!-- Panel upload -->
           <Transition name="slide-down">
             <div v-if="uploadPanel" class="upload-panel">
+              <div class="upload-tipos">
+                <button
+                  v-for="t in TIPOS" :key="t.value"
+                  class="tipo-chip"
+                  :class="{ 'tipo-chip--active': uploadTipo === t.value }"
+                  :style="uploadTipo === t.value ? { background: t.bg, color: t.color, borderColor: t.color } : {}"
+                  @click="uploadTipo = t.value"
+                >
+                  <component :is="t.icon" class="tc-icon" />
+                  {{ t.label }}
+                </button>
+              </div>
               <div class="upload-row">
-                <select v-model="uploadTipo" class="qnt-input qnt-input--sm">
-                  <option v-for="t in TIPOS" :key="t.value" :value="t.value">{{ t.label }}</option>
-                </select>
-                <label class="file-pick-btn">
+                <label class="file-pick-btn" :class="{ 'file-pick-btn--selected': uploadFile }">
+                  <Upload class="fp-icon" />
                   <span>{{ uploadFile ? uploadFile.name : 'Seleccionar archivo…' }}</span>
                   <input type="file" accept=".pdf,image/*" @change="onPickFile" style="display:none" />
                 </label>
@@ -252,10 +334,14 @@ function fileIcon(archivo) {
             </div>
           </Transition>
 
-          <!-- Lista de archivos -->
+          <!-- Lista de archivos / empty state -->
           <div v-if="archivos.length === 0 && !uploadPanel" class="archivos-empty">
-            <FileText style="width:32px;height:32px;opacity:.2" />
-            <p>Sin documentos adjuntos</p>
+            <div class="ae-icon-wrap"><FileText class="ae-icon" /></div>
+            <p class="ae-title">Sin documentos adjuntos</p>
+            <p class="ae-sub">Subí órdenes de compra, facturas, comprobantes y más.</p>
+            <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="uploadPanel = true">
+              <Upload class="w-4 h-4" /> Subir primer archivo
+            </button>
           </div>
 
           <div v-else class="archivos-list">
@@ -265,12 +351,14 @@ function fileIcon(archivo) {
                   :style="{ color: tipoMap[a.tipoDocumento]?.color }" />
               </div>
               <div class="archivo-body">
-                <div class="archivo-tipo">{{ tipoMap[a.tipoDocumento]?.label || a.tipoDocumento }}</div>
+                <div class="archivo-tipo" :style="{ color: tipoMap[a.tipoDocumento]?.color }">
+                  {{ tipoMap[a.tipoDocumento]?.label || a.tipoDocumento }}
+                </div>
                 <div class="archivo-nombre">{{ fileIcon(a) }} {{ a.nombreArchivo }}</div>
                 <div class="archivo-fecha">{{ formatFechaSubida(a.fechaSubida) }}</div>
               </div>
               <div class="archivo-actions">
-                <button class="btn-arch" title="Ver" @click="doPreview(a)">
+                <button class="btn-arch btn-arch--eye" title="Ver" @click="doPreview(a)">
                   <Eye class="ba-icon" />
                 </button>
                 <button class="btn-arch" title="Descargar" @click="doDownload(a)">
@@ -306,7 +394,10 @@ function fileIcon(archivo) {
 </template>
 
 <style scoped>
-.breadcrumb { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+.det-page { display: flex; flex-direction: column; }
+
+/* Breadcrumb */
+.breadcrumb { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.1rem; }
 .bc-back {
   display: flex; align-items: center; gap: 0.3rem;
   font-size: 0.82rem; color: var(--qnt-text-muted); background: none; border: none;
@@ -317,81 +408,156 @@ function fileIcon(archivo) {
 .bc-sep { color: var(--qnt-text-muted); font-size: 0.8rem; }
 .bc-current { font-size: 0.82rem; color: var(--qnt-text-muted); }
 
-/* Hero */
+/* Hero banner */
 .det-hero {
-  display: flex; gap: 1rem; align-items: flex-start;
-  background: var(--qnt-surface); border: 1px solid var(--qnt-border);
-  border-radius: 14px; padding: 1.25rem; margin-bottom: 1.25rem;
+  position: relative; overflow: hidden;
+  border-radius: 16px; margin-bottom: 0.85rem;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+  padding: 2rem 2rem 1.75rem;
 }
+.det-hero-bg {
+  position: absolute; inset: 0; opacity: .07;
+  background-image: radial-gradient(circle at 80% 20%, #fff 0%, transparent 60%),
+                    radial-gradient(circle at 10% 80%, #fff 0%, transparent 50%);
+  pointer-events: none;
+}
+.det-hero-content { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+.det-hero-left { display: flex; align-items: flex-start; gap: 1.1rem; }
 .det-hero-icon {
-  width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0;
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  width: 56px; height: 56px; border-radius: 15px; flex-shrink: 0;
+  background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.2);
   display: flex; align-items: center; justify-content: center;
 }
-.dh-icon { width: 22px; height: 22px; color: #fff; }
-.det-hero-body { flex: 1; }
-.det-hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
-.det-titulo { font-size: 1.1rem; font-weight: 700; color: var(--qnt-text); margin: 0 0 0.2rem; }
-.det-subtitulo { font-size: 0.8rem; color: var(--qnt-text-muted); margin: 0; }
-.det-importe { font-size: 1.3rem; font-weight: 800; color: var(--qnt-text); white-space: nowrap; }
+.dh-icon { width: 26px; height: 26px; color: #fff; }
+.det-hero-eyebrow { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 0.25rem; }
+.det-hero-title { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0 0 0.6rem; line-height: 1.2; }
+.det-hero-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.det-badge {
+  font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 20px;
+  background: rgba(255,255,255,.15); color: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.2);
+}
+.det-hero-right { text-align: right; flex-shrink: 0; }
+.det-hero-importe-label { font-size: 0.7rem; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 0.2rem; }
+.det-hero-importe { font-size: 2rem; font-weight: 900; color: #fff; margin: 0; line-height: 1; }
+.det-hero-iva { font-size: 0.7rem; color: rgba(255,255,255,.5); margin: 0.3rem 0 0; }
 
-/* Grid */
-.det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-@media (max-width: 768px) { .det-grid { grid-template-columns: 1fr; } }
+/* Stats strip */
+.det-stats {
+  display: flex; align-items: center; gap: 0;
+  background: var(--qnt-surface); border: 1px solid var(--qnt-border);
+  border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.det-stat { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.15rem 1rem; }
+.det-stat:first-child { padding-left: 0; }
+.det-stat-div { width: 1px; height: 2rem; background: var(--qnt-border); flex-shrink: 0; }
+.ds-label { font-size: 0.68rem; font-weight: 600; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.ds-value { font-size: 0.88rem; font-weight: 600; color: var(--qnt-text); }
+.ds-value--accent { color: #2563eb; }
+
+/* Content grid */
+.det-grid {
+  display: grid; grid-template-columns: 380px 1fr; gap: 1rem;
+  flex: 1; align-items: stretch;
+}
+@media (max-width: 900px) { .det-grid { grid-template-columns: 1fr; } }
 
 .det-card {
   background: var(--qnt-surface); border: 1px solid var(--qnt-border);
-  border-radius: 12px; padding: 1.1rem;
+  border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column;
 }
-.det-card-title { font-size: 0.78rem; font-weight: 700; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 0.85rem; }
-.det-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; }
-.det-fields { display: flex; flex-direction: column; gap: 0.55rem; }
-.det-field { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.det-card-title {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.78rem; font-weight: 700; color: var(--qnt-text-muted);
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem;
+}
+.det-card-title-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.det-card-title-dot--blue { background: #3b82f6; }
+.det-card-title-dot--purple { background: #8b5cf6; }
+.arch-count {
+  margin-left: auto; background: #ede9fe; color: #6d28d9;
+  font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 20px;
+}
+.det-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+
+.det-fields { display: flex; flex-direction: column; gap: 0; }
+.det-field {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
+  padding: 0.55rem 0; border-bottom: 1px solid var(--qnt-border);
+}
+.det-field:last-child { border-bottom: none; }
 .df-label { font-size: 0.72rem; color: var(--qnt-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; flex-shrink: 0; }
-.df-val { font-size: 0.85rem; color: var(--qnt-text); font-weight: 500; text-align: right; }
-.det-obs { margin-top: 0.75rem; }
-.df-text { font-size: 0.83rem; color: var(--qnt-text); margin: 0.25rem 0 0; line-height: 1.5; }
+.df-val { font-size: 0.84rem; color: var(--qnt-text); font-weight: 500; text-align: right; }
+.df-val--importe { color: #2563eb; font-weight: 700; }
+.det-divider { height: 1px; background: var(--qnt-border); margin: 0.85rem 0; }
+.det-obs { margin-top: 0.5rem; }
+.df-text { font-size: 0.83rem; color: var(--qnt-text); margin: 0.2rem 0 0; line-height: 1.55; }
 
 /* Archivos */
-.archivos-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 0; color: var(--qnt-text-muted); font-size: 0.82rem; }
+.det-card--archivos { flex: 1; }
 
-.upload-panel { margin-bottom: 1rem; padding: 0.75rem; background: var(--qnt-surface-raised); border-radius: 8px; border: 1px solid var(--qnt-border); }
+.archivos-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.5rem; padding: 3rem 1rem; text-align: center;
+}
+.ae-icon-wrap {
+  width: 64px; height: 64px; border-radius: 20px;
+  background: var(--qnt-surface-raised); display: flex; align-items: center; justify-content: center;
+  margin-bottom: 0.25rem;
+}
+.ae-icon { width: 30px; height: 30px; color: var(--qnt-text-muted); opacity: .4; }
+.ae-title { font-size: 0.95rem; font-weight: 700; color: var(--qnt-text); margin: 0; }
+.ae-sub { font-size: 0.78rem; color: var(--qnt-text-muted); margin: 0.15rem 0 0.75rem; max-width: 240px; line-height: 1.5; }
+
+.upload-panel { margin-bottom: 1rem; padding: 0.9rem; background: var(--qnt-surface-raised); border-radius: 10px; border: 1px solid var(--qnt-border); }
+.upload-tipos { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.tipo-chip {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.65rem; border-radius: 20px;
+  border: 1px solid var(--qnt-border); background: var(--qnt-surface);
+  color: var(--qnt-text-muted); cursor: pointer; transition: all .15s;
+}
+.tipo-chip:hover { border-color: #6d28d9; color: #6d28d9; }
+.tc-icon { width: 11px; height: 11px; }
 .upload-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 .file-pick-btn {
   flex: 1; min-width: 160px;
-  display: inline-flex; align-items: center;
-  padding: 0.35rem 0.65rem; border-radius: 7px; border: 1px dashed var(--qnt-border);
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.7rem; border-radius: 8px; border: 1px dashed var(--qnt-border);
   background: var(--qnt-surface); cursor: pointer; font-size: 0.78rem; color: var(--qnt-text-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all .15s;
 }
-.file-pick-btn:hover { border-color: #3b82f6; color: var(--qnt-text); }
+.file-pick-btn:hover, .file-pick-btn--selected { border-color: #3b82f6; color: var(--qnt-text); }
+.fp-icon { width: 13px; height: 13px; flex-shrink: 0; }
 
 .archivos-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .archivo-item {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.65rem 0.75rem; border-radius: 9px; border: 1px solid var(--qnt-border);
-  background: var(--qnt-surface); transition: border-color .15s;
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.75rem 0.9rem; border-radius: 10px; border: 1px solid var(--qnt-border);
+  background: var(--qnt-surface); transition: all .15s;
 }
-.archivo-item:hover { border-color: #3b82f6; }
+.archivo-item:hover { border-color: #3b82f6; background: var(--qnt-surface-raised); }
 .archivo-icon-wrap {
-  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.archivo-icon { width: 16px; height: 16px; }
+.archivo-icon { width: 18px; height: 18px; }
 .archivo-body { flex: 1; min-width: 0; }
-.archivo-tipo { font-size: 0.68rem; font-weight: 700; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; }
-.archivo-nombre { font-size: 0.82rem; color: var(--qnt-text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.archivo-tipo { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 0.1rem; }
+.archivo-nombre { font-size: 0.83rem; color: var(--qnt-text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .archivo-fecha { font-size: 0.7rem; color: var(--qnt-text-muted); margin-top: 0.1rem; }
-.archivo-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.archivo-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
 
 .btn-arch {
-  width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--qnt-border);
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--qnt-border);
   background: var(--qnt-surface); cursor: pointer; display: flex; align-items: center; justify-content: center;
-  color: var(--qnt-text-muted); transition: background .15s;
+  color: var(--qnt-text-muted); transition: all .15s;
 }
 .btn-arch:hover { background: var(--qnt-surface-raised); color: var(--qnt-text); }
+.btn-arch--eye:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
 .btn-arch--danger:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
-.ba-icon { width: 13px; height: 13px; }
+.ba-icon { width: 14px; height: 14px; }
 
 /* Confirm modal */
 .confirm-icon { width: 48px; height: 48px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
