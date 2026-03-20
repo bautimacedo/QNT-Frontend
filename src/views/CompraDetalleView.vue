@@ -305,6 +305,7 @@ function fileIcon(archivo) {
                   {{ TIPO_EQUIPO_LABELS[item.tipoEquipo] || item.tipoEquipo }}
                 </span>
                 <span class="di-desc">{{ item.descripcion }}</span>
+                <span v-if="item.cantidad > 1" class="di-cantidad">x{{ item.cantidad }}</span>
                 <span v-if="item.importe != null" class="di-importe">
                   {{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: compra.moneda || 'ARS' }).format(item.importe) }}
                 </span>
@@ -629,5 +630,6 @@ function fileIcon(archivo) {
   padding: 0.1rem 0.4rem; border-radius: 5px; flex-shrink: 0;
 }
 .di-desc { flex: 1; color: var(--qnt-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.di-cantidad { font-size: 0.72rem; font-weight: 700; color: #6d28d9; background: #ede9fe; padding: 0.1rem 0.4rem; border-radius: 5px; flex-shrink: 0; }
 .di-importe { font-weight: 700; color: #2563eb; flex-shrink: 0; }
 </style>

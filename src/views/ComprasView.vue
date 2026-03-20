@@ -61,7 +61,7 @@ const sortField = ref('fechaCompra')
 const sortAsc = ref(false)
 
 function newItemDefault() {
-  return { tipoCompra: '', tipoEquipo: '', descripcion: '', importe: '' }
+  return { tipoCompra: '', tipoEquipo: '', descripcion: '', cantidad: 1, importe: '' }
 }
 
 const FORM_DEFAULTS = () => ({
@@ -289,6 +289,7 @@ function openEdit(compra) {
       tipoCompra: i.tipoCompra || '',
       tipoEquipo: i.tipoEquipo || '',
       descripcion: i.descripcion || '',
+      cantidad: i.cantidad ?? 1,
       importe: i.importe != null ? String(i.importe) : '',
     }))
   } else {
@@ -427,6 +428,7 @@ function buildBody() {
       tipoCompra: item.tipoCompra,
       tipoEquipo: item.tipoEquipo || null,
       descripcion: item.descripcion.trim(),
+      cantidad: item.cantidad != null && item.cantidad > 0 ? parseInt(item.cantidad) : 1,
       importe: item.importe !== '' && item.importe != null ? parseFloat(item.importe) : null,
     })),
   }
@@ -884,6 +886,19 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                       />
                     </div>
 
+                    <!-- Cantidad -->
+                    <div class="item-field item-field--cantidad">
+                      <input
+                        v-model="item.cantidad"
+                        type="number"
+                        min="1"
+                        step="1"
+                        class="qnt-input"
+                        placeholder="Cant."
+                        :disabled="formModal.loading"
+                      />
+                    </div>
+
                     <!-- Importe parcial -->
                     <div class="item-field item-field--importe">
                       <input
@@ -1199,7 +1214,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
 .item-row {
   display: grid;
-  grid-template-columns: 160px 140px 1fr 130px 32px;
+  grid-template-columns: 160px 140px 1fr 65px 120px 32px;
   gap: 0.4rem;
   align-items: center;
 }
@@ -1215,12 +1230,13 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .item-remove-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 @media (max-width: 700px) {
-  .item-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; }
+  .item-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto; }
   .item-field--tipo { grid-column: 1; }
   .item-field--equipo { grid-column: 2; }
   .item-field--desc { grid-column: 1 / -1; }
-  .item-field--importe { grid-column: 1; }
-  .item-remove-btn { grid-column: 2; justify-self: end; }
+  .item-field--cantidad { grid-column: 1; }
+  .item-field--importe { grid-column: 2; }
+  .item-remove-btn { grid-column: 1 / -1; justify-self: end; }
 }
 
 /* Proveedor combo */
