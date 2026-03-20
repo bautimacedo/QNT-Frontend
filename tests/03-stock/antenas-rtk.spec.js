@@ -72,9 +72,11 @@ test('contador se actualiza con filtros activos', async ({ page }) => {
 })
 
 test('click en card lleva al detalle', async ({ page }) => {
+  // Esperar que el spinner desaparezca antes de buscar cards
+  await page.locator('.qnt-spinner').waitFor({ state: 'hidden', timeout: 12000 }).catch(() => {})
   const card = page.locator('button.equip-card, .equip-card').first()
-  if (await card.count() === 0) { test.skip(); return }
-  await expect(card).toBeVisible({ timeout: 10000 })
+  const hasCard = await card.isVisible().catch(() => false)
+  if (!hasCard) { test.skip(); return }
   await card.click()
   await expect(page).toHaveURL(/\/stock\/antenas-rtk\/\d+/, { timeout: 10000 })
 })

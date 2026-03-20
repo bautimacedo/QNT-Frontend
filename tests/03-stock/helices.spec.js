@@ -41,8 +41,7 @@ test('filtro por Marca — sin resultados', async ({ page }) => {
 
 test('filtro por Modelo — sin resultados', async ({ page }) => {
   await page.locator('input[placeholder="Modelo"]').fill('MODELOXYZ_NOEXISTE_999')
-  await page.waitForTimeout(400)
-  await expect(page.locator('text=Sin resultados')).toBeVisible()
+  await expect(page.locator('text=Sin resultados')).toBeVisible({ timeout: 5000 })
   await page.locator('input[placeholder="Modelo"]').clear()
 })
 
