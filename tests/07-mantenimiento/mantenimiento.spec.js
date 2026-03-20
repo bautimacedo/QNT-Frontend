@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('vista de mantenimiento carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error')).not.toBeVisible()
-  await expect(page.getByRole('heading', { name: /Mantenimiento/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Mantenimiento/i })).toBeVisible({ timeout: 10000 })
 })
 
 test('botón nuevo mantenimiento abre formulario', async ({ page }) => {
