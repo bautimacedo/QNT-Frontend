@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de hélices carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=/H.lice/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /H.lice/i })).toBeVisible()
 })
 
 test('filtro por número de serie funciona', async ({ page }) => {

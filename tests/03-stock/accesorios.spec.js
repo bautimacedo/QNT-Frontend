@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de accesorios carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=/Accesorio/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Accesorio/i })).toBeVisible()
 })
 
 test('click en card lleva al detalle', async ({ page }) => {

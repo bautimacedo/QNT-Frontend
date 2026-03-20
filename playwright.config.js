@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: [['html', { open: 'never' }], ['list']],
 
   use: {
-    baseURL: process.env.BASE_URL || 'https://qnt.nqnpetrol.com.ar',
+    baseURL: process.env.BASE_URL || 'https://qntdrones.com',
     storageState: 'tests/.auth/user.json',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

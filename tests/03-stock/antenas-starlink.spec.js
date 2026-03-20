@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de antenas Starlink carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=/Starlink/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Starlink/i })).toBeVisible()
 })
 
 test('filtro por número de serie funciona', async ({ page }) => {

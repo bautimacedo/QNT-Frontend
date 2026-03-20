@@ -7,14 +7,14 @@ test.beforeEach(async ({ page }) => {
 
 test('vista de mantenimiento carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error')).not.toBeVisible()
-  await expect(page.locator('text=/Mantenimiento/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Mantenimiento/i })).toBeVisible()
 })
 
 test('botón nuevo mantenimiento abre formulario', async ({ page }) => {
   const btn = page.getByRole('button', { name: /nuevo|registrar/i }).first()
   if (await btn.count() === 0) { test.skip(); return }
   await btn.click()
-  await expect(page.locator('form, [role="dialog"]').first()).toBeVisible()
+  await expect(page.locator('form, [role="dialog"], .qnt-modal').first()).toBeVisible({ timeout: 8000 })
   await page.keyboard.press('Escape')
 })
 

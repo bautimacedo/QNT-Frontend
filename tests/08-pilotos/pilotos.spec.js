@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de pilotos carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error')).not.toBeVisible()
-  await expect(page.locator('text=/Piloto/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Piloto/i })).toBeVisible()
 })
 
 test('click en piloto lleva al detalle', async ({ page }) => {

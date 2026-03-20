@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de baterías carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=Bater')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Bater/i })).toBeVisible()
 })
 
 test('muestra contador de equipos', async ({ page }) => {

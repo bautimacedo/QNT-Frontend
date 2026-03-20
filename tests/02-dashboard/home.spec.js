@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/home')
+  await page.waitForLoadState('networkidle')
 })
 
 test('dashboard carga sin errores', async ({ page }) => {
@@ -9,8 +10,8 @@ test('dashboard carga sin errores', async ({ page }) => {
 })
 
 test('KPI cards son visibles', async ({ page }) => {
-  // Espera que haya al menos 3 cards de métricas
-  await expect(page.locator('.kpi-card, [class*="kpi"], [class*="stat"]').first()).toBeVisible({ timeout: 10000 })
+  // El dashboard renderiza KPIs en un grid de 2/4 columnas
+  await expect(page.locator('.grid.grid-cols-2, .grid-cols-4').first()).toBeVisible({ timeout: 10000 })
 })
 
 test('sidebar de navegación es visible', async ({ page }) => {
@@ -18,16 +19,25 @@ test('sidebar de navegación es visible', async ({ page }) => {
 })
 
 test('navegación a Stock desde sidebar', async ({ page }) => {
-  await page.getByRole('link', { name: /stock/i }).first().click()
-  await expect(page).toHaveURL(/\/stock/)
+  // Show Operaciones section first
+  await page.locator('.header__tab').filter({ hasText: 'Operaciones' }).click()
+  await page.waitForLoadState('networkidle')
+  await page.locator('.sidebar__item').filter({ hasText: 'Stock' }).click()
+  await expect(page).toHaveURL(/\/stock/, { timeout: 15000 })
 })
 
 test('navegación a Misiones desde sidebar', async ({ page }) => {
-  await page.getByRole('link', { name: /misiones/i }).first().click()
-  await expect(page).toHaveURL(/\/misiones/)
+  // Show Operaciones section first
+  await page.locator('.header__tab').filter({ hasText: 'Operaciones' }).click()
+  await page.waitForLoadState('networkidle')
+  await page.locator('.sidebar__item').filter({ hasText: 'Misiones' }).click()
+  await expect(page).toHaveURL(/\/misiones/, { timeout: 15000 })
 })
 
 test('navegación a Compras desde sidebar', async ({ page }) => {
-  await page.getByRole('link', { name: /compras/i }).first().click()
-  await expect(page).toHaveURL(/\/compras/)
+  // Show Administración section first
+  await page.locator('.header__tab').filter({ hasText: 'Administración' }).click()
+  await page.waitForLoadState('networkidle')
+  await page.locator('.sidebar__item').filter({ hasText: 'Compras' }).click()
+  await expect(page).toHaveURL(/\/compras/, { timeout: 15000 })
 })

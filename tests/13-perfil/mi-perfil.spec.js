@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('vista Mi Perfil carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error')).not.toBeVisible()
-  await expect(page.locator('text=/Perfil|Mi perfil/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Perfil|Mi perfil/i })).toBeVisible()
 })
 
 test('datos del usuario son visibles', async ({ page }) => {

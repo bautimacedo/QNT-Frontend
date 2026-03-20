@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de proveedores carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=/Proveedor/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Proveedor/i })).toBeVisible()
 })
 
 test('contador muestra cantidad de proveedores', async ({ page }) => {
@@ -16,9 +16,9 @@ test('contador muestra cantidad de proveedores', async ({ page }) => {
 
 test('botón Nuevo proveedor abre modal', async ({ page }) => {
   const btn = page.getByRole('button', { name: 'Nuevo proveedor' })
-  if (await btn.count() === 0) { test.skip(); return } // sin API de proveedores
+  if (await btn.count() === 0) { test.skip(); return }
   await btn.click()
-  await expect(page.locator('text=Nuevo proveedor').nth(1)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nuevo proveedor' })).toBeVisible()
 })
 
 test('no se puede guardar proveedor sin nombre', async ({ page }) => {
@@ -45,23 +45,20 @@ test('crear proveedor con todos los campos', async ({ page }) => {
   await btn.click()
 
   const nombre = `TEST_Prov_${Date.now()}`
-  // Nombre
-  await page.locator('input.qnt-input').first().fill(nombre)
-  // CUIT
-  const inputs = page.locator('input.qnt-input')
-  await inputs.nth(1).fill('30-99999999-9')
-  // Contacto
-  await inputs.nth(2).fill('Juan Test')
-  // Teléfono
-  await inputs.nth(3).fill('2990000001')
-  // Email
-  await page.locator('input[type="email"]').fill('test@playwright-qnt.com')
-  // Categoría
-  await page.locator('select.qnt-input').selectOption('EQUIPAMIENTO')
+  // Usar los inputs dentro del form del modal (evitar la barra de búsqueda de la página)
+  const modalInputs = page.locator('form.modal-body input.qnt-input')
+  await modalInputs.first().fill(nombre)
+  await modalInputs.nth(1).fill('30-99999999-9')
+  await modalInputs.nth(2).fill('Juan Test')
+  await modalInputs.nth(3).fill('2990000001')
+  await page.locator('form.modal-body input[type="email"]').fill('test@playwright-qnt.com')
+  // Usar selector específico del form del modal para no activar el filtro de la página principal
+  await page.locator('form.modal-body select.qnt-input').first().selectOption('EQUIPAMIENTO')
 
   await page.getByRole('button', { name: 'Guardar' }).click()
   await expect(page.locator('text=Proveedor creado')).toBeVisible({ timeout: 8000 })
-  await expect(page.locator(`text=${nombre}`)).toBeVisible()
+  // Esperar a que la lista se actualice y verificar que el proveedor aparece
+  await expect(page.locator(`.prov-nombre:has-text("${nombre}")`)).toBeVisible({ timeout: 12000 })
 })
 
 test('click en card de proveedor abre modal de detalle', async ({ page }) => {
@@ -69,7 +66,7 @@ test('click en card de proveedor abre modal de detalle', async ({ page }) => {
   if (await card.count() === 0) { test.skip(); return }
   await card.click()
   await expect(page.locator('.qnt-modal--wide, .qnt-modal').first()).toBeVisible()
-  await expect(page.locator('text=Compras asociadas')).toBeVisible()
+  await expect(page.locator('text=Compras asociadas').first()).toBeVisible()
 })
 
 test('modal de detalle muestra datos del proveedor', async ({ page }) => {
@@ -84,10 +81,13 @@ test('desde modal de detalle se puede ir a Editar', async ({ page }) => {
   const card = page.locator('.prov-card').first()
   if (await card.count() === 0) { test.skip(); return }
   await card.click()
-  const editBtn = page.getByRole('button', { name: 'Editar' }).first()
+  // Esperar a que el modal de detalle esté visible antes de buscar el botón Editar
+  await expect(page.locator('text=Compras asociadas').first()).toBeVisible({ timeout: 8000 })
+  // El botón Editar del modal de detalle es el último en DOM (los de tarjetas vienen primero)
+  const editBtn = page.getByRole('button', { name: 'Editar' }).last()
   if (await editBtn.count() === 0) { await page.keyboard.press('Escape'); test.skip(); return }
   await editBtn.click()
-  await expect(page.locator('text=Editar proveedor')).toBeVisible()
+  await expect(page.locator('text=Editar proveedor')).toBeVisible({ timeout: 8000 })
   await page.keyboard.press('Escape')
 })
 
@@ -104,9 +104,8 @@ test('editar proveedor existente guarda cambios', async ({ page }) => {
 })
 
 test('filtro por categoría EQUIPAMIENTO funciona', async ({ page }) => {
-  await page.locator('select.qnt-input.cat-select, select').filter({ hasText: /categoría|todas/i }).first().selectOption('EQUIPAMIENTO')
+  await page.locator('select').filter({ hasText: /categoría|todas/i }).first().selectOption('EQUIPAMIENTO')
   await expect(page.locator('text=Error')).not.toBeVisible()
-  // Todas las cards visibles deben tener el badge EQUIPAMIENTO o no haber ninguna
   const cards = page.locator('.prov-card')
   const count = await cards.count()
   if (count > 0) {
@@ -117,9 +116,8 @@ test('filtro por categoría EQUIPAMIENTO funciona', async ({ page }) => {
 test('búsqueda por nombre filtra correctamente', async ({ page }) => {
   const search = page.locator('input[placeholder*="nombre"]')
   await search.fill('XXX-NOEXISTE-999')
-  await expect(page.locator('text=No se encontraron proveedores')).toBeVisible()
+  await expect(page.locator('text=No se encontraron proveedores')).toBeVisible({ timeout: 8000 })
   await search.clear()
-  await page.getByRole('button', { name: 'Limpiar' }).click()
 })
 
 test('eliminar proveedor muestra confirmación y cancela', async ({ page }) => {

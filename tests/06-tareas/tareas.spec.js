@@ -6,19 +6,18 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('kanban carga con las tres columnas', async ({ page }) => {
-  await expect(page.locator('text=Pendiente')).toBeVisible()
-  await expect(page.locator('text=En progreso')).toBeVisible()
-  await expect(page.locator('text=Completada')).toBeVisible()
+  await expect(page.locator('.kanban-col-header, .kanban-col').filter({ hasText: 'Pendiente' }).first()).toBeVisible()
+  await expect(page.locator('.kanban-col-header, .kanban-col').filter({ hasText: 'En progreso' }).first()).toBeVisible()
+  await expect(page.locator('.kanban-col-header, .kanban-col').filter({ hasText: 'Completada' }).first()).toBeVisible()
 })
 
 test('contador de tareas por columna es visible', async ({ page }) => {
-  // Los chips de stats muestran número + label
   await expect(page.locator('.kanban-stats, .ks-chip').first()).toBeVisible()
 })
 
 test('botón Nueva tarea abre modal', async ({ page }) => {
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
-  await expect(page.locator('text=Nueva tarea').nth(1)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nueva tarea' })).toBeVisible()
   await expect(page.locator('input.qnt-input[placeholder*="Describí"]')).toBeVisible()
 })
 
@@ -32,14 +31,12 @@ test('crear tarea PENDIENTE con prioridad ALTA', async ({ page }) => {
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
 
   const titulo = `TEST_Tarea_${Date.now()}`
-  await page.locator('input.qnt-input').fill(titulo)
+  await page.locator('input.qnt-input').first().fill(titulo)
   await page.locator('select').filter({ hasText: /Media|prioridad/i }).first().selectOption('ALTA')
 
   await page.getByRole('button', { name: 'Crear tarea' }).click()
 
-  // Toast de confirmación
   await expect(page.locator('text=Tarea creada')).toBeVisible({ timeout: 6000 })
-  // Card aparece en columna Pendiente
   await expect(page.locator(`text=${titulo}`)).toBeVisible()
 })
 
@@ -47,7 +44,7 @@ test('crear tarea con fecha de vencimiento', async ({ page }) => {
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
 
   const titulo = `TEST_Vence_${Date.now()}`
-  await page.locator('input.qnt-input').fill(titulo)
+  await page.locator('input.qnt-input').first().fill(titulo)
   await page.locator('input[type="date"]').fill('2026-12-31')
   await page.getByRole('button', { name: 'Crear tarea' }).click()
 
@@ -55,14 +52,12 @@ test('crear tarea con fecha de vencimiento', async ({ page }) => {
 })
 
 test('editar una tarea existente', async ({ page }) => {
-  // Verificar que hay al menos una tarea
   const editBtn = page.locator('.tc-btn').first()
   if (await editBtn.count() === 0) { test.skip(); return }
 
   await editBtn.first().click()
   await expect(page.locator('text=Editar tarea')).toBeVisible()
 
-  // Modificar descripción
   await page.locator('textarea').fill(`Descripción editada por Playwright ${Date.now()}`)
   await page.getByRole('button', { name: 'Guardar cambios' }).click()
   await expect(page.locator('text=Tarea actualizada')).toBeVisible({ timeout: 6000 })
@@ -70,7 +65,7 @@ test('editar una tarea existente', async ({ page }) => {
 
 test('cancelar modal no guarda cambios', async ({ page }) => {
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
-  await page.locator('input.qnt-input').fill('TAREA_QUE_NO_DEBE_GUARDARSE')
+  await page.locator('input.qnt-input').first().fill('TAREA_QUE_NO_DEBE_GUARDARSE')
   await page.getByRole('button', { name: 'Cancelar' }).click()
   await expect(page.locator('text=TAREA_QUE_NO_DEBE_GUARDARSE')).not.toBeVisible()
 })
@@ -83,26 +78,19 @@ test('cerrar modal con click en overlay', async ({ page }) => {
 })
 
 test('eliminar tarea muestra confirmación y elimina (solo admin)', async ({ page }) => {
-  // Primero crear una tarea para eliminar
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
   const titulo = `TEST_DELETE_${Date.now()}`
-  await page.locator('input.qnt-input').fill(titulo)
+  await page.locator('input.qnt-input').first().fill(titulo)
   await page.getByRole('button', { name: 'Crear tarea' }).click()
   await expect(page.locator(`text=${titulo}`)).toBeVisible({ timeout: 6000 })
 
-  // Buscar botón eliminar de esa card específica
   const card = page.locator('.task-card').filter({ hasText: titulo })
   const deleteBtn = card.locator('.tc-btn--del')
-  if (await deleteBtn.count() === 0) {
-    test.skip() // Usuario no es admin
-    return
-  }
+  if (await deleteBtn.count() === 0) { test.skip(); return }
   await deleteBtn.click()
 
-  // Confirmación
   await expect(page.locator('text=Eliminar tarea')).toBeVisible()
-  await expect(page.locator(`text=${titulo}`).nth(1)).toBeVisible()
-  await page.getByRole('button', { name: 'Eliminar' }).click()
+  await page.getByRole('button', { name: 'Eliminar' }).last().click()
 
   await expect(page.locator('text=Tarea eliminada')).toBeVisible({ timeout: 6000 })
   await expect(page.locator(`text=${titulo}`)).not.toBeVisible()

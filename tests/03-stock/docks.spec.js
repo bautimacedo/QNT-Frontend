@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=Docks')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Docks' })).toBeVisible()
 })
 
 test('muestra contador de equipos', async ({ page }) => {
@@ -46,5 +46,5 @@ test('detalle del dock muestra datos de telemetría si disponible', async ({ pag
   await card.click()
   await page.waitForLoadState('networkidle')
   // Debe tener estado visible
-  await expect(page.locator('text=/estado|Estado/i')).toBeVisible()
+  await expect(page.locator('text=/estado|Estado/i').first()).toBeVisible()
 })

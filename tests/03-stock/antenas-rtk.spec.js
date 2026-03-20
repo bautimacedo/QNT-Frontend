@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('lista de antenas RTK carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error al cargar')).not.toBeVisible()
-  await expect(page.locator('text=/RTK/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /RTK/i })).toBeVisible()
 })
 
 test('filtro por número de serie funciona', async ({ page }) => {

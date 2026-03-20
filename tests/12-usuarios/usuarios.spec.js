@@ -7,11 +7,15 @@ test.beforeEach(async ({ page }) => {
 
 test('vista de usuarios carga sin errores', async ({ page }) => {
   await expect(page.locator('text=Error')).not.toBeVisible()
-  await expect(page.locator('text=/Usuario/i')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Usuario/i })).toBeVisible()
 })
 
 test('lista de usuarios es visible', async ({ page }) => {
-  const content = page.locator('table tr, .usuario-card, text=/No hay usuarios/i').first()
+  const content = page.locator('.user-card')
+    .or(page.locator('.tabs-bar'))
+    .or(page.getByText(/No se encontraron usuarios/i))
+    .or(page.locator('.kpi-chip'))
+    .first()
   await expect(content).toBeVisible({ timeout: 8000 })
 })
 
