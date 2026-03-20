@@ -4,6 +4,11 @@ test.describe('Perfil Piloto (mi perfil)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/home/perfil-piloto')
     await page.waitForLoadState('networkidle')
+    // Esperar que el contenido principal cargue (depende de me() + esPilotoOAdmin)
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.locator('.card__title').filter({ hasText: /Información de vuelo/i })
+    ).toBeVisible({ timeout: 10000 })
   })
 
   test('vista carga sin errores', async ({ page }) => {
