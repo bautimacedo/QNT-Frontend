@@ -47,9 +47,9 @@ test('filtro por modelo filtra correctamente', async ({ page }) => {
 
 test('botón Limpiar aparece cuando hay filtros activos', async ({ page }) => {
   await page.locator('input[placeholder="Marca"]').fill('DJI')
-  await expect(page.getByRole('button', { name: 'Limpiar' }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Limpiar' }).first().click()
-  await expect(page.getByRole('button', { name: 'Limpiar' })).not.toBeVisible()
+  await expect(page.getByRole('button', { name: 'Limpiar', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Limpiar', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Limpiar', exact: true })).not.toBeVisible()
 })
 
 test('click en card abre detalle del dron', async ({ page }) => {
