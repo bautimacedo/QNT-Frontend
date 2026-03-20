@@ -54,7 +54,9 @@ test('guardar dron sin campos requeridos muestra mensaje de error', async ({ pag
 })
 
 test('cancelar modal dron cierra sin guardar', async ({ page }) => {
-  await page.getByRole('button', { name: /Registrar dron/i }).click()
+  const btn = page.getByRole('button', { name: /Registrar dron/i })
+  await expect(btn).toBeVisible({ timeout: 15000 })
+  await btn.click()
   const modal = page.locator('.qnt-modal').last()
   await expect(modal).toBeVisible({ timeout: 8000 })
   await modal.getByRole('button', { name: /Cancelar/i }).click()

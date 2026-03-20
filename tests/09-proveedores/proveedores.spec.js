@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/home/proveedores')
-  await page.waitForLoadState('networkidle')
+  try {
+    await page.goto('/home/proveedores')
+    await page.waitForLoadState('networkidle')
+  } catch {
+    // Retry once on transient network error
+    await page.goto('/home/proveedores')
+    await page.waitForLoadState('networkidle')
+  }
 })
 
 test('lista de proveedores carga sin errores', async ({ page }) => {

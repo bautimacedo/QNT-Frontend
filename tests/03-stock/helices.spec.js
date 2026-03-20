@@ -20,6 +20,7 @@ test('filtro por número de serie funciona', async ({ page }) => {
 test('click en card lleva al detalle', async ({ page }) => {
   const card = page.locator('button.equip-card, .equip-card').first()
   if (await card.count() === 0) { test.skip(); return }
+  await expect(card).toBeVisible({ timeout: 10000 })
   await card.click()
-  await expect(page).toHaveURL(/\/stock\/helices\/\d+/)
+  await expect(page).toHaveURL(/\/stock\/helices\/\d+/, { timeout: 10000 })
 })

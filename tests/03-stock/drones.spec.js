@@ -40,6 +40,7 @@ test('filtro por marca filtra correctamente', async ({ page }) => {
 
 test('filtro por modelo filtra correctamente', async ({ page }) => {
   await page.locator('input[placeholder="Modelo"]').fill('Matrice')
+  await page.waitForTimeout(400)
   await expect(page.locator('text=Error')).not.toBeVisible()
   await page.locator('input[placeholder="Modelo"]').clear()
 })

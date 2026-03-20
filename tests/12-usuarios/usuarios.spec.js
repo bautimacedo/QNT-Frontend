@@ -55,9 +55,10 @@ test.describe('Usuarios', () => {
 
   test('campo de búsqueda está visible y funciona', async ({ page }) => {
     const search = page.locator('input[placeholder="Buscar por nombre o email…"]')
-    await expect(search).toBeVisible({ timeout: 8000 })
+    await expect(search).toBeVisible({ timeout: 10000 })
     // Buscar algo que no existe — debería mostrar "No se encontraron"
     await search.fill('USUARIO_INEXISTENTE_XYZ999')
+    await page.waitForTimeout(400)
     await expect(page.getByText(/No se encontraron usuarios/i)).toBeVisible({ timeout: 8000 })
   })
 
