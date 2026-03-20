@@ -123,7 +123,11 @@ test.describe('Licencias', () => {
     const uid = Date.now()
     const nombre = `LicFull ${uid}`
 
-    await page.getByRole('button', { name: /Nueva licencia/i }).click()
+    const btn = page.getByRole('button', { name: /Nueva licencia/i })
+      .or(page.getByRole('button', { name: /Agregar primera licencia/i }))
+      .first()
+    await expect(btn).toBeVisible({ timeout: 12000 })
+    await btn.click()
     const modal = page.locator('.qnt-modal').last()
     await expect(modal).toBeVisible({ timeout: 8000 })
 

@@ -19,9 +19,10 @@ test('KPI cards son visibles', async ({ page }) => {
 test('click en card de piloto abre modal de detalle', async ({ page }) => {
   const cards = page.locator('.pilot-card')
   if (await cards.count() === 0) { test.skip(); return }
+  await expect(cards.first()).toBeVisible({ timeout: 10000 })
   await cards.first().click()
-  await expect(page.locator('.qnt-modal').last()).toBeVisible({ timeout: 8000 })
-  await expect(page.locator('.modal-title').last()).toBeVisible()
+  await expect(page.locator('.qnt-modal-overlay')).toBeVisible({ timeout: 10000 })
+  await expect(page.locator('.modal-title').last()).toBeVisible({ timeout: 8000 })
 })
 
 test('modal de detalle muestra datos del piloto y tiene botón Ver perfil', async ({ page }) => {

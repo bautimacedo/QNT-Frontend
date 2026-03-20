@@ -6,7 +6,7 @@
       "localStorage": [
         {
           "name": "qnt_jwt",
-          "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpbnRlcm5hbElkIjoxLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsInJvbGVzIjpbIlJPTEVfQURNSU4iLCJST0xFX1BJTE9UTyJdLCJleHAiOjE3NzM5Nzk0MzB9.O4nWLq-YNswQXCdNurS9Z24LxkIpOOJnasNQaVWbvcA0skQlkWtO8COdE7PvevrvZ9L35HAarHuNkraYMUoqcQ"
+          "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpbnRlcm5hbElkIjoxLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsInJvbGVzIjpbIlJPTEVfQURNSU4iLCJST0xFX1BJTE9UTyJdLCJleHAiOjE3NzQwMTU1NTB9.FNuKf5uzwkZMap3QkazH2Eqzt-7Oz2bd7nIJ2Cm9XtDOGQ1ZeH7wLuTRFNDuIevPlEjd50HEfW2EqTP5_xqMjQ"
         }
       ]
     }
