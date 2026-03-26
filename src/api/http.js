@@ -50,8 +50,17 @@ async function request(path, options = {}, { skipAuth = false } = {}) {
   if (data instanceof FormData && config.headers['Content-Type']) {
     delete config.headers['Content-Type']
   }
-  const res = await api.request(config)
-  return toResponseLike(res)
+  try {
+    const res = await api.request(config)
+    return toResponseLike(res)
+  } catch (axiosErr) {
+    if (axiosErr.response) {
+      // Devolver response-like para que los callers puedan leer el body del error
+      return toResponseLike(axiosErr.response)
+    }
+    // Error de red / timeout / sin respuesta
+    throw new Error(axiosErr.message || 'Error de conexión')
+  }
 }
 
 /**

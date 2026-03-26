@@ -218,7 +218,7 @@ async function doDelete() {
 </script>
 
 <template>
-  <div style="flex:1;background:#f5f7f7;overflow:auto;">
+  <div class="qnt-page">
 
     <!-- Toast -->
     <Transition name="toast">
@@ -254,9 +254,7 @@ async function doDelete() {
       </template>
     </PageHeader>
 
-    <div style="padding:1.75rem;">
-
-      <!-- Filtros -->
+    <!-- Filtros -->
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <!-- buscador -->
         <div style="position:relative;flex:1;min-width:200px;max-width:360px;">
@@ -416,7 +414,6 @@ async function doDelete() {
           </tbody>
         </table>
       </div>
-    </div>
 
     <!-- ═══ Modal crear / editar ═══ -->
     <Teleport to="body">

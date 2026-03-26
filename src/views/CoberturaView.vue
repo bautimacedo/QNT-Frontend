@@ -24,6 +24,7 @@ const mapContainer = ref(null)
 let map        = null
 let layerEquipos  = null
 let layerMisiones = null
+let mapFitted  = false  // solo hacer fitBounds en la primera carga
 
 // ─── Filtros visuales ────────────────────────────
 const mostrarDrones = ref(true)
@@ -171,10 +172,13 @@ function renderMapa() {
     layerMisiones.addLayer(marker)
   })
 
-  if (bounds.length > 1) {
-    map.fitBounds(L.latLngBounds(bounds), { padding: [40, 40], maxZoom: 14 })
-  } else if (bounds.length === 1) {
-    map.setView(bounds[0], 12)
+  if (!mapFitted) {
+    if (bounds.length > 1) {
+      map.fitBounds(L.latLngBounds(bounds), { padding: [40, 40], maxZoom: 14 })
+    } else if (bounds.length === 1) {
+      map.setView(bounds[0], 12)
+    }
+    mapFitted = true
   }
 }
 
@@ -287,10 +291,12 @@ onUnmounted(() => {
         </div>
 
         <!-- Mapa Leaflet -->
-        <div v-if="loading" class="cob-map-loading">
-          <span class="spinner" /> Cargando mapa...
+        <div class="cob-map-wrap">
+          <div v-if="loading" class="cob-map-loading-overlay">
+            <span class="spinner" /> Actualizando...
+          </div>
+          <div ref="mapContainer" class="cob-map" />
         </div>
-        <div ref="mapContainer" class="cob-map" :style="loading ? 'visibility:hidden;height:0' : ''" />
         <p v-if="!loading && equipos.length === 0" class="cob-empty">
           No hay equipos con coordenadas registradas.
         </p>
@@ -471,6 +477,13 @@ onUnmounted(() => {
   height: 100%;
   overflow: hidden;
 }
+/* PageHeader fue diseñado para estar dentro de .qnt-page (padding:1.75rem).
+   .cob-page no tiene padding propio, por lo que anulamos el margin negativo
+   para que el PageHeader quede correctamente alineado. */
+.cob-page :deep(.page-hdr) {
+  margin-left: 0;
+  margin-right: 0;
+}
 
 .cob-stats {
   display: grid;
@@ -551,12 +564,27 @@ onUnmounted(() => {
 }
 
 /* Mapa */
-.cob-map-loading {
-  display: flex; align-items: center; justify-content: center; gap: .5rem;
-  color: #536c6b; font-size: .875rem; flex: 1; min-height: 400px;
+.cob-map-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 300px;
+}
+.cob-map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  background: rgba(255,255,255,.7);
+  border-radius: 12px;
+  font-size: .875rem;
+  color: #536c6b;
+  pointer-events: none;
 }
 .cob-map {
-  flex: 1;
+  width: 100%;
   height: 520px;
   max-height: 520px;
   min-height: 300px;

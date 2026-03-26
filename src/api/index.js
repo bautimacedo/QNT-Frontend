@@ -30,8 +30,6 @@ export {
   crearCompra,
   actualizarCompra,
   eliminarCompra,
-  subirImagenCompra,
-  obtenerImagenCompra,
   getTiposEquipo,
 } from './compras.js'
 export {

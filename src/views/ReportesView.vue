@@ -41,7 +41,7 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
 </script>
 
 <template>
-  <div style="flex:1;background:#f5f7f7;overflow:auto;">
+  <div class="qnt-page">
 
     <PageHeader
       title="Reportes"
@@ -49,9 +49,7 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
       :icon="BarChart2"
     />
 
-    <div style="padding:1.75rem;">
-
-      <!-- Banner próximamente -->
+    <!-- Banner próximamente -->
       <div style="background:linear-gradient(135deg,#113e4c,#2b555b);border-radius:16px;padding:2rem 2.5rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.5rem;">
         <div style="width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <BarChart2 style="width:28px;height:28px;color:#fff;" />
@@ -129,6 +127,5 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
 
       </div>
 
-    </div>
   </div>
 </template>
