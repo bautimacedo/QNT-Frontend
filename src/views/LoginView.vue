@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, Loader2, ArrowLeft } from 'lucide-vue-next'
-import { login } from '../api'
+import { login, forgotPassword } from '../api'
 
 const router = useRouter()
 
@@ -19,6 +19,7 @@ const error    = ref('')
 const forgotEmail   = ref('')
 const forgotSent    = ref(false)
 const forgotLoading = ref(false)
+const forgotError   = ref('')
 
 const BG_IMAGE = 'https://images.unsplash.com/photo-1749484460743-654768ed67ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwb2lsJTIwcmVmaW5lcnklMjBhZXJpYWwlMjBuaWdodCUyMGRhcmt8ZW58MXx8fHwxNzczMDU5Nzk4fDA&ixlib=rb-4.1.0&q=80&w=1080'
 
@@ -42,9 +43,15 @@ async function onSubmit() {
 async function onForgotSubmit() {
   if (!forgotEmail.value) return
   forgotLoading.value = true
-  await new Promise(res => setTimeout(res, 1200))
-  forgotLoading.value = false
-  forgotSent.value = true
+  forgotError.value = ''
+  try {
+    await forgotPassword(forgotEmail.value)
+    forgotSent.value = true
+  } catch (e) {
+    forgotError.value = e.message || 'Error al enviar el correo. Intentá de nuevo.'
+  } finally {
+    forgotLoading.value = false
+  }
 }
 </script>
 
@@ -209,7 +216,7 @@ async function onForgotSubmit() {
 
         <!-- FORGOT PASSWORD VIEW -->
         <template v-else>
-          <button @click="view='login';forgotSent=false;forgotEmail=''" style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:#536c6b;background:none;border:none;cursor:pointer;margin-bottom:2rem;">
+          <button @click="view='login';forgotSent=false;forgotEmail='';forgotError=''" style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:#536c6b;background:none;border:none;cursor:pointer;margin-bottom:2rem;">
             <ArrowLeft style="width:16px;height:16px;" />
             Volver al inicio de sesión
           </button>
@@ -230,7 +237,10 @@ async function onForgotSubmit() {
             <p style="font-size:.875rem;color:#047857;margin:0;">Revisá tu bandeja de entrada en <strong>{{ forgotEmail }}</strong>.</p>
           </div>
 
-          <form v-else @submit.prevent="onForgotSubmit" style="display:flex;flex-direction:column;gap:1.25rem;">
+          <form v-if="!forgotSent" @submit.prevent="onForgotSubmit" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <div v-if="forgotError" style="padding:.75rem;border-radius:.5rem;background:#fef2f2;border:1px solid #fecaca;font-size:.875rem;color:#b91c1c;">
+              {{ forgotError }}
+            </div>
             <div>
               <label style="display:block;font-size:.875rem;font-weight:500;color:#113e4c;margin-bottom:.5rem;">Email corporativo</label>
               <div style="position:relative;">

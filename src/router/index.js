@@ -34,6 +34,7 @@ import DashboardLayout from '../layouts/DashboardLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import ResetPasswordView from '../views/ResetPasswordView.vue'
 import LandingView from '../views/LandingView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
 import PilotosView from '../views/PilotosView.vue'
@@ -76,8 +77,9 @@ const routes = [
   { path: '/', name: 'landing', component: LandingView, meta: { requiresAuth: false } },
 
   // Auth
-  { path: '/login',    name: 'login',    component: LoginView,    meta: { requiresAuth: false } },
-  { path: '/register', name: 'register', component: RegisterView, meta: { requiresAuth: false } },
+  { path: '/login',          name: 'login',          component: LoginView,         meta: { requiresAuth: false } },
+  { path: '/register',       name: 'register',       component: RegisterView,      meta: { requiresAuth: false } },
+  { path: '/reset-password', name: 'reset-password', component: ResetPasswordView, meta: { requiresAuth: false } },
 
   // Dashboard (requiere auth)
   {

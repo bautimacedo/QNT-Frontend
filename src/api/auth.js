@@ -14,7 +14,11 @@ export async function login(email, password) {
 
   if (!res.ok) {
     const text = await res.text()
-    const err = new Error(text || `HTTP ${res.status}`)
+    const isHtml = text.trim().startsWith('<')
+    const message = isHtml
+      ? (res.status >= 500 ? 'Error del servidor. Intentá de nuevo.' : 'Credenciales incorrectas.')
+      : (text || `HTTP ${res.status}`)
+    const err = new Error(message)
     err.status = res.status
     throw err
   }
@@ -57,4 +61,31 @@ export async function register(nombre, apellido, email, password) {
 
 export function logout() {
   clearToken()
+}
+
+/**
+ * Solicita un email de recuperación de contraseña.
+ * El backend siempre responde 200 (no revela si el email existe).
+ */
+export async function forgotPassword(email) {
+  const res = await request('/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+  }, { skipAuth: true })
+  const text = await res.text()
+  if (!res.ok) throw new Error(text || 'Error al enviar el correo.')
+  return text
+}
+
+/**
+ * Restablece la contraseña usando el token recibido por email.
+ */
+export async function resetPassword(token, newPassword) {
+  const res = await request('/auth/reset-password', {
+    method: 'POST',
+    body: { token, newPassword },
+  }, { skipAuth: true })
+  const text = await res.text()
+  if (!res.ok) throw new Error(text || 'Error al restablecer la contraseña.')
+  return text
 }
