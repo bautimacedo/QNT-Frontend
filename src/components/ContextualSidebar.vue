@@ -43,12 +43,12 @@ const isPiloto = computed(() => {
 
 const allSections = {
   dashboard: [
-    { id: 'home',   label: 'Resumen',           icon: LayoutDashboard, to: '/home'        },
-    { id: 'tareas', label: 'Tablero de Tareas',  icon: ClipboardList,   to: '/home/tareas', adminOnly: true },
+    { id: 'home',     label: 'Resumen',          icon: LayoutDashboard, to: '/home'               },
+    { id: 'tareas',   label: 'Tablero de Tareas', icon: ClipboardList,   to: '/home/tareas',   adminOnly: true },
+    { id: 'reportes', label: 'Reportes',          icon: FileBarChart2,   to: '/home/reportes', adminOnly: true },
   ],
   operaciones: [
     { id: 'misiones',      label: 'Misiones',            icon: Target,        to: '/home/misiones'      },
-    { id: 'reportes',      label: 'Reportes',             icon: FileBarChart2, to: '/home/reportes',      adminOnly: true },
     { id: 'cobertura',     label: 'Cobertura Operativa',  icon: Shield,        to: '/home/cobertura',     adminOnly: true },
     { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias',   adminOnly: true },
     { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock',         adminOnly: true },
