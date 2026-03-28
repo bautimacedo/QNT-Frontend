@@ -37,8 +37,14 @@ const isPiloto = computed(() => {
   const u = dashboardUser.value
   if (!u) return false
   const auths = u.authorities || []
-  // Es SOLO piloto si tiene ROLE_PILOTO y NO tiene ROLE_ADMIN
   return auths.includes('ROLE_PILOTO') && !auths.includes('ROLE_ADMIN')
+})
+
+const isUsuario = computed(() => {
+  const u = dashboardUser.value
+  if (!u) return false
+  const auths = u.authorities || []
+  return auths.includes('ROLE_USUARIO') && !auths.includes('ROLE_ADMIN') && !auths.includes('ROLE_PILOTO')
 })
 
 const allSections = {
@@ -56,8 +62,8 @@ const allSections = {
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
   ],
   administracion: [
-    { id: 'mi-perfil',      label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'     },
-    { id: 'perfil-piloto',  label: 'Perfil Piloto',        icon: Plane,        to: '/home/perfil-piloto' },
+    { id: 'mi-perfil',      label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'                   },
+    { id: 'perfil-piloto',  label: 'Perfil Piloto',        icon: Plane,        to: '/home/perfil-piloto', pilotoOnly: true },
     { id: 'pilotos',        label: 'Pilotos',              icon: Users,        to: '/home/pilotos',        adminOnly: true },
     { id: 'proveedores',    label: 'Proveedores',          icon: Building2,    to: '/home/proveedores',    adminOnly: true },
     { id: 'compras',        label: 'Compras',              icon: ShoppingCart, to: '/home/compras',        adminOnly: true },
@@ -75,9 +81,8 @@ const tabLabels = {
 
 const items = computed(() => {
   const section = allSections[props.activeTab] || []
-  if (isPiloto.value) {
-    return section.filter(i => !i.adminOnly)
-  }
+  if (isPiloto.value) return section.filter(i => !i.adminOnly)
+  if (isUsuario.value) return section.filter(i => !i.adminOnly && !i.pilotoOnly)
   return section
 })
 

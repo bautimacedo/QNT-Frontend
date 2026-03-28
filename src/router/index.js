@@ -30,6 +30,13 @@ const PILOT_FORBIDDEN_PREFIXES = [
   '/home/licencias',
   '/home/seguros',
 ]
+
+// Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar
+// Igual que pilotos + perfil-piloto (no son pilotos)
+const USUARIO_FORBIDDEN_PREFIXES = [
+  ...PILOT_FORBIDDEN_PREFIXES,
+  '/home/perfil-piloto',
+]
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -145,14 +152,17 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
 
-  // Guard de rol: pilotos puros no pueden acceder a rutas de administración
+  // Guard de rol: pilotos y usuarios puros no pueden acceder a rutas restringidas
   if (hasToken) {
     const authorities = getAuthoritiesFromToken()
-    const isPilotoOnly = authorities.includes('ROLE_PILOTO') && !authorities.includes('ROLE_ADMIN')
-    if (isPilotoOnly) {
-      const forbidden = PILOT_FORBIDDEN_PREFIXES.some(prefix => to.path.startsWith(prefix))
-      if (forbidden) {
-        return { name: 'perfil-piloto' }
+    const isAdmin = authorities.includes('ROLE_ADMIN')
+    if (!isAdmin) {
+      const isPilotoOnly = authorities.includes('ROLE_PILOTO')
+      const isUsuarioOnly = authorities.includes('ROLE_USUARIO') && !isPilotoOnly
+      if (isPilotoOnly) {
+        if (PILOT_FORBIDDEN_PREFIXES.some(p => to.path.startsWith(p))) return { name: 'perfil-piloto' }
+      } else if (isUsuarioOnly) {
+        if (USUARIO_FORBIDDEN_PREFIXES.some(p => to.path.startsWith(p))) return { name: 'home' }
       }
     }
   }
