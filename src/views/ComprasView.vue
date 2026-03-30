@@ -702,6 +702,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <td class="text-muted">{{ c.usuarioAlta ? (c.usuarioAlta.nombre || '') + (c.usuarioAlta.apellido ? ' ' + c.usuarioAlta.apellido : '') || c.usuarioAlta.email : '—' }}</td>
               <td class="td-importe">
                 {{ formatCurrency(c.importe, c.moneda) }}
+                <span v-if="c.moneda === 'USD'" class="badge-moneda">USD</span>
                 <span v-if="c.tieneIva" class="text-muted" title="Incluye IVA"> (incl. IVA)</span>
               </td>
               <td class="actions-cell">
@@ -719,7 +720,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
     <Teleport to="body">
       <Transition name="qnt-modal">
         <div v-if="formModal.open" class="qnt-modal-overlay" @click.self="closeFormModal">
-          <div class="qnt-modal qnt-modal--wide">
+          <div class="qnt-modal qnt-modal--xl">
             <h3 class="qnt-modal__title">{{ formModal.editing ? 'Editar compra' : 'Nueva compra' }}</h3>
 
             <div class="form-grid">
@@ -1158,6 +1159,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .sortable:hover { color: var(--qnt-text); }
 .sort-arrow { font-size: 0.7rem; margin-left: 0.2rem; }
 .td-importe { white-space: nowrap; font-weight: 600; }
+.badge-moneda { display: inline-block; margin-left: 0.3rem; padding: 0.1rem 0.4rem; font-size: 0.7rem; font-weight: 700; border-radius: 4px; background: #dbeafe; color: #1e40af; vertical-align: middle; }
 .text-muted { color: var(--qnt-text-faint); font-size: 0.85rem; }
 .actions-cell { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
@@ -1214,8 +1216,8 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 
 .item-row {
   display: grid;
-  grid-template-columns: 160px 140px 1fr 65px 120px 32px;
-  gap: 0.4rem;
+  grid-template-columns: 150px 140px 1fr 70px 140px 32px;
+  gap: 0.5rem;
   align-items: center;
 }
 .item-field--placeholder { height: 38px; }

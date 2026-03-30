@@ -251,6 +251,7 @@
   overflow-y: auto;
 }
 .qnt-modal--wide { max-width: 680px; }
+.qnt-modal--xl   { max-width: 900px; }
 .qnt-modal__title { margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 700; color: var(--qnt-text); }
 .qnt-modal__subtitle { margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--qnt-text-muted); }
 .qnt-modal__actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.25rem; }

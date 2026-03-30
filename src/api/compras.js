@@ -63,6 +63,11 @@ export async function eliminarArchivoCompra(compraId, archivoId) {
   return null
 }
 
+export async function actualizarTipoArchivoCompra(compraId, archivoId, tipo) {
+  const res = await request(`/compras/${compraId}/archivos/${archivoId}/tipo?tipo=${tipo}`, { method: 'PATCH' })
+  return json(res)
+}
+
 export async function getTiposEquipo() {
   const res = await request('/compras/tipos-equipo', { method: 'GET' })
   return json(res)

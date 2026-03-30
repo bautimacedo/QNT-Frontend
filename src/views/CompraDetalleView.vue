@@ -3,11 +3,11 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, ShoppingCart, FileText, Upload, Trash2,
-  Download, Receipt, ClipboardList, CreditCard, FileCheck, Eye,
+  Download, Receipt, ClipboardList, CreditCard, FileCheck, Eye, Pencil,
 } from 'lucide-vue-next'
 import {
   getCompra, getArchivosCompra, subirArchivoCompra,
-  descargarArchivoCompra, eliminarArchivoCompra,
+  descargarArchivoCompra, eliminarArchivoCompra, actualizarTipoArchivoCompra,
 } from '../api/compras.js'
 
 const route  = useRoute()
@@ -140,6 +140,28 @@ async function doDel() {
     showToast('Error al eliminar el archivo', 'error')
   } finally {
     closeDel()
+  }
+}
+
+// ── Editar tipo de documento ──────────────────────────────────────────────────
+const editTipo = ref({ archivoId: null, valor: '' })
+
+function openEditTipo(a) {
+  editTipo.value = { archivoId: a.id, valor: a.tipoDocumento }
+}
+function closeEditTipo() {
+  editTipo.value = { archivoId: null, valor: '' }
+}
+async function saveEditTipo(a) {
+  try {
+    const updated = await actualizarTipoArchivoCompra(id, a.id, editTipo.value.valor)
+    const idx = archivos.value.findIndex(x => x.id === a.id)
+    if (idx >= 0) archivos.value[idx] = updated
+    showToast('Tipo actualizado')
+  } catch {
+    showToast('Error al actualizar el tipo', 'error')
+  } finally {
+    closeEditTipo()
   }
 }
 
@@ -385,8 +407,19 @@ function fileIcon(archivo) {
                   :style="{ color: tipoMap[a.tipoDocumento]?.color }" />
               </div>
               <div class="archivo-body">
-                <div class="archivo-tipo" :style="{ color: tipoMap[a.tipoDocumento]?.color }">
-                  {{ tipoMap[a.tipoDocumento]?.label || a.tipoDocumento }}
+                <div class="archivo-tipo">
+                  <template v-if="editTipo.archivoId === a.id">
+                    <select v-model="editTipo.valor" class="tipo-select">
+                      <option v-for="t in TIPOS" :key="t.value" :value="t.value">{{ t.label }}</option>
+                    </select>
+                    <button class="btn-arch btn-arch--ok" title="Guardar" @click="saveEditTipo(a)">✓</button>
+                    <button class="btn-arch btn-arch--cancel" title="Cancelar" @click="closeEditTipo">✕</button>
+                  </template>
+                  <template v-else>
+                    <span :style="{ color: tipoMap[a.tipoDocumento]?.color }">
+                      {{ tipoMap[a.tipoDocumento]?.label || a.tipoDocumento }}
+                    </span>
+                  </template>
                 </div>
                 <div class="archivo-nombre">{{ fileIcon(a) }} {{ a.nombreArchivo }}</div>
                 <div class="archivo-fecha">{{ formatFechaSubida(a.fechaSubida) }}</div>
@@ -397,6 +430,9 @@ function fileIcon(archivo) {
                 </button>
                 <button class="btn-arch" title="Descargar" @click="doDownload(a)">
                   <Download class="ba-icon" />
+                </button>
+                <button class="btn-arch" title="Editar tipo" @click="openEditTipo(a)">
+                  <Pencil class="ba-icon" />
                 </button>
                 <button class="btn-arch btn-arch--danger" title="Eliminar" @click="openDel(a)">
                   <Trash2 class="ba-icon" />
@@ -591,7 +627,16 @@ function fileIcon(archivo) {
 .btn-arch:hover { background: var(--qnt-surface-raised); color: var(--qnt-text); }
 .btn-arch--eye:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
 .btn-arch--danger:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+.btn-arch--ok { color: #166534; }
+.btn-arch--ok:hover { background: #dcfce7; color: #166534; border-color: #86efac; }
+.btn-arch--cancel { color: var(--qnt-text-muted); }
 .ba-icon { width: 14px; height: 14px; }
+.tipo-select {
+  font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.4rem;
+  border: 1px solid var(--qnt-border); border-radius: 6px;
+  background: var(--qnt-surface); color: var(--qnt-text);
+  cursor: pointer; outline: none;
+}
 
 /* Confirm modal */
 .confirm-icon { width: 48px; height: 48px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
