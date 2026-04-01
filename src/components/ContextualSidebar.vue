@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plane,
+  PlaneTakeoff,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -60,6 +61,7 @@ const allSections = {
     { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock',         adminOnly: true },
     { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento', adminOnly: true },
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
+    { id: 'vuelos',        label: 'Vuelos FlytBase',      icon: PlaneTakeoff,  to: '/home/vuelos'        },
   ],
   administracion: [
     { id: 'mi-perfil',      label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'                   },

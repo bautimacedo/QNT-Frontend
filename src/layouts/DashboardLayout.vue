@@ -28,6 +28,7 @@ const routeToTab = {
   'stock':         'operaciones',
   'mantenimiento': 'operaciones',
   'logs':          'operaciones',
+  'vuelos':        'operaciones',
   'mi-perfil':     'administracion',
   'perfil-piloto': 'administracion',
   'pilotos':       'administracion',
