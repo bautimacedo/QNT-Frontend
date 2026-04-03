@@ -17,15 +17,23 @@ const filtroHasta  = ref('')
 
 const EVENTOS = [
   { value: '',                 label: 'Todos los eventos' },
+  { value: 'DESPEGUE',         label: 'Despegue' },
   { value: 'ATERRIZAJE',       label: 'Aterrizaje' },
   { value: 'FALLA_DESPEGUE',   label: 'Falla de despegue' },
   { value: 'DESPEGUE_FALLIDO', label: 'Despegue fallido' },
 ]
 
 const EVENTO_CONFIG = {
-  ATERRIZAJE:       { label: 'Aterrizaje',       color: '#2563eb', bg: '#dbeafe' },
-  FALLA_DESPEGUE:   { label: 'Falla despegue',   color: '#dc2626', bg: '#fee2e2' },
-  DESPEGUE_FALLIDO: { label: 'Despegue fallido', color: '#dc2626', bg: '#fee2e2' },
+  DESPEGUE:         { label: 'Despegue',         color: '#16a34a', bg: '#dcfce7' },
+  ATERRIZAJE:       { label: 'Aterrizaje',        color: '#2563eb', bg: '#dbeafe' },
+  FALLA_DESPEGUE:   { label: 'Falla despegue',    color: '#dc2626', bg: '#fee2e2' },
+  DESPEGUE_FALLIDO: { label: 'Despegue fallido',  color: '#dc2626', bg: '#fee2e2' },
+}
+
+const SEVERIDAD_COLOR = {
+  INFO:     { color: '#16a34a', bg: '#dcfce7' },
+  CAUTION:  { color: '#d97706', bg: '#fef3c7' },
+  CRITICAL: { color: '#dc2626', bg: '#fee2e2' },
 }
 
 async function loadAll() {
@@ -153,10 +161,13 @@ const totalFiltrados = computed(() => registros.value.length)
           <tr>
             <th>Timestamp</th>
             <th>Evento</th>
-            <th>Drone SN</th>
-            <th>Dock SN</th>
+            <th>Dron</th>
+            <th>Site</th>
             <th>Piloto</th>
+            <th>Batería</th>
+            <th>Altitud</th>
             <th>Detalle</th>
+            <th>Sev.</th>
           </tr>
         </thead>
         <tbody>
@@ -171,9 +182,23 @@ const totalFiltrados = computed(() => registros.value.length)
               </span>
             </td>
             <td class="td-mono">{{ r.nombreDron || '—' }}</td>
-            <td class="td-mono">{{ r.nombreDock || '—' }}</td>
+            <td>{{ r.site || '—' }}</td>
             <td>{{ r.piloto || '—' }}</td>
+            <td>
+              <span v-if="r.bateria != null" class="td-bat">{{ r.bateria }}%</span>
+              <span v-else>—</span>
+            </td>
+            <td>{{ r.altitud != null ? r.altitud + ' m' : '—' }}</td>
             <td class="td-detalle" :title="r.detalleVuelo">{{ r.detalleVuelo || '—' }}</td>
+            <td>
+              <span
+                v-if="r.severidad"
+                class="badge-sev"
+                :style="{ color: SEVERIDAD_COLOR[r.severidad]?.color, background: SEVERIDAD_COLOR[r.severidad]?.bg }"
+              >
+                {{ r.severidad }}
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>

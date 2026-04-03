@@ -2,19 +2,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { PlaneTakeoff, PlaneLanding, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones, getVuelosLogSites } from '../api/vuelosLog.js'
+import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones } from '../api/vuelosLog.js'
 
 // ─── Datos ──────────────────────────────────────────────────────────────────
 const registros = ref([])
 const stats     = ref(null)
 const drones    = ref([])
-const sites     = ref([])
 const loading   = ref(false)
 const error     = ref('')
 
 // ─── Filtros ─────────────────────────────────────────────────────────────────
 const filtroDron   = ref('')
-const filtroSite   = ref('')
 const filtroEvento = ref('')
 const filtroDesde  = ref('')
 const filtroHasta  = ref('')
@@ -56,16 +54,14 @@ async function loadAll() {
   error.value   = ''
   try {
     const filters = buildFilters()
-    const [regs, st, dr, si] = await Promise.all([
+    const [regs, st, dr] = await Promise.all([
       getVuelosLog(filters),
       getVuelosLogStats(filters),
       getVuelosLogDrones(),
-      getVuelosLogSites(),
     ])
     registros.value = regs
     stats.value     = st
     drones.value    = dr
-    sites.value     = si
   } catch (e) {
     error.value = 'No se pudo cargar el registro de vuelos.'
   } finally {
@@ -75,8 +71,8 @@ async function loadAll() {
 
 function buildFilters() {
   return {
+    site:   'EFO',
     dron:   filtroDron.value   || undefined,
-    site:   filtroSite.value   || undefined,
     evento: filtroEvento.value || undefined,
     desde:  filtroDesde.value  ? filtroDesde.value + 'T00:00:00Z' : undefined,
     hasta:  filtroHasta.value  ? filtroHasta.value + 'T23:59:59Z' : undefined,
@@ -87,7 +83,6 @@ function applyFilters() { loadAll() }
 
 function clearFilters() {
   filtroDron.value   = ''
-  filtroSite.value   = ''
   filtroEvento.value = ''
   filtroDesde.value  = ''
   filtroHasta.value  = ''
@@ -162,10 +157,6 @@ const totalFiltrados = computed(() => registros.value.length)
       <select v-model="filtroDron" class="qnt-select filter-sel">
         <option value="">Todos los drones</option>
         <option v-for="d in drones" :key="d" :value="d">{{ d }}</option>
-      </select>
-      <select v-model="filtroSite" class="qnt-select filter-sel">
-        <option value="">Todos los sites</option>
-        <option v-for="s in sites" :key="s" :value="s">{{ s }}</option>
       </select>
       <select v-model="filtroEvento" class="qnt-select filter-sel">
         <option v-for="e in EVENTOS" :key="e.value" :value="e.value">{{ e.label }}</option>
