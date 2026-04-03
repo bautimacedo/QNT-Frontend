@@ -1,71 +1,46 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { PlaneTakeoff, PlaneLanding, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
+import { PlaneTakeoff, PlaneLanding, AlertTriangle, Activity, RefreshCw, Filter, Bell } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones, getVuelosLogSites } from '../api/vuelosLog.js'
+import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones } from '../api/vuelosLog.js'
 
-// ─── Datos ──────────────────────────────────────────────────────────────────
 const registros = ref([])
 const stats     = ref(null)
 const drones    = ref([])
-const sites     = ref([])
 const loading   = ref(false)
 const error     = ref('')
 
-// ─── Filtros ─────────────────────────────────────────────────────────────────
 const filtroDron   = ref('')
-const filtroSite   = ref('')
 const filtroEvento = ref('')
 const filtroDesde  = ref('')
 const filtroHasta  = ref('')
 
 const EVENTOS = [
-  { value: '',                   label: 'Todos los eventos' },
-  { value: 'DESPEGUE',           label: 'Despegue' },
-  { value: 'ATERRIZAJE',         label: 'Aterrizaje' },
-  { value: 'FALLA_DESPEGUE',     label: 'Falla de despegue' },
-  { value: 'DESPEGUE_FALLIDO',   label: 'Despegue fallido (< 1 min)' },
-  { value: 'MAL_TIEMPO',         label: 'Mal tiempo' },
-  { value: 'MAL_TIEMPO_MEJORADO', label: 'Tiempo mejorado' },
-  { value: 'DIAGNOSTICO',        label: 'Diagnóstico' },
-  { value: 'RECORDATORIO',       label: 'Recordatorio misión' },
-  { value: 'OTRO',               label: 'Otro' },
+  { value: '',                 label: 'Todos los eventos' },
+  { value: 'ATERRIZAJE',       label: 'Aterrizaje' },
+  { value: 'FALLA_DESPEGUE',   label: 'Falla de despegue' },
+  { value: 'DESPEGUE_FALLIDO', label: 'Despegue fallido' },
 ]
 
 const EVENTO_CONFIG = {
-  DESPEGUE:           { label: 'Despegue',          color: '#16a34a', bg: '#dcfce7', icon: 'takeoff'  },
-  ATERRIZAJE:         { label: 'Aterrizaje',         color: '#2563eb', bg: '#dbeafe', icon: 'landing'  },
-  FALLA_DESPEGUE:     { label: 'Falla despegue',     color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
-  DESPEGUE_FALLIDO:   { label: 'Despegue fallido',   color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
-  MAL_TIEMPO:         { label: 'Mal tiempo',         color: '#d97706', bg: '#fef3c7', icon: 'weather'  },
-  MAL_TIEMPO_MEJORADO:{ label: 'Tiempo mejorado',    color: '#0891b2', bg: '#e0f2fe', icon: 'weather'  },
-  DIAGNOSTICO:        { label: 'Diagnóstico',        color: '#7c3aed', bg: '#ede9fe', icon: 'diag'     },
-  RECORDATORIO:       { label: 'Recordatorio',       color: '#64748b', bg: '#f1f5f9', icon: 'bell'     },
-  OTRO:               { label: 'Otro',               color: '#64748b', bg: '#f1f5f9', icon: 'bell'     },
+  ATERRIZAJE:       { label: 'Aterrizaje',       color: '#2563eb', bg: '#dbeafe' },
+  FALLA_DESPEGUE:   { label: 'Falla despegue',   color: '#dc2626', bg: '#fee2e2' },
+  DESPEGUE_FALLIDO: { label: 'Despegue fallido', color: '#dc2626', bg: '#fee2e2' },
 }
 
-const SEVERIDAD_COLOR = {
-  INFO:     { color: '#16a34a', bg: '#dcfce7' },
-  CAUTION:  { color: '#d97706', bg: '#fef3c7' },
-  CRITICAL: { color: '#dc2626', bg: '#fee2e2' },
-}
-
-// ─── Carga ───────────────────────────────────────────────────────────────────
 async function loadAll() {
   loading.value = true
   error.value   = ''
   try {
     const filters = buildFilters()
-    const [regs, st, dr, si] = await Promise.all([
+    const [regs, st, dr] = await Promise.all([
       getVuelosLog(filters),
       getVuelosLogStats(filters),
       getVuelosLogDrones(),
-      getVuelosLogSites(),
     ])
     registros.value = regs
     stats.value     = st
-    drones.value    = dr
-    sites.value     = si
+    drones.value    = dr.filter(d => d)
   } catch (e) {
     error.value = 'No se pudo cargar el registro de vuelos.'
   } finally {
@@ -75,8 +50,8 @@ async function loadAll() {
 
 function buildFilters() {
   return {
+    site:   'CAM',
     dron:   filtroDron.value   || undefined,
-    site:   filtroSite.value   || undefined,
     evento: filtroEvento.value || undefined,
     desde:  filtroDesde.value  ? filtroDesde.value + 'T00:00:00Z' : undefined,
     hasta:  filtroHasta.value  ? filtroHasta.value + 'T23:59:59Z' : undefined,
@@ -87,7 +62,6 @@ function applyFilters() { loadAll() }
 
 function clearFilters() {
   filtroDron.value   = ''
-  filtroSite.value   = ''
   filtroEvento.value = ''
   filtroDesde.value  = ''
   filtroHasta.value  = ''
@@ -96,19 +70,17 @@ function clearFilters() {
 
 onMounted(loadAll)
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatTs(ts) {
   if (!ts) return '—'
-  const d = new Date(ts)
-  return d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
+  return new Date(ts).toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
     day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit' })
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 function esFalla(r) {
-  return r.despegueFallido ||
-    r.evento === 'FALLA_DESPEGUE' ||
-    r.evento === 'DESPEGUE_FALLIDO'
+  return r.despegueFallido || r.evento === 'FALLA_DESPEGUE' || r.evento === 'DESPEGUE_FALLIDO'
 }
 
 const totalFiltrados = computed(() => registros.value.length)
@@ -116,7 +88,7 @@ const totalFiltrados = computed(() => registros.value.length)
 
 <template>
   <div class="vuelos-page">
-    <PageHeader title="Vuelos EFO" subtitle="Eventos FlytBase - Estación Fernández Oro" />
+    <PageHeader title="Vuelos CAM" subtitle="Tareas FlightHub - Cañadón" />
 
     <!-- Stats cards -->
     <div v-if="stats" class="stats-row">
@@ -142,13 +114,6 @@ const totalFiltrados = computed(() => registros.value.length)
         </div>
       </div>
       <div class="stat-card">
-        <CloudLightning class="stat-icon" style="color:#d97706" />
-        <div>
-          <div class="stat-num">{{ stats.totalMalTiempo }}</div>
-          <div class="stat-label">Alertas clima</div>
-        </div>
-      </div>
-      <div class="stat-card">
         <Activity class="stat-icon" style="color:#64748b" />
         <div>
           <div class="stat-num">{{ stats.totalRegistros }}</div>
@@ -163,15 +128,11 @@ const totalFiltrados = computed(() => registros.value.length)
         <option value="">Todos los drones</option>
         <option v-for="d in drones" :key="d" :value="d">{{ d }}</option>
       </select>
-      <select v-model="filtroSite" class="qnt-select filter-sel">
-        <option value="">Todos los sites</option>
-        <option v-for="s in sites" :key="s" :value="s">{{ s }}</option>
-      </select>
       <select v-model="filtroEvento" class="qnt-select filter-sel">
         <option v-for="e in EVENTOS" :key="e.value" :value="e.value">{{ e.label }}</option>
       </select>
-      <input v-model="filtroDesde" type="date" class="qnt-input date-input" placeholder="Desde" />
-      <input v-model="filtroHasta" type="date" class="qnt-input date-input" placeholder="Hasta" />
+      <input v-model="filtroDesde" type="date" class="qnt-input date-input" />
+      <input v-model="filtroHasta" type="date" class="qnt-input date-input" />
       <button class="qnt-btn qnt-btn--primary" @click="applyFilters">
         <Filter style="width:14px;height:14px;margin-right:4px" /> Filtrar
       </button>
@@ -182,10 +143,7 @@ const totalFiltrados = computed(() => registros.value.length)
       <span class="result-count">{{ totalFiltrados }} registros</span>
     </div>
 
-    <!-- Error -->
     <div v-if="error" class="qnt-error-banner">{{ error }}</div>
-
-    <!-- Loading -->
     <div v-if="loading" class="loading-state">Cargando vuelos…</div>
 
     <!-- Tabla -->
@@ -195,21 +153,14 @@ const totalFiltrados = computed(() => registros.value.length)
           <tr>
             <th>Timestamp</th>
             <th>Evento</th>
-            <th>Dron</th>
-            <th>Site</th>
+            <th>Drone SN</th>
+            <th>Dock SN</th>
             <th>Piloto</th>
-            <th>Batería</th>
-            <th>Altitud</th>
             <th>Detalle</th>
-            <th>Sev.</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="r in registros"
-            :key="r.id"
-            :class="{ 'row--falla': esFalla(r) }"
-          >
+          <tr v-for="r in registros" :key="r.id" :class="{ 'row--falla': esFalla(r) }">
             <td class="td-ts">{{ formatTs(r.timestampFlytbase) }}</td>
             <td>
               <span
@@ -220,35 +171,18 @@ const totalFiltrados = computed(() => registros.value.length)
               </span>
             </td>
             <td class="td-mono">{{ r.nombreDron || '—' }}</td>
-            <td>{{ r.site || '—' }}</td>
+            <td class="td-mono">{{ r.nombreDock || '—' }}</td>
             <td>{{ r.piloto || '—' }}</td>
-            <td>
-              <span v-if="r.bateria != null" class="td-bat">
-                {{ r.bateria }}%
-              </span>
-              <span v-else>—</span>
-            </td>
-            <td>{{ r.altitud != null ? r.altitud + ' m' : '—' }}</td>
             <td class="td-detalle" :title="r.detalleVuelo">{{ r.detalleVuelo || '—' }}</td>
-            <td>
-              <span
-                v-if="r.severidad"
-                class="badge-sev"
-                :style="{ color: SEVERIDAD_COLOR[r.severidad]?.color, background: SEVERIDAD_COLOR[r.severidad]?.bg }"
-              >
-                {{ r.severidad }}
-              </span>
-            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Empty state -->
     <div v-else-if="!loading" class="empty-state">
       <Bell style="width:40px;height:40px;color:var(--qnt-text-faint)" />
       <p>No hay registros de vuelo con los filtros seleccionados.</p>
-      <p class="empty-sub">Los vuelos se registran automáticamente cuando FlytBase envía emails de despegue/aterrizaje.</p>
+      <p class="empty-sub">Los vuelos se registran automáticamente desde FlightHub cada 15 minutos.</p>
     </div>
   </div>
 </template>
@@ -256,10 +190,9 @@ const totalFiltrados = computed(() => registros.value.length)
 <style scoped>
 .vuelos-page { display: flex; flex-direction: column; gap: 1.25rem; }
 
-/* Stats */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
 }
 .stat-card {
@@ -272,7 +205,6 @@ const totalFiltrados = computed(() => registros.value.length)
 .stat-num  { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--qnt-text); }
 .stat-label { font-size: 0.75rem; color: var(--qnt-text-muted); margin-top: 0.2rem; }
 
-/* Filtros */
 .filters-bar {
   display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
   background: var(--qnt-surface); border: 1px solid var(--qnt-border);
@@ -283,7 +215,6 @@ const totalFiltrados = computed(() => registros.value.length)
 .icon-btn   { padding: 0.45rem 0.6rem; }
 .result-count { margin-left: auto; font-size: 0.8rem; color: var(--qnt-text-muted); }
 
-/* Tabla */
 .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--qnt-border); }
 .qnt-table  { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .qnt-table th {
@@ -302,24 +233,17 @@ const totalFiltrados = computed(() => registros.value.length)
 
 .td-ts   { white-space: nowrap; font-size: 0.8rem; color: var(--qnt-text-muted); }
 .td-mono { font-family: monospace; font-size: 0.82rem; }
-.td-bat  { font-weight: 600; }
 .td-detalle {
   max-width: 220px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
   color: var(--qnt-text-muted); font-size: 0.8rem;
 }
-
 .badge-evento {
   display: inline-block; padding: 0.2rem 0.6rem;
   border-radius: 999px; font-size: 0.72rem; font-weight: 700;
   white-space: nowrap;
 }
-.badge-sev {
-  display: inline-block; padding: 0.15rem 0.45rem;
-  border-radius: 4px; font-size: 0.68rem; font-weight: 700;
-}
 
-/* Empty / Loading */
 .empty-state {
   display: flex; flex-direction: column; align-items: center;
   gap: 0.5rem; padding: 3rem; text-align: center;
@@ -333,10 +257,9 @@ const totalFiltrados = computed(() => registros.value.length)
 }
 
 @media (max-width: 900px) {
-  .stats-row { grid-template-columns: repeat(3, 1fr); }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
-  .stats-row { grid-template-columns: 1fr 1fr; }
   .filters-bar { flex-direction: column; align-items: stretch; }
   .filter-sel, .date-input { min-width: unset; max-width: unset; width: 100%; }
 }
