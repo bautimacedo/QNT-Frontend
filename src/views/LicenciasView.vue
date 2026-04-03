@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { FileCheck, Plus, Pencil, Trash2, X, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
+import { FileCheck, Plus, Pencil, Trash2, X, AlertTriangle, CheckCircle, XCircle, Eye } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { getLicencias, crearLicencia, actualizarLicencia, eliminarLicencia } from '../api/licencias-standalone.js'
 
@@ -107,6 +107,10 @@ async function submitModal() {
   }
 }
 
+const viewModal = ref({ open: false, licencia: null })
+function openView(l)  { viewModal.value = { open: true, licencia: l } }
+function closeView()  { viewModal.value.open = false }
+
 const confirmDelete = ref({ open: false, licencia: null })
 function openDelete(l)  { confirmDelete.value = { open: true, licencia: l } }
 function closeDelete()  { confirmDelete.value.open = false }
@@ -174,39 +178,43 @@ async function doDelete() {
       <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">Agregar primera licencia</button>
     </div>
 
-    <!-- Cards grid -->
-    <div v-else class="lic-grid">
-      <div v-for="l in licencias" :key="l.id" class="lic-card">
-        <div class="lic-card-header">
-          <div class="lic-icon-wrap"><FileCheck class="lic-icon" /></div>
-          <div class="lic-title-wrap">
-            <div class="lic-nombre">{{ l.nombre }}</div>
-            <div class="lic-num" v-if="l.numLicencia">{{ l.numLicencia }}</div>
-          </div>
-          <div class="lic-badges">
-            <span class="qnt-badge" :class="`qnt-badge--${l.activo ? 'green' : 'gray'}`">{{ l.activo ? 'Activa' : 'Inactiva' }}</span>
-            <span v-if="caducidadInfo(l.caducidad)" class="qnt-badge" :class="`qnt-badge--${caducidadInfo(l.caducidad).cls.replace('badge--','')}`">{{ caducidadInfo(l.caducidad).label }}</span>
-          </div>
-        </div>
-        <div class="lic-meta">
-          <div class="meta-item" v-if="l.version">
-            <span class="meta-label">Versión</span>
-            <span class="meta-val">{{ l.version }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Compra</span>
-            <span class="meta-val">{{ formatDate(l.fechaCompra) }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Caducidad</span>
-            <span class="meta-val">{{ formatDate(l.caducidad) }}</span>
-          </div>
-        </div>
-        <div class="lic-actions">
-          <button class="btn-act" @click="openEdit(l)"><Pencil class="ba-icon" /> Editar</button>
-          <button class="btn-act btn-act--danger" @click="openDelete(l)"><Trash2 class="ba-icon" /> Eliminar</button>
-        </div>
-      </div>
+    <!-- Tabla -->
+    <div v-else class="table-wrap">
+      <table class="qnt-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>N° Licencia</th>
+            <th>Versión</th>
+            <th>Compra</th>
+            <th>Caducidad</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="l in licencias" :key="l.id">
+            <td class="td-nombre">{{ l.nombre }}</td>
+            <td class="td-mono">{{ l.numLicencia || '—' }}</td>
+            <td>{{ l.version || '—' }}</td>
+            <td>{{ formatDate(l.fechaCompra) }}</td>
+            <td>
+              <span v-if="caducidadInfo(l.caducidad)" class="qnt-badge" :class="`qnt-badge--${caducidadInfo(l.caducidad).cls.replace('badge--','')}`">
+                {{ formatDate(l.caducidad) }} · {{ caducidadInfo(l.caducidad).label }}
+              </span>
+              <span v-else>—</span>
+            </td>
+            <td>
+              <span class="qnt-badge" :class="`qnt-badge--${l.activo ? 'green' : 'gray'}`">{{ l.activo ? 'Activa' : 'Inactiva' }}</span>
+            </td>
+            <td class="td-actions">
+              <button class="btn-act" @click="openView(l)" title="Ver detalle"><Eye class="ba-icon" /></button>
+              <button class="btn-act" @click="openEdit(l)" title="Editar"><Pencil class="ba-icon" /></button>
+              <button class="btn-act btn-act--danger" @click="openDelete(l)" title="Eliminar"><Trash2 class="ba-icon" /></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Modal crear/editar -->
@@ -265,6 +273,57 @@ async function doDelete() {
       </Transition>
     </Teleport>
 
+    <!-- Modal ver detalle -->
+    <Teleport to="body">
+      <Transition name="qnt-modal">
+        <div v-if="viewModal.open" class="qnt-modal-overlay" @click.self="closeView">
+          <div class="qnt-modal">
+            <div class="modal-hd">
+              <div class="modal-hd-icon"><FileCheck class="mh-icon" /></div>
+              <h3 class="modal-hd-title">{{ viewModal.licencia?.nombre }}</h3>
+              <button class="modal-close" @click="closeView"><X class="w-4 h-4" /></button>
+            </div>
+            <div class="modal-body" v-if="viewModal.licencia">
+              <div class="view-grid">
+                <div class="view-item">
+                  <span class="view-label">N° Licencia</span>
+                  <span class="view-val">{{ viewModal.licencia.numLicencia || '—' }}</span>
+                </div>
+                <div class="view-item">
+                  <span class="view-label">Versión</span>
+                  <span class="view-val">{{ viewModal.licencia.version || '—' }}</span>
+                </div>
+                <div class="view-item">
+                  <span class="view-label">Fecha de compra</span>
+                  <span class="view-val">{{ formatDate(viewModal.licencia.fechaCompra) }}</span>
+                </div>
+                <div class="view-item">
+                  <span class="view-label">Caducidad</span>
+                  <span class="view-val">{{ formatDate(viewModal.licencia.caducidad) }}</span>
+                </div>
+                <div class="view-item">
+                  <span class="view-label">Estado</span>
+                  <span class="qnt-badge" :class="`qnt-badge--${viewModal.licencia.activo ? 'green' : 'gray'}`">
+                    {{ viewModal.licencia.activo ? 'Activa' : 'Inactiva' }}
+                  </span>
+                </div>
+                <div class="view-item" v-if="caducidadInfo(viewModal.licencia.caducidad)">
+                  <span class="view-label">Vigencia</span>
+                  <span class="qnt-badge" :class="`qnt-badge--${caducidadInfo(viewModal.licencia.caducidad).cls.replace('badge--','')}`">
+                    {{ caducidadInfo(viewModal.licencia.caducidad).label }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="qnt-btn qnt-btn--secondary" @click="closeView">Cerrar</button>
+              <button class="qnt-btn qnt-btn--primary" @click="closeView(); openEdit(viewModal.licencia)">Editar</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Confirm delete -->
     <Teleport to="body">
       <Transition name="qnt-modal">
@@ -300,43 +359,10 @@ async function doDelete() {
 .kc-val  { font-size: 1rem; font-weight: 700; color: var(--qnt-text); }
 .kc-lbl  { font-size: 0.72rem; color: var(--qnt-text-muted); }
 
-/* Grid */
-.lic-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 0.85rem;
-}
-.lic-card {
-  background: var(--qnt-surface);
-  border: 1px solid var(--qnt-border);
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex; flex-direction: column; gap: 0.75rem;
-  transition: border-color .15s;
-}
-.lic-card:hover { border-color: #1e88e5; }
-
-.lic-card-header { display: flex; align-items: flex-start; gap: 0.65rem; }
-.lic-icon-wrap {
-  width: 36px; height: 36px; border-radius: 9px;
-  background: rgba(22,163,74,.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.lic-icon { width: 17px; height: 17px; color: #16a34a; }
-.lic-title-wrap { flex: 1; }
-.lic-nombre { font-size: 0.9rem; font-weight: 600; color: var(--qnt-text); }
-.lic-num    { font-size: 0.75rem; color: var(--qnt-text-muted); margin-top: 0.1rem; }
-.lic-badges { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; }
-
-.lic-meta {
-  display: flex; gap: 0.5rem; flex-wrap: wrap;
-  padding: 0.6rem 0.75rem;
-  background: var(--qnt-surface-raised); border-radius: 8px;
-}
-.meta-item { display: flex; flex-direction: column; gap: 0.05rem; flex: 1; min-width: 70px; }
-.meta-label { font-size: 0.65rem; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-.meta-val   { font-size: 0.82rem; color: var(--qnt-text); font-weight: 500; }
-
-.lic-actions { display: flex; gap: 0.5rem; }
+/* Tabla */
+.table-wrap { overflow-x: auto; }
+.td-nombre  { font-weight: 600; color: var(--qnt-text); }
+.td-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
 .btn-act {
   display: flex; align-items: center; gap: 0.3rem;
   padding: 0.3rem 0.6rem; border-radius: 6px;
@@ -394,4 +420,10 @@ async function doDelete() {
 
 .required { color: #dc2626; }
 .qnt-label { font-size: 0.75rem; font-weight: 600; color: var(--qnt-text-muted); margin-bottom: 0.3rem; display: block; }
+
+/* Ver detalle */
+.view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.view-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.view-label { font-size: 0.7rem; font-weight: 600; color: var(--qnt-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.view-val   { font-size: 0.9rem; color: var(--qnt-text); font-weight: 500; }
 </style>
