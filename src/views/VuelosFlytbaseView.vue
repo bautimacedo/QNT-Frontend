@@ -190,7 +190,6 @@ const totalFiltrados = computed(() => registros.value.length)
             <th>Site</th>
             <th>Piloto</th>
             <th>Batería</th>
-            <th>Altitud</th>
             <th>Detalle</th>
             <th>Sev.</th>
           </tr>
@@ -219,7 +218,6 @@ const totalFiltrados = computed(() => registros.value.length)
               </span>
               <span v-else>—</span>
             </td>
-            <td>{{ r.altitud != null ? r.altitud + ' m' : '—' }}</td>
             <td class="td-detalle" :title="r.detalleVuelo">{{ r.detalleVuelo || '—' }}</td>
             <td>
               <span
