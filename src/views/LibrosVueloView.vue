@@ -5,7 +5,8 @@ import {
 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { getLogs, crearLog, eliminarLog } from '../api/logs.js'
-import { getPilotos } from '../api'
+import { getPilotos, getList } from '../api'
+import { getMisiones } from '../api/misiones.js'
 
 // ─── Datos ───────────────────────────────────────
 const logs    = ref([])
@@ -32,14 +33,18 @@ onUnmounted(() => clearTimeout(toastTimer))
 
 // ─── Carga ───────────────────────────────────────
 const usuarios = ref([])
+const drones   = ref([])
+const misiones = ref([])
 
 onMounted(async () => {
   loading.value = true
   error.value   = ''
   try {
-    const [l, u] = await Promise.all([getLogs(), getPilotos()])
-    logs.value    = l
+    const [l, u, dr, ms] = await Promise.all([getLogs(), getPilotos(), getList('drones'), getMisiones()])
+    logs.value     = l
     usuarios.value = u
+    drones.value   = dr
+    misiones.value = ms
   } catch {
     error.value = 'No se pudo cargar los registros.'
   } finally {
@@ -109,7 +114,7 @@ const modal = ref({ open: false, loading: false })
 const form  = ref(emptyForm())
 
 function emptyForm() {
-  return { entidadTipo: '', entidadId: '', tipo: 'VUELO', detalle: '', usuarioId: '', timestamp: '' }
+  return { entidadTipo: '', entidadId: '', tipo: 'VUELO', detalle: '', usuarioId: '', timestamp: '', misionId: '' }
 }
 function openCrear() {
   form.value  = emptyForm()
@@ -276,14 +281,18 @@ function limpiarFiltros() {
           <div class="form-grid">
             <label class="field">
               <span>Entidad <em>*</em></span>
-              <select v-model="form.entidadTipo" class="qnt-input">
+              <select v-model="form.entidadTipo" class="qnt-input" @change="form.entidadId = ''">
                 <option value="">Seleccionar...</option>
                 <option v-for="e in ENTIDADES" :key="e" :value="e">{{ e }}</option>
               </select>
             </label>
             <label class="field">
-              <span>ID Entidad <em>*</em></span>
-              <input v-model="form.entidadId" type="number" class="qnt-input" placeholder="ej: 1" />
+              <span>{{ form.entidadTipo === 'DRON' ? 'Dron' : 'ID Entidad' }} <em>*</em></span>
+              <select v-if="form.entidadTipo === 'DRON'" v-model="form.entidadId" class="qnt-input">
+                <option value="">Seleccionar dron...</option>
+                <option v-for="d in drones" :key="d.id" :value="d.id">{{ d.nombre || d.modelo }}</option>
+              </select>
+              <input v-else v-model="form.entidadId" type="number" class="qnt-input" placeholder="ej: 1" />
             </label>
             <label class="field">
               <span>Tipo de evento</span>
@@ -296,6 +305,13 @@ function limpiarFiltros() {
               <select v-model="form.usuarioId" class="qnt-input">
                 <option value="">Sin asignar</option>
                 <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombre }} {{ u.apellido }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Misión <span class="field-optional">(opcional)</span></span>
+              <select v-model="form.misionId" class="qnt-input">
+                <option value="">Sin misión</option>
+                <option v-for="m in misiones" :key="m.id" :value="m.id">{{ m.nombre }}</option>
               </select>
             </label>
             <label class="field">
@@ -428,6 +444,7 @@ function limpiarFiltros() {
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field { display: flex; flex-direction: column; gap: .4rem; }
 .field--full { grid-column: 1 / -1; }
+.field-optional { font-size: 0.7rem; color: var(--qnt-text-faint); font-weight: 400; }
 .field span { font-size: .8rem; font-weight: 600; color: var(--qnt-muted, #536c6b); }
 .field em { color: #ef4444; font-style: normal; }
 .qnt-input { border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; padding: .5rem .75rem; font-size: .875rem; color: var(--qnt-primary, #113e4c); outline: none; transition: border-color .15s; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; }
