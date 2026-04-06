@@ -98,7 +98,7 @@ async function onForgotSubmit() {
 
           <!-- Stats row -->
           <div class="flex gap-8" style="margin-top:2.5rem;">
-            <div v-for="stat in [{ label:'Drones Activos',value:'12' },{ label:'Misiones 2024',value:'340+' },{ label:'Horas de Vuelo',value:'2.8k' }]" :key="stat.label">
+            <div v-for="stat in [{ label:'Drones Activos',value:'3' },{ label:'Misiones 2026',value:'340+' },{ label:'Horas de Vuelo',value:'2.8k' }]" :key="stat.label">
               <div style="color:#fff;font-weight:700;font-size:1.75rem;">{{ stat.value }}</div>
               <div style="color:#8fb8b5;font-size:.7rem;margin-top:2px;">{{ stat.label }}</div>
             </div>
@@ -268,7 +268,7 @@ async function onForgotSubmit() {
 
         <!-- Footer -->
         <div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e0e8e8;display:flex;align-items:center;justify-content:space-between;font-size:.75rem;color:#a0b5b5;">
-          <span>© 2024 QNT Drones</span>
+          <span>© 2026 QNT Drones</span>
           <span>Parte de Quintana Energy</span>
         </div>
       </div>
