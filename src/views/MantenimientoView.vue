@@ -225,6 +225,25 @@ const bateriaViejaInfo = computed(() => {
   return baterias.value.find(b => b.id === id) ?? null
 })
 
+function heliceLabel(h) {
+  if (h.nombre) return h.nombre
+  const mk = [h.marca, h.modelo].filter(Boolean).join(' ')
+  return mk || ('Hélice #' + h.id)
+}
+
+// Hélices actualmente en el dron seleccionado (para retirar)
+const helicesDelDron = computed(() => {
+  const id = Number(formDron.value.dronId)
+  if (!id) return []
+  return helices.value.filter(h => h.dronId === id)
+})
+
+// Hélices disponibles (sin dron asignado, para instalar)
+const helicesDisponibles = computed(() => {
+  const id = Number(formDron.value.dronId)
+  return helices.value.filter(h => !h.dronId || h.dronId === id)
+})
+
 async function guardarDron() {
   if (!formDron.value.dronId || !formDron.value.usuarioId || !formDron.value.fechaMantenimiento) {
     showToast('Completá los campos obligatorios', 'err'); return
@@ -594,23 +613,25 @@ const stats = computed(() => ({
               </select>
             </label>
             <div class="field field--full">
-              <span>Hélices retiradas</span>
+              <span>Hélices retiradas <em class="field-hint-inline">(del dron seleccionado)</em></span>
               <div class="multi-check">
-                <label v-for="h in helices" :key="h.id" class="check-item">
+                <label v-for="h in helicesDelDron" :key="h.id" class="check-item">
                   <input type="checkbox" :value="h.id" v-model="formDron.helicesViejasIds" />
-                  <span>{{ h.nombre || (h.marca + ' ' + h.modelo) || ('Hélice #' + h.id) }}</span>
+                  <span>{{ heliceLabel(h) }}</span>
                 </label>
-                <span v-if="!helices.length" class="text-muted">Sin hélices cargadas</span>
+                <span v-if="!helicesDelDron.length" class="text-muted">
+                  {{ formDron.dronId ? 'Sin hélices asignadas a este dron' : 'Seleccioná un dron primero' }}
+                </span>
               </div>
             </div>
             <div class="field field--full">
-              <span>Hélices instaladas</span>
+              <span>Hélices instaladas <em class="field-hint-inline">(nuevas a montar)</em></span>
               <div class="multi-check">
-                <label v-for="h in helices" :key="h.id" class="check-item">
+                <label v-for="h in helicesDisponibles" :key="h.id" class="check-item">
                   <input type="checkbox" :value="h.id" v-model="formDron.helicesNuevasIds" />
-                  <span>{{ h.nombre || (h.marca + ' ' + h.modelo) || ('Hélice #' + h.id) }}</span>
+                  <span>{{ heliceLabel(h) }}</span>
                 </label>
-                <span v-if="!helices.length" class="text-muted">Sin hélices cargadas</span>
+                <span v-if="!helicesDisponibles.length" class="text-muted">Sin hélices disponibles</span>
               </div>
             </div>
             <label class="field field--full">
@@ -827,6 +848,7 @@ const stats = computed(() => ({
 .qnt-input:focus { border-color: var(--qnt-primary, #113e4c); }
 
 .field-hint { font-size: .75rem; color: var(--qnt-muted, #536c6b); margin-top: 2px; }
+.field-hint-inline { font-size: .72rem; font-weight: 400; color: var(--qnt-muted, #536c6b); font-style: normal; margin-left: 4px; }
 
 .multi-check { display: flex; flex-wrap: wrap; gap: .5rem; padding: .5rem; border: 1px solid var(--qnt-border, #e0e5e5); border-radius: 8px; max-height: 140px; overflow-y: auto; background: #fff; }
 .check-item { display: flex; align-items: center; gap: .35rem; font-size: .8rem; cursor: pointer; padding: .2rem .4rem; border-radius: 6px; transition: background .1s; }
