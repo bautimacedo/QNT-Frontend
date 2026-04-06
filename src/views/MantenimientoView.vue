@@ -1,8 +1,100 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
-  Wrench, Cpu, Package, Plus, Pencil, Trash2, X, AlertTriangle,
+  Wrench, Cpu, Package, Plus, Pencil, Trash2, X, AlertTriangle, ClipboardCheck,
 } from 'lucide-vue-next'
+
+// ─── Plantillas DJI Dock 3 (Manual de Mantenimiento) ─────────────────────────
+const CHECKLIST_DRON = {
+  BASICO: [
+    { categoria: 'Motores y hélices', item: 'Motores sin objetos extraños ni daños', checked: false },
+    { categoria: 'Motores y hélices', item: 'Hélices sin grietas, deformaciones ni aflojamiento', checked: false },
+    { categoria: 'Motores y hélices', item: 'Fijación de hélices correcta (torque)', checked: false },
+    { categoria: 'Estructura', item: 'Estructura sin grietas ni tornillos sueltos', checked: false },
+    { categoria: 'Estructura', item: 'Carcasa sin rayones ni fisuras visibles', checked: false },
+    { categoria: 'Estructura', item: 'Brazos de la aeronave en buen estado', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Lentes de sensores limpios y sin daños', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Sensores de obstáculos funcionales', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Gimbal sin daños estructurales, movimiento libre', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Cámara limpia y funcional', checked: false },
+    { categoria: 'Eléctrico', item: 'Compartimento de batería limpio, contactos sin corrosión', checked: false },
+    { categoria: 'Eléctrico', item: 'Puertos sin daños ni objetos extraños', checked: false },
+    { categoria: 'Eléctrico', item: 'Luces de navegación funcionales', checked: false },
+    { categoria: 'Batería', item: 'Batería sin hinchazón ni daños físicos', checked: false },
+    { categoria: 'Batería', item: 'Ciclos de carga registrados y dentro de límite (< 400)', checked: false },
+  ],
+  ESTANDAR: [
+    { categoria: 'Motores y hélices', item: 'Motores sin objetos extraños ni daños', checked: false },
+    { categoria: 'Motores y hélices', item: 'Hélices sin grietas, deformaciones ni aflojamiento', checked: false },
+    { categoria: 'Motores y hélices', item: 'Fijación de hélices correcta (torque)', checked: false },
+    { categoria: 'Estructura', item: 'Estructura sin grietas ni tornillos sueltos', checked: false },
+    { categoria: 'Estructura', item: 'Carcasa sin rayones ni fisuras visibles', checked: false },
+    { categoria: 'Estructura', item: 'Brazos de la aeronave en buen estado', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Lentes de sensores limpios y sin daños', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Sensores de obstáculos funcionales', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Gimbal sin daños estructurales, movimiento libre', checked: false },
+    { categoria: 'Sensores y óptica', item: 'Cámara limpia y funcional', checked: false },
+    { categoria: 'Eléctrico', item: 'Compartimento de batería limpio, contactos sin corrosión', checked: false },
+    { categoria: 'Eléctrico', item: 'Puertos sin daños ni objetos extraños', checked: false },
+    { categoria: 'Eléctrico', item: 'Luces de navegación funcionales', checked: false },
+    { categoria: 'Batería', item: 'Batería sin hinchazón ni daños físicos', checked: false },
+    { categoria: 'Batería', item: 'Ciclos de carga registrados y dentro de límite (< 400)', checked: false },
+    { categoria: 'Piezas de desgaste', item: 'Hélices inspeccionadas/reemplazadas (12 meses / 500h)', checked: false },
+    { categoria: 'Piezas de desgaste', item: 'Amortiguadores del gimbal inspeccionados/reemplazados (12 meses / 500h)', checked: false },
+    { categoria: 'Piezas de desgaste', item: 'Pies de aterrizaje inspeccionados/reemplazados (12 meses / 500h)', checked: false },
+    { categoria: 'Software', item: 'Firmware actualizado a la última versión certificada', checked: false },
+    { categoria: 'Software', item: 'Diagnóstico de vuelo ejecutado sin errores', checked: false },
+  ],
+}
+
+const CHECKLIST_DOCK = {
+  BASICO: [
+    { categoria: 'Entorno', item: 'Área limpia sin obstáculos en radio de seguridad', checked: false },
+    { categoria: 'Entorno', item: 'Sin acumulación de agua o humedad excesiva', checked: false },
+    { categoria: 'Exterior', item: 'Carcasa sin deformaciones ni corrosión', checked: false },
+    { categoria: 'Exterior', item: 'Bisagras y cierres sin daños', checked: false },
+    { categoria: 'Eléctrico y red', item: 'Cables de alimentación intactos y bien fijados', checked: false },
+    { categoria: 'Eléctrico y red', item: 'Conexiones de red (LAN/4G) seguras y funcionales', checked: false },
+    { categoria: 'Cubierta', item: 'Cubierta se abre y cierra suavemente', checked: false },
+    { categoria: 'Cubierta', item: 'Mecanismo de apertura sin obstrucciones', checked: false },
+    { categoria: 'Cubierta', item: 'Sellos y juntas de la cubierta intactos', checked: false },
+    { categoria: 'Sensores', item: 'Sensores de alineación láser limpios y funcionales', checked: false },
+    { categoria: 'Sensores', item: 'Sensores de obstáculos del dock limpios', checked: false },
+    { categoria: 'Sensores', item: 'Estado de antena RTK normal', checked: false },
+    { categoria: 'Plataforma', item: 'Plataforma de aterrizaje plana y sin grietas', checked: false },
+    { categoria: 'Plataforma', item: 'Marcadores de aterrizaje visibles y limpios', checked: false },
+    { categoria: 'Compartimiento inferior', item: 'Mecanismo de barras de transmisión sin obstrucciones', checked: false },
+    { categoria: 'Compartimiento inferior', item: 'Compartimiento inferior limpio y seco', checked: false },
+    { categoria: 'Climatización', item: 'Rejillas de ventilación despejadas', checked: false },
+    { categoria: 'Climatización', item: 'Sistema de A/C funcional (temperatura estable)', checked: false },
+    { categoria: 'Seguridad', item: 'Botón de parada de emergencia funcional', checked: false },
+  ],
+  ESTANDAR: [
+    { categoria: 'Entorno', item: 'Área limpia sin obstáculos en radio de seguridad', checked: false },
+    { categoria: 'Entorno', item: 'Sin acumulación de agua o humedad excesiva', checked: false },
+    { categoria: 'Exterior', item: 'Carcasa sin deformaciones ni corrosión', checked: false },
+    { categoria: 'Exterior', item: 'Bisagras y cierres sin daños', checked: false },
+    { categoria: 'Eléctrico y red', item: 'Cables de alimentación intactos y bien fijados', checked: false },
+    { categoria: 'Eléctrico y red', item: 'Conexiones de red (LAN/4G) seguras y funcionales', checked: false },
+    { categoria: 'Cubierta', item: 'Cubierta se abre y cierra suavemente', checked: false },
+    { categoria: 'Cubierta', item: 'Mecanismo de apertura sin obstrucciones', checked: false },
+    { categoria: 'Cubierta', item: 'Sellos y juntas de la cubierta intactos', checked: false },
+    { categoria: 'Sensores', item: 'Sensores de alineación láser limpios y funcionales', checked: false },
+    { categoria: 'Sensores', item: 'Sensores de obstáculos del dock limpios', checked: false },
+    { categoria: 'Sensores', item: 'Estado de antena RTK normal', checked: false },
+    { categoria: 'Plataforma', item: 'Plataforma de aterrizaje plana y sin grietas', checked: false },
+    { categoria: 'Plataforma', item: 'Marcadores de aterrizaje visibles y limpios', checked: false },
+    { categoria: 'Compartimiento inferior', item: 'Mecanismo de barras de transmisión sin obstrucciones', checked: false },
+    { categoria: 'Compartimiento inferior', item: 'Compartimiento inferior limpio y seco', checked: false },
+    { categoria: 'Climatización', item: 'Rejillas de ventilación despejadas', checked: false },
+    { categoria: 'Climatización', item: 'Sistema de A/C funcional (temperatura estable)', checked: false },
+    { categoria: 'Seguridad', item: 'Botón de parada de emergencia funcional', checked: false },
+    { categoria: 'Piezas de desgaste', item: 'Barras de transmisión inspeccionadas/reemplazadas (36 meses / 7500 vuelos)', checked: false },
+    { categoria: 'Piezas de desgaste', item: 'Batería de respaldo del dock inspeccionada/reemplazada (24 meses)', checked: false },
+    { categoria: 'Software', item: 'Firmware del dock actualizado a la última versión', checked: false },
+    { categoria: 'Software', item: 'Diagnóstico completo del sistema ejecutado sin errores', checked: false },
+  ],
+}
 import PageHeader from '../components/ui/PageHeader.vue'
 import {
   getMantenimientosDrones, crearMantenimientoDron,
@@ -82,17 +174,21 @@ const modalDron = ref({ open: false, loading: false, id: null })
 const formDron  = ref(emptyFormDron())
 
 function emptyFormDron() {
-  return { dronId: '', usuarioId: '', fechaMantenimiento: '', bateriaViejaId: '', bateriaNuevaId: '', helicesViejasIds: [], helicesNuevasIds: [], observaciones: '' }
+  return { dronId: '', usuarioId: '', fechaMantenimiento: '', tipoMantenimiento: '', checklist: [], bateriaViejaId: '', bateriaNuevaId: '', helicesViejasIds: [], helicesNuevasIds: [], observaciones: '' }
 }
 function openCrearDron() {
   formDron.value  = emptyFormDron()
   modalDron.value = { open: true, loading: false, id: null }
 }
 function openEditarDron(m) {
+  let cl = []
+  try { cl = m.checklist ? JSON.parse(m.checklist) : [] } catch { cl = [] }
   formDron.value = {
     dronId:            m.dronId        ?? '',
     usuarioId:         m.usuarioId     ?? '',
     fechaMantenimiento: m.fechaMantenimiento ? m.fechaMantenimiento.substring(0, 16) : '',
+    tipoMantenimiento: m.tipoMantenimiento ?? '',
+    checklist:         cl,
     bateriaViejaId:    m.bateriaViejaId ?? '',
     bateriaNuevaId:    m.bateriaNuevaId ?? '',
     helicesViejasIds:  m.helicesViejasIds ?? [],
@@ -102,6 +198,15 @@ function openEditarDron(m) {
   modalDron.value = { open: true, loading: false, id: m.id }
 }
 function closeDron() { modalDron.value.open = false }
+
+// Auto-cargar checklist al seleccionar tipo de mantenimiento dron
+watch(() => formDron.value.tipoMantenimiento, (tipo) => {
+  if (!tipo) { formDron.value.checklist = []; return }
+  const template = CHECKLIST_DRON[tipo]
+  if (template && formDron.value.checklist.length === 0) {
+    formDron.value.checklist = template.map(i => ({ ...i }))
+  }
+})
 
 // Auto-fill batería y hélices instaladas al seleccionar un dron
 watch(() => formDron.value.dronId, (dronId) => {
@@ -130,6 +235,8 @@ async function guardarDron() {
       dronId:            Number(formDron.value.dronId),
       usuarioId:         Number(formDron.value.usuarioId),
       fechaMantenimiento: formDron.value.fechaMantenimiento,
+      tipoMantenimiento: formDron.value.tipoMantenimiento || null,
+      checklist:         formDron.value.checklist.length ? JSON.stringify(formDron.value.checklist) : null,
       bateriaViejaId:    formDron.value.bateriaViejaId ? Number(formDron.value.bateriaViejaId) : null,
       bateriaNuevaId:    formDron.value.bateriaNuevaId ? Number(formDron.value.bateriaNuevaId) : null,
       helicesViejasIds:  formDron.value.helicesViejasIds.map(Number),
@@ -165,22 +272,35 @@ const modalDock = ref({ open: false, loading: false, id: null })
 const formDock  = ref(emptyFormDock())
 
 function emptyFormDock() {
-  return { dockId: '', usuarioId: '', fechaMantenimiento: '', observaciones: '' }
+  return { dockId: '', usuarioId: '', fechaMantenimiento: '', tipoMantenimiento: '', checklist: [], observaciones: '' }
 }
 function openCrearDock() {
   formDock.value  = emptyFormDock()
   modalDock.value = { open: true, loading: false, id: null }
 }
 function openEditarDock(m) {
+  let cl = []
+  try { cl = m.checklist ? JSON.parse(m.checklist) : [] } catch { cl = [] }
   formDock.value = {
     dockId:            m.dockId    ?? '',
     usuarioId:         m.usuarioId ?? '',
     fechaMantenimiento: m.fechaMantenimiento ? m.fechaMantenimiento.substring(0, 16) : '',
+    tipoMantenimiento: m.tipoMantenimiento ?? '',
+    checklist:         cl,
     observaciones:     m.observaciones ?? '',
   }
   modalDock.value = { open: true, loading: false, id: m.id }
 }
 function closeDock() { modalDock.value.open = false }
+
+// Auto-cargar checklist al seleccionar tipo de mantenimiento dock
+watch(() => formDock.value.tipoMantenimiento, (tipo) => {
+  if (!tipo) { formDock.value.checklist = []; return }
+  const template = CHECKLIST_DOCK[tipo]
+  if (template && formDock.value.checklist.length === 0) {
+    formDock.value.checklist = template.map(i => ({ ...i }))
+  }
+})
 
 async function guardarDock() {
   if (!formDock.value.dockId || !formDock.value.usuarioId || !formDock.value.fechaMantenimiento) {
@@ -192,6 +312,8 @@ async function guardarDock() {
       dockId:            Number(formDock.value.dockId),
       usuarioId:         Number(formDock.value.usuarioId),
       fechaMantenimiento: formDock.value.fechaMantenimiento,
+      tipoMantenimiento: formDock.value.tipoMantenimiento || null,
+      checklist:         formDock.value.checklist.length ? JSON.stringify(formDock.value.checklist) : null,
       observaciones:     formDock.value.observaciones || null,
     }
     if (modalDock.value.id) {
@@ -216,6 +338,25 @@ async function confirmarEliminarDock() {
     showToast('Eliminado')
     mantenimientosDocks.value = await getMantenimientosDocks()
   } catch { showToast('Error al eliminar', 'err') }
+}
+
+// ─── Helpers checklist ───────────────────────────
+function checklistProgress(jsonStr) {
+  if (!jsonStr) return null
+  try {
+    const items = JSON.parse(jsonStr)
+    if (!items.length) return null
+    return { done: items.filter(i => i.checked).length, total: items.length }
+  } catch { return null }
+}
+
+function groupByCategoria(items) {
+  const map = {}
+  for (const item of items) {
+    if (!map[item.categoria]) map[item.categoria] = []
+    map[item.categoria].push(item)
+  }
+  return Object.entries(map).map(([cat, its]) => ({ cat, its }))
 }
 
 // ─── Stats ───────────────────────────────────────
@@ -294,7 +435,7 @@ const stats = computed(() => ({
         <table class="tbl">
           <thead>
             <tr>
-              <th>Dron</th><th>Técnico</th><th>Fecha</th><th>Baterías</th><th>Observaciones</th><th></th>
+              <th>Dron</th><th>Técnico</th><th>Fecha</th><th>Tipo</th><th>Checklist</th><th>Baterías</th><th>Observaciones</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -305,6 +446,21 @@ const stats = computed(() => ({
               </td>
               <td>{{ m.usuarioNombre || '—' }}</td>
               <td>{{ fmtDateTime(m.fechaMantenimiento) }}</td>
+              <td>
+                <span v-if="m.tipoMantenimiento" class="badge" :class="m.tipoMantenimiento === 'ESTANDAR' ? 'badge--std' : 'badge--basic'">
+                  {{ m.tipoMantenimiento === 'ESTANDAR' ? 'Estándar' : 'Básico' }}
+                </span>
+                <span v-else class="text-muted">—</span>
+              </td>
+              <td>
+                <template v-if="checklistProgress(m.checklist)">
+                  <span class="cl-progress" :class="{ 'cl-progress--done': checklistProgress(m.checklist).done === checklistProgress(m.checklist).total }">
+                    <ClipboardCheck class="w-3 h-3" />
+                    {{ checklistProgress(m.checklist).done }}/{{ checklistProgress(m.checklist).total }}
+                  </span>
+                </template>
+                <span v-else class="text-muted">—</span>
+              </td>
               <td>
                 <span v-if="m.bateriaViejaId" class="badge badge--out">↓ {{ m.bateriaViejaNombre }}</span>
                 <span v-if="m.bateriaNuevaId" class="badge badge--in">↑ {{ m.bateriaNuevaNombre }}</span>
@@ -329,7 +485,7 @@ const stats = computed(() => ({
       <div v-else class="tbl-wrap">
         <table class="tbl">
           <thead>
-            <tr><th>Dock</th><th>Técnico</th><th>Fecha</th><th>Observaciones</th><th></th></tr>
+            <tr><th>Dock</th><th>Técnico</th><th>Fecha</th><th>Tipo</th><th>Checklist</th><th>Observaciones</th><th></th></tr>
           </thead>
           <tbody>
             <tr v-for="m in mantenimientosDocks" :key="m.id">
@@ -339,6 +495,21 @@ const stats = computed(() => ({
               </td>
               <td>{{ m.usuarioNombre || '—' }}</td>
               <td>{{ fmtDateTime(m.fechaMantenimiento) }}</td>
+              <td>
+                <span v-if="m.tipoMantenimiento" class="badge" :class="m.tipoMantenimiento === 'ESTANDAR' ? 'badge--std' : 'badge--basic'">
+                  {{ m.tipoMantenimiento === 'ESTANDAR' ? 'Estándar' : 'Básico' }}
+                </span>
+                <span v-else class="text-muted">—</span>
+              </td>
+              <td>
+                <template v-if="checklistProgress(m.checklist)">
+                  <span class="cl-progress" :class="{ 'cl-progress--done': checklistProgress(m.checklist).done === checklistProgress(m.checklist).total }">
+                    <ClipboardCheck class="w-3 h-3" />
+                    {{ checklistProgress(m.checklist).done }}/{{ checklistProgress(m.checklist).total }}
+                  </span>
+                </template>
+                <span v-else class="text-muted">—</span>
+              </td>
               <td class="cell-obs">{{ m.observaciones || '—' }}</td>
               <td>
                 <div class="row-actions">
@@ -382,6 +553,29 @@ const stats = computed(() => ({
               <span>Fecha y hora <em>*</em></span>
               <input v-model="formDron.fechaMantenimiento" type="datetime-local" class="qnt-input" />
             </label>
+            <label class="field field--full">
+              <span>Tipo de mantenimiento</span>
+              <select v-model="formDron.tipoMantenimiento" class="qnt-input">
+                <option value="">Sin especificar</option>
+                <option value="BASICO">Básico (6 meses)</option>
+                <option value="ESTANDAR">Estándar (12 meses / 500 hs)</option>
+              </select>
+            </label>
+            <div v-if="formDron.checklist.length" class="field field--full">
+              <span>Checklist DJI Dock 3</span>
+              <div class="cl-body">
+                <template v-for="group in groupByCategoria(formDron.checklist)" :key="group.cat">
+                  <div class="cl-cat">{{ group.cat }}</div>
+                  <label v-for="(item, idx) in group.its" :key="idx" class="cl-item" :class="{ 'cl-item--done': item.checked }">
+                    <input type="checkbox" v-model="item.checked" />
+                    <span>{{ item.item }}</span>
+                  </label>
+                </template>
+              </div>
+              <div class="cl-summary">
+                {{ formDron.checklist.filter(i => i.checked).length }} / {{ formDron.checklist.length }} ítems completados
+              </div>
+            </div>
             <label class="field">
               <span>Batería retirada</span>
               <select v-model="formDron.bateriaViejaId" class="qnt-input">
@@ -464,6 +658,29 @@ const stats = computed(() => ({
               <span>Fecha y hora <em>*</em></span>
               <input v-model="formDock.fechaMantenimiento" type="datetime-local" class="qnt-input" />
             </label>
+            <label class="field field--full">
+              <span>Tipo de mantenimiento</span>
+              <select v-model="formDock.tipoMantenimiento" class="qnt-input">
+                <option value="">Sin especificar</option>
+                <option value="BASICO">Básico (6 meses)</option>
+                <option value="ESTANDAR">Estándar (12 meses / 500 hs)</option>
+              </select>
+            </label>
+            <div v-if="formDock.checklist.length" class="field field--full">
+              <span>Checklist DJI Dock 3</span>
+              <div class="cl-body">
+                <template v-for="group in groupByCategoria(formDock.checklist)" :key="group.cat">
+                  <div class="cl-cat">{{ group.cat }}</div>
+                  <label v-for="(item, idx) in group.its" :key="idx" class="cl-item" :class="{ 'cl-item--done': item.checked }">
+                    <input type="checkbox" v-model="item.checked" />
+                    <span>{{ item.item }}</span>
+                  </label>
+                </template>
+              </div>
+              <div class="cl-summary">
+                {{ formDock.checklist.filter(i => i.checked).length }} / {{ formDock.checklist.length }} ítems completados
+              </div>
+            </div>
             <label class="field field--full">
               <span>Observaciones</span>
               <textarea v-model="formDock.observaciones" class="qnt-input" rows="3" placeholder="Trabajo realizado..." />
@@ -618,4 +835,60 @@ const stats = computed(() => ({
 
 .toast-enter-active, .toast-leave-active { transition: opacity .2s, transform .2s; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
+
+/* Tipo badges */
+.badge--basic { background: #fef9c3; color: #854d0e; }
+.badge--std   { background: #eff6ff; color: #1e40af; }
+
+/* Checklist progress en tabla */
+.cl-progress {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .75rem; font-weight: 600; color: #b45309;
+  background: #fef9c3; padding: 2px 8px; border-radius: 999px;
+}
+.cl-progress--done { background: #dcfce7; color: #15803d; }
+
+/* Checklist en modal */
+.cl-body {
+  border: 1px solid var(--qnt-border, #e0e5e5);
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fafbfb;
+}
+.cl-cat {
+  padding: .45rem .75rem;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--qnt-muted, #536c6b);
+  background: #f0f4f4;
+  border-bottom: 1px solid var(--qnt-border, #e0e5e5);
+  position: sticky;
+  top: 0;
+}
+.cl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .45rem .75rem;
+  font-size: .8rem;
+  color: #1e293b;
+  border-bottom: 1px solid #f0f4f4;
+  cursor: pointer;
+  transition: background .1s;
+}
+.cl-item:last-child { border-bottom: none; }
+.cl-item:hover { background: #f3f5f5; }
+.cl-item input[type=checkbox] { accent-color: var(--qnt-primary, #113e4c); flex-shrink: 0; margin-top: 2px; }
+.cl-item--done span { text-decoration: line-through; color: var(--qnt-muted, #536c6b); }
+.cl-summary {
+  margin-top: .5rem;
+  font-size: .75rem;
+  color: var(--qnt-muted, #536c6b);
+  text-align: right;
+  font-weight: 600;
+}
 </style>
