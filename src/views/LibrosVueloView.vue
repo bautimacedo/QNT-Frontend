@@ -286,14 +286,15 @@ function limpiarFiltros() {
                 <option v-for="e in ENTIDADES" :key="e" :value="e">{{ e }}</option>
               </select>
             </label>
-            <label class="field">
-              <span>{{ form.entidadTipo === 'DRON' ? 'Dron' : 'ID Entidad' }} <em>*</em></span>
+            <label class="field" v-if="form.entidadTipo">
+              <span>{{ form.entidadTipo === 'DRON' ? 'Dron' : 'ID' }} <em>*</em></span>
               <select v-if="form.entidadTipo === 'DRON'" v-model="form.entidadId" class="qnt-input">
                 <option value="">Seleccionar dron...</option>
                 <option v-for="d in drones" :key="d.id" :value="d.id">{{ d.nombre || d.modelo }}</option>
               </select>
               <input v-else v-model="form.entidadId" type="number" class="qnt-input" placeholder="ej: 1" />
             </label>
+            <div class="field" v-else />
             <label class="field">
               <span>Tipo de evento</span>
               <select v-model="form.tipo" class="qnt-input">
