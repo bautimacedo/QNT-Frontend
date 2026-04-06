@@ -114,7 +114,7 @@ const modal = ref({ open: false, loading: false })
 const form  = ref(emptyForm())
 
 function emptyForm() {
-  return { entidadTipo: '', entidadId: '', tipo: 'VUELO', detalle: '', usuarioId: '', timestamp: '', misionId: '' }
+  return { entidadTipo: '', entidadId: '', tipo: 'VUELO', detalle: '', usuarioId: '', timestamp: '', misionId: '', minutosVuelo: '' }
 }
 function openCrear() {
   form.value  = emptyForm()
@@ -129,12 +129,13 @@ async function guardar() {
   modal.value.loading = true
   try {
     const payload = {
-      entidadTipo: form.value.entidadTipo,
-      entidadId:   Number(form.value.entidadId),
-      tipo:        form.value.tipo || null,
-      detalle:     form.value.detalle || null,
-      usuarioId:   form.value.usuarioId ? Number(form.value.usuarioId) : null,
-      timestamp:   form.value.timestamp ? new Date(form.value.timestamp).toISOString() : null,
+      entidadTipo:  form.value.entidadTipo,
+      entidadId:    Number(form.value.entidadId),
+      tipo:         form.value.tipo || null,
+      detalle:      form.value.detalle || null,
+      usuarioId:    form.value.usuarioId ? Number(form.value.usuarioId) : null,
+      timestamp:    form.value.timestamp ? new Date(form.value.timestamp).toISOString() : null,
+      minutosVuelo: form.value.minutosVuelo ? Number(form.value.minutosVuelo) : null,
     }
     await crearLog(payload)
     showToast('Registro creado')
@@ -315,6 +316,11 @@ function limpiarFiltros() {
                 <option v-for="m in misiones" :key="m.id" :value="m.id">{{ m.nombre }}</option>
               </select>
             </label>
+            <label class="field" v-if="form.tipo === 'VUELO'">
+              <span>Minutos de vuelo</span>
+              <input v-model="form.minutosVuelo" type="number" min="0" class="qnt-input" placeholder="ej: 45" />
+            </label>
+            <label class="field" v-else />
             <label class="field">
               <span>Fecha y hora</span>
               <input v-model="form.timestamp" type="datetime-local" class="qnt-input" />
