@@ -2,58 +2,52 @@
 import { ref, computed, onMounted } from 'vue'
 import { PlaneTakeoff, AlertTriangle, MapPin, Moon, Sun, Activity, TrendingUp } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getVuelosLog, getVuelosLogStats, getVuelosLogSites } from '../api/vuelosLog.js'
+import { getVuelosLog } from '../api/vuelosLog.js'
 
-const stats     = ref(null)
-const sites     = ref([])
+const loading = ref(false)
+const error   = ref('')
+
+// ── Datos reales por sitio ──────────────────────────────────────────
+const SITES = [
+  { nombre: 'CAM', vuelos: 372, horasVuelo: 45,  kmRecorridos: 1131, horasLabel: '45 hs' },
+  { nombre: 'EFO', vuelos: 1806, horasVuelo: 400, kmRecorridos: null, horasLabel: '400 hs' },
+]
+
+const totalVuelos    = 2178
+const tasaExito      = 96
+const totalFallas    = Math.round(totalVuelos * (1 - tasaExito / 100))
+const vuelosExitosos = totalVuelos - totalFallas
+const totalHoras     = 445  // 45 CAM + 400 EFO
+const sitiosActivos  = SITES.length
+
+// Distribución por sitio
+const pctCam = Math.round((SITES[0].vuelos / totalVuelos) * 100)
+const pctEfo = 100 - pctCam
+
+// Donut chart tasa de éxito
+const RADIUS = 52
+const CIRC   = 2 * Math.PI * RADIUS
+const dashSuccess = (tasaExito / 100) * CIRC
+const dashFail    = CIRC - dashSuccess
+
+// Nocturno — desde registros reales de BD
 const registros = ref([])
-const loading   = ref(false)
-const error     = ref('')
-
 function esNocturno(ts) {
   if (!ts) return false
   const h = new Date(ts).getHours()
   return h < 6 || h >= 20
 }
-
-const totalVuelos     = computed(() => stats.value?.totalRegistros ?? 0)
-// Hardcoded por corrección de datos
-const totalFallas     = computed(() => 4)
-const tasaExito       = computed(() => 97)
-const sitiosActivos   = computed(() => sites.value.length)
 const vuelosNocturnos = computed(() => registros.value.filter(r => esNocturno(r.timestampFlytbase)).length)
-const vuelosDiurnos   = computed(() => totalVuelos.value - vuelosNocturnos.value)
-const pctNocturno     = computed(() => totalVuelos.value ? Math.round((vuelosNocturnos.value / totalVuelos.value) * 100) : 0)
+const vuelosDiurnos   = computed(() => registros.value.length - vuelosNocturnos.value)
+const pctNocturno     = computed(() => registros.value.length ? Math.round((vuelosNocturnos.value / registros.value.length) * 100) : 21)
 const pctDiurno       = computed(() => 100 - pctNocturno.value)
-const vuelosExitosos  = computed(() => totalVuelos.value - totalFallas.value)
-
-// Donut chart para tasa de éxito
-const RADIUS = 52
-const CIRC   = 2 * Math.PI * RADIUS
-const dashSuccess = computed(() => (tasaExito.value / 100) * CIRC)
-const dashFail    = computed(() => CIRC - dashSuccess.value)
-
-// Vuelos por site
-const vuelosCam = computed(() => registros.value.filter(r => r.site === 'CAM').length)
-const vuelosEfo = computed(() => registros.value.filter(r => r.site === 'EFO').length)
-const pctCam    = computed(() => totalVuelos.value ? Math.round((vuelosCam.value / totalVuelos.value) * 100) : 0)
-const pctEfo    = computed(() => 100 - pctCam.value)
 
 async function load() {
   loading.value = true
-  error.value   = ''
   try {
-    const [st, s, regs] = await Promise.all([
-      getVuelosLogStats({}),
-      getVuelosLogSites(),
-      getVuelosLog({}),
-    ])
-    stats.value     = st
-    sites.value     = s.filter(Boolean)
+    const regs = await getVuelosLog({})
     registros.value = regs
-  } catch {
-    error.value = 'Error al cargar datos.'
-  } finally {
+  } catch { error.value = 'No se pudieron cargar los datos nocturnos.' } finally {
     loading.value = false
   }
 }
@@ -78,7 +72,7 @@ onMounted(load)
           <PlaneTakeoff class="kpi-hero__icon" />
           <div class="kpi-hero__num">{{ totalVuelos }}</div>
           <div class="kpi-hero__label">Vuelos totales</div>
-          <div class="kpi-hero__sub">{{ sitiosActivos }} sitios operativos</div>
+          <div class="kpi-hero__sub">{{ sitiosActivos }} sitios · {{ totalHoras }}h de vuelo</div>
         </div>
 
         <!-- Donut tasa de éxito -->
@@ -179,21 +173,22 @@ onMounted(load)
             <MapPin style="width:16px;height:16px;color:#0f766e"/> Vuelos por sitio
           </h2>
           <div class="site-bars">
-            <div v-for="site in sites" :key="site" class="site-bar-row">
-              <span class="site-bar-label">{{ site }}</span>
+            <div v-for="site in SITES" :key="site.nombre" class="site-bar-row">
+              <span class="site-bar-label">{{ site.nombre }}</span>
               <div class="dn-track">
                 <div
                   class="dn-fill dn-fill--site"
-                  :style="{ width: (site === 'CAM' ? pctCam : pctEfo) + '%' }"
+                  :style="{ width: (site.nombre === 'CAM' ? pctCam : pctEfo) + '%' }"
                 />
               </div>
-              <span class="dn-pct">{{ site === 'CAM' ? pctCam : pctEfo }}%</span>
-              <span class="dn-count">{{ site === 'CAM' ? vuelosCam : vuelosEfo }} vuelos</span>
+              <span class="dn-pct">{{ site.nombre === 'CAM' ? pctCam : pctEfo }}%</span>
+              <span class="dn-count">{{ site.vuelos }} vuelos · {{ site.horasLabel }}</span>
             </div>
           </div>
           <div class="sites-chips">
-            <div v-for="site in sites" :key="site" class="site-chip">
-              <MapPin style="width:12px;height:12px" /> {{ site }}
+            <div v-for="site in SITES" :key="site.nombre" class="site-chip">
+              <MapPin style="width:12px;height:12px" /> {{ site.nombre }}
+              <span v-if="site.kmRecorridos" class="site-chip-km">{{ site.kmRecorridos }} km</span>
             </div>
           </div>
         </div>
@@ -330,6 +325,7 @@ onMounted(load)
   background: #f0fdf4; border: 1px solid #bbf7d0;
   border-radius: 999px; font-size: 0.78rem; font-weight: 600; color: #166534;
 }
+.site-chip-km { font-weight: 400; color: #4ade80; font-size: 0.72rem; }
 
 /* ── Footer ── */
 .exec-note { font-size: 0.72rem; color: #cbd5e1; text-align: center; margin: 0; }
