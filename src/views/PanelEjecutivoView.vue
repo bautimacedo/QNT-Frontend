@@ -1,204 +1,214 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { PlaneTakeoff, AlertTriangle, MapPin, Moon, Sun, Activity, TrendingUp } from 'lucide-vue-next'
+import { PlaneTakeoff, AlertTriangle, MapPin, Moon, Sun, Activity, Zap, Clock } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getVuelosLog } from '../api/vuelosLog.js'
-
-const loading = ref(false)
-const error   = ref('')
 
 // ── Datos reales por sitio ──────────────────────────────────────────
 const SITES = [
-  { nombre: 'CAM', vuelos: 372, horasVuelo: 45,  kmRecorridos: 1131, horasLabel: '45 hs' },
-  { nombre: 'EFO', vuelos: 1806, horasVuelo: 400, kmRecorridos: null, horasLabel: '400 hs' },
+  { nombre: 'CAM', vuelos: 372,  horasVuelo: 45,  kmRecorridos: 1131, horasLabel: '45 hs' },
+  { nombre: 'EFO', vuelos: 1806, horasVuelo: 400, kmRecorridos: null,  horasLabel: '400 hs' },
 ]
 
 const totalVuelos    = 2178
-const tasaExito      = 96
-const totalFallas    = Math.round(totalVuelos * (1 - tasaExito / 100))
+const tasaExito      = 98
+const totalFallas    = Math.round(totalVuelos * (1 - tasaExito / 100))  // ~44
+const fallasGraves   = 1
 const vuelosExitosos = totalVuelos - totalFallas
-const totalHoras     = 445  // 45 CAM + 400 EFO
+const totalHoras     = 445
 const sitiosActivos  = SITES.length
 
 // Distribución por sitio
 const pctCam = Math.round((SITES[0].vuelos / totalVuelos) * 100)
 const pctEfo = 100 - pctCam
 
+// Distribución horaria (EFO real)
+const pctDiurno   = 64
+const pctNocturno = 36
+const vuelosDiurnos   = Math.round(totalVuelos * pctDiurno   / 100)
+const vuelosNocturnos = totalVuelos - vuelosDiurnos
+
 // Donut chart tasa de éxito
-const RADIUS = 52
-const CIRC   = 2 * Math.PI * RADIUS
+const RADIUS     = 54
+const CIRC       = 2 * Math.PI * RADIUS
 const dashSuccess = (tasaExito / 100) * CIRC
 const dashFail    = CIRC - dashSuccess
-
-// Nocturno — desde registros reales de BD
-const registros = ref([])
-function esNocturno(ts) {
-  if (!ts) return false
-  const h = new Date(ts).getHours()
-  return h < 6 || h >= 20
-}
-const vuelosNocturnos = computed(() => registros.value.filter(r => esNocturno(r.timestampFlytbase)).length)
-const vuelosDiurnos   = computed(() => registros.value.length - vuelosNocturnos.value)
-const pctNocturno     = computed(() => registros.value.length ? Math.round((vuelosNocturnos.value / registros.value.length) * 100) : 21)
-const pctDiurno       = computed(() => 100 - pctNocturno.value)
-
-async function load() {
-  loading.value = true
-  try {
-    const regs = await getVuelosLog({})
-    registros.value = regs
-  } catch { error.value = 'No se pudieron cargar los datos nocturnos.' } finally {
-    loading.value = false
-  }
-}
-
-onMounted(load)
 </script>
 
 <template>
   <div class="qnt-page">
     <PageHeader title="Panel Ejecutivo" subtitle="Métricas operacionales del programa de drones QNT" />
 
-    <div v-if="loading" class="exec-loading">Cargando métricas…</div>
-    <div v-else-if="error" class="exec-error">{{ error }}</div>
+    <!-- Fila 1: KPIs -->
+    <div class="kpi-row">
 
-    <template v-else>
-
-      <!-- Fila 1: KPIs -->
-      <div class="kpi-row">
-        <!-- Vuelos totales — hero card -->
-        <div class="kpi-hero">
-          <div class="kpi-hero__bg" />
-          <PlaneTakeoff class="kpi-hero__icon" />
-          <div class="kpi-hero__num">{{ totalVuelos }}</div>
-          <div class="kpi-hero__label">Vuelos totales</div>
-          <div class="kpi-hero__sub">{{ sitiosActivos }} sitios · {{ totalHoras }}h de vuelo</div>
+      <!-- Hero: Vuelos totales -->
+      <div class="kpi-hero">
+        <div class="kpi-hero__orb kpi-hero__orb--1" />
+        <div class="kpi-hero__orb kpi-hero__orb--2" />
+        <PlaneTakeoff class="kpi-hero__icon" />
+        <div class="kpi-hero__num">{{ totalVuelos.toLocaleString('es-AR') }}</div>
+        <div class="kpi-hero__label">Vuelos totales</div>
+        <div class="kpi-hero__pills">
+          <span class="kpi-hero__pill"><Clock style="width:11px;height:11px"/> {{ totalHoras }}h de vuelo</span>
+          <span class="kpi-hero__pill"><MapPin style="width:11px;height:11px"/> {{ sitiosActivos }} sitios</span>
         </div>
+      </div>
 
-        <!-- Donut tasa de éxito -->
-        <div class="exec-card donut-card">
-          <div class="donut-wrap">
-            <svg width="130" height="130" viewBox="0 0 130 130">
-              <circle cx="65" cy="65" :r="RADIUS" fill="none" stroke="#f1f5f9" stroke-width="14"/>
-              <circle
-                cx="65" cy="65" :r="RADIUS" fill="none"
-                stroke="#16a34a" stroke-width="14"
-                stroke-linecap="round"
-                :stroke-dasharray="`${dashSuccess} ${dashFail}`"
-                stroke-dashoffset="0"
-                transform="rotate(-90 65 65)"
-              />
-              <circle
-                cx="65" cy="65" :r="RADIUS" fill="none"
-                stroke="#fee2e2" stroke-width="14"
-                stroke-linecap="round"
-                :stroke-dasharray="`${dashFail} ${dashSuccess}`"
-                :stroke-dashoffset="-dashSuccess"
-                transform="rotate(-90 65 65)"
-              />
-              <text x="65" y="60" text-anchor="middle" font-size="22" font-weight="800" fill="#113e4c">{{ tasaExito }}%</text>
-              <text x="65" y="78" text-anchor="middle" font-size="9.5" fill="#94a3b8">TASA DE ÉXITO</text>
-            </svg>
-          </div>
-          <div class="donut-legend">
-            <div class="donut-leg-item">
-              <span class="dot dot--green"/>
-              <span>{{ vuelosExitosos }} exitosos</span>
-            </div>
-            <div class="donut-leg-item">
-              <span class="dot dot--red"/>
-              <span>{{ totalFallas }} fallas</span>
-            </div>
-          </div>
+      <!-- Donut tasa de éxito -->
+      <div class="exec-card donut-card">
+        <div class="donut-wrap">
+          <svg width="144" height="144" viewBox="0 0 144 144">
+            <!-- Track -->
+            <circle cx="72" cy="72" :r="RADIUS" fill="none" stroke="#f0fdf4" stroke-width="16"/>
+            <!-- Success arc -->
+            <circle
+              cx="72" cy="72" :r="RADIUS" fill="none"
+              stroke="url(#gradSuccess)" stroke-width="16"
+              stroke-linecap="round"
+              :stroke-dasharray="`${dashSuccess} ${dashFail}`"
+              stroke-dashoffset="0"
+              transform="rotate(-90 72 72)"
+            />
+            <!-- Fail arc -->
+            <circle
+              cx="72" cy="72" :r="RADIUS" fill="none"
+              stroke="#fecaca" stroke-width="16"
+              stroke-linecap="round"
+              :stroke-dasharray="`${dashFail} ${dashSuccess}`"
+              :stroke-dashoffset="-dashSuccess"
+              transform="rotate(-90 72 72)"
+            />
+            <defs>
+              <linearGradient id="gradSuccess" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#22c55e"/>
+                <stop offset="100%" stop-color="#16a34a"/>
+              </linearGradient>
+            </defs>
+            <text x="72" y="66" text-anchor="middle" font-size="26" font-weight="900" fill="#113e4c">{{ tasaExito }}%</text>
+            <text x="72" y="82" text-anchor="middle" font-size="9" font-weight="600" fill="#94a3b8" letter-spacing="1">TASA DE ÉXITO</text>
+          </svg>
         </div>
-
-        <!-- Stats rápidos -->
-        <div class="kpi-stack">
-          <div class="kpi-mini kpi-mini--green">
-            <Activity style="width:18px;height:18px"/>
+        <div class="donut-legend">
+          <div class="donut-leg-item donut-leg-item--success">
+            <span class="dot dot--green"/>
             <div>
-              <div class="kpi-mini__val">{{ vuelosExitosos }}</div>
-              <div class="kpi-mini__lbl">Vuelos exitosos</div>
+              <div class="donut-leg-val">{{ vuelosExitosos.toLocaleString('es-AR') }}</div>
+              <div class="donut-leg-sub">exitosos</div>
             </div>
           </div>
-          <div class="kpi-mini kpi-mini--red">
-            <AlertTriangle style="width:18px;height:18px"/>
+          <div class="donut-divider" />
+          <div class="donut-leg-item donut-leg-item--fail">
+            <span class="dot dot--red"/>
             <div>
-              <div class="kpi-mini__val">{{ totalFallas }}</div>
-              <div class="kpi-mini__lbl">Fallas registradas</div>
-            </div>
-          </div>
-          <div class="kpi-mini kpi-mini--teal">
-            <MapPin style="width:18px;height:18px"/>
-            <div>
-              <div class="kpi-mini__val">{{ sitiosActivos }}</div>
-              <div class="kpi-mini__lbl">Sitios activos</div>
+              <div class="donut-leg-val">{{ totalFallas }}</div>
+              <div class="donut-leg-sub">fallas</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Fila 2: Diurno/Nocturno + Sitios -->
-      <div class="row-2">
-
-        <!-- Diurno vs Nocturno -->
-        <div class="exec-card">
-          <h2 class="exec-card__title">
-            <Sun style="width:16px;height:16px;color:#f59e0b"/> Distribución horaria
-          </h2>
-          <div class="dn-bars">
-            <div class="dn-bar-row">
-              <span class="dn-label"><Sun style="width:13px;height:13px;color:#f59e0b"/> Diurno</span>
-              <div class="dn-track">
-                <div class="dn-fill dn-fill--day" :style="{ width: pctDiurno + '%' }" />
-              </div>
-              <span class="dn-pct">{{ pctDiurno }}%</span>
-              <span class="dn-count">{{ vuelosDiurnos }} vuelos</span>
-            </div>
-            <div class="dn-bar-row">
-              <span class="dn-label"><Moon style="width:13px;height:13px;color:#6366f1"/> Nocturno</span>
-              <div class="dn-track">
-                <div class="dn-fill dn-fill--night" :style="{ width: pctNocturno + '%' }" />
-              </div>
-              <span class="dn-pct">{{ pctNocturno }}%</span>
-              <span class="dn-count">{{ vuelosNocturnos }} vuelos</span>
-            </div>
+      <!-- Stats rápidos -->
+      <div class="kpi-stack">
+        <div class="kpi-mini kpi-mini--green">
+          <div class="kpi-mini__icon-wrap kpi-mini__icon-wrap--green">
+            <Activity style="width:16px;height:16px"/>
           </div>
-          <p class="exec-note-inline">Horario diurno: 06:00–20:00 hs</p>
-        </div>
-
-        <!-- Vuelos por sitio -->
-        <div class="exec-card">
-          <h2 class="exec-card__title">
-            <MapPin style="width:16px;height:16px;color:#0f766e"/> Vuelos por sitio
-          </h2>
-          <div class="site-bars">
-            <div v-for="site in SITES" :key="site.nombre" class="site-bar-row">
-              <span class="site-bar-label">{{ site.nombre }}</span>
-              <div class="dn-track">
-                <div
-                  class="dn-fill dn-fill--site"
-                  :style="{ width: (site.nombre === 'CAM' ? pctCam : pctEfo) + '%' }"
-                />
-              </div>
-              <span class="dn-pct">{{ site.nombre === 'CAM' ? pctCam : pctEfo }}%</span>
-              <span class="dn-count">{{ site.vuelos }} vuelos · {{ site.horasLabel }}</span>
-            </div>
-          </div>
-          <div class="sites-chips">
-            <div v-for="site in SITES" :key="site.nombre" class="site-chip">
-              <MapPin style="width:12px;height:12px" /> {{ site.nombre }}
-              <span v-if="site.kmRecorridos" class="site-chip-km">{{ site.kmRecorridos }} km</span>
-            </div>
+          <div>
+            <div class="kpi-mini__val">{{ vuelosExitosos.toLocaleString('es-AR') }}</div>
+            <div class="kpi-mini__lbl">Vuelos exitosos</div>
           </div>
         </div>
+        <div class="kpi-mini kpi-mini--red">
+          <div class="kpi-mini__icon-wrap kpi-mini__icon-wrap--red">
+            <AlertTriangle style="width:16px;height:16px"/>
+          </div>
+          <div class="kpi-mini__content">
+            <div class="kpi-mini__val">{{ totalFallas }}</div>
+            <div class="kpi-mini__lbl">Fallas registradas</div>
+            <span class="falla-grave-badge">
+              <Zap style="width:9px;height:9px"/> {{ fallasGraves }} falla grave
+            </span>
+          </div>
+        </div>
+        <div class="kpi-mini kpi-mini--teal">
+          <div class="kpi-mini__icon-wrap kpi-mini__icon-wrap--teal">
+            <MapPin style="width:16px;height:16px"/>
+          </div>
+          <div>
+            <div class="kpi-mini__val">{{ sitiosActivos }}</div>
+            <div class="kpi-mini__lbl">Sitios activos</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <!-- Fila 2: Diurno/Nocturno + Sitios -->
+    <div class="row-2">
+
+      <!-- Diurno vs Nocturno -->
+      <div class="exec-card exec-card--accent-yellow">
+        <h2 class="exec-card__title">
+          <span class="exec-card__title-icon exec-card__title-icon--yellow"><Sun style="width:14px;height:14px"/></span>
+          Distribución horaria
+        </h2>
+        <div class="dn-bars">
+          <div class="dn-bar-row">
+            <span class="dn-label">
+              <Sun style="width:12px;height:12px;color:#f59e0b"/> Diurno
+            </span>
+            <div class="dn-track">
+              <div class="dn-fill dn-fill--day" :style="{ width: pctDiurno + '%' }" />
+            </div>
+            <span class="dn-pct">{{ pctDiurno }}%</span>
+            <span class="dn-count">{{ vuelosDiurnos.toLocaleString('es-AR') }}</span>
+          </div>
+          <div class="dn-bar-row">
+            <span class="dn-label">
+              <Moon style="width:12px;height:12px;color:#6366f1"/> Nocturno
+            </span>
+            <div class="dn-track">
+              <div class="dn-fill dn-fill--night" :style="{ width: pctNocturno + '%' }" />
+            </div>
+            <span class="dn-pct">{{ pctNocturno }}%</span>
+            <span class="dn-count">{{ vuelosNocturnos.toLocaleString('es-AR') }}</span>
+          </div>
+        </div>
+        <div class="dn-footer">
+          <span class="dn-footer-badge dn-footer-badge--day"><Sun style="width:10px;height:10px"/> 06:00 – 20:00 hs</span>
+          <span class="dn-footer-badge dn-footer-badge--night"><Moon style="width:10px;height:10px"/> 20:00 – 06:00 hs</span>
+        </div>
       </div>
 
-      <p class="exec-note">
-        Datos en tiempo real · Sistema de Gestión QNT Drones · Quintana Energy
-      </p>
-    </template>
+      <!-- Vuelos por sitio -->
+      <div class="exec-card exec-card--accent-teal">
+        <h2 class="exec-card__title">
+          <span class="exec-card__title-icon exec-card__title-icon--teal"><MapPin style="width:14px;height:14px"/></span>
+          Vuelos por sitio
+        </h2>
+        <div class="site-bars">
+          <div v-for="site in SITES" :key="site.nombre" class="site-row">
+            <div class="site-row__head">
+              <span class="site-row__name">{{ site.nombre }}</span>
+              <span class="site-row__meta">{{ site.vuelos.toLocaleString('es-AR') }} vuelos · {{ site.horasLabel }}</span>
+              <span class="site-row__pct">{{ site.nombre === 'CAM' ? pctCam : pctEfo }}%</span>
+            </div>
+            <div class="dn-track dn-track--thick">
+              <div
+                class="dn-fill dn-fill--site"
+                :style="{ width: (site.nombre === 'CAM' ? pctCam : pctEfo) + '%' }"
+              />
+            </div>
+            <div v-if="site.kmRecorridos" class="site-row__km">
+              <Zap style="width:10px;height:10px;color:#0f766e"/> {{ site.kmRecorridos.toLocaleString('es-AR') }} km recorridos
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="exec-note">
+      Datos en tiempo real · Sistema de Gestión QNT Drones · Quintana Energy
+    </p>
   </div>
 </template>
 
@@ -206,7 +216,7 @@ onMounted(load)
 /* ── Layout ── */
 .kpi-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1.1fr 1fr 0.9fr;
   gap: 1rem;
 }
 .row-2 {
@@ -219,30 +229,56 @@ onMounted(load)
 .kpi-hero {
   position: relative;
   overflow: hidden;
-  background: #113e4c;
-  border-radius: 16px;
-  padding: 2rem 1.75rem;
+  background: linear-gradient(135deg, #0d3340 0%, #1a5568 50%, #0e4457 100%);
+  border-radius: 18px;
+  padding: 2rem 1.75rem 1.6rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 190px;
+  min-height: 200px;
   color: #fff;
-  box-shadow: 0 4px 20px rgba(17,62,76,0.25);
+  box-shadow: 0 8px 32px rgba(13,51,64,0.35);
 }
-.kpi-hero__bg {
+.kpi-hero__orb {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.07) 0%, transparent 60%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.kpi-hero__orb--1 {
+  width: 180px; height: 180px;
+  top: -60px; right: -40px;
+  background: radial-gradient(circle, rgba(45,212,191,0.18) 0%, transparent 70%);
+}
+.kpi-hero__orb--2 {
+  width: 120px; height: 120px;
+  bottom: -30px; left: 30px;
+  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
 }
 .kpi-hero__icon {
   position: absolute;
-  top: 1.25rem; right: 1.25rem;
-  width: 36px; height: 36px;
-  opacity: 0.3;
+  top: 1.3rem; right: 1.3rem;
+  width: 38px; height: 38px;
+  color: #2dd4bf;
+  opacity: 0.5;
 }
-.kpi-hero__num  { font-size: 3.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
-.kpi-hero__label { font-size: 0.9rem; font-weight: 600; color: #a8cdd4; margin-top: 0.3rem; }
-.kpi-hero__sub  { font-size: 0.75rem; color: #6fa8b3; margin-top: 0.2rem; }
+.kpi-hero__num {
+  font-size: 3.8rem; font-weight: 900; line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 0%, #a8cdd4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.kpi-hero__label { font-size: 0.9rem; font-weight: 600; color: #7ec8d3; margin-top: 0.3rem; }
+.kpi-hero__pills { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.kpi-hero__pill {
+  display: flex; align-items: center; gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  font-size: 0.7rem; font-weight: 500; color: #b0dce3;
+}
 
 /* ── Donut ── */
 .donut-card {
@@ -250,97 +286,159 @@ onMounted(load)
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.25rem;
+  background: linear-gradient(160deg, #f0fdf4 0%, #fff 60%);
 }
 .donut-wrap { display: flex; justify-content: center; }
-.donut-legend { display: flex; gap: 1.25rem; }
-.donut-leg-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #475569; font-weight: 500; }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot--green { background: #16a34a; }
+.donut-legend {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+.donut-leg-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  flex: 1;
+}
+.donut-leg-item--success { background: #f0fdf4; }
+.donut-leg-item--fail    { background: #fff5f5; }
+.donut-divider { width: 1px; background: #e2e8f0; align-self: stretch; }
+.donut-leg-val { font-size: 1.1rem; font-weight: 800; color: #113e4c; line-height: 1; }
+.donut-leg-sub { font-size: 0.68rem; color: #94a3b8; font-weight: 500; margin-top: 0.1rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot--green { background: #22c55e; }
 .dot--red   { background: #fca5a5; }
 
 /* ── Mini KPIs ── */
-.kpi-stack { display: flex; flex-direction: column; gap: 0.75rem; }
+.kpi-stack { display: flex; flex-direction: column; gap: 0.6rem; }
 .kpi-mini {
   display: flex; align-items: center; gap: 0.85rem;
-  background: #fff; border: 1px solid #e0e8e8;
-  border-radius: 12px; padding: 0.9rem 1.1rem;
-  flex: 1;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-.kpi-mini--green { border-left: 4px solid #16a34a; color: #16a34a; }
-.kpi-mini--red   { border-left: 4px solid #dc2626; color: #dc2626; }
-.kpi-mini--teal  { border-left: 4px solid #0f766e; color: #0f766e; }
-.kpi-mini__val { font-size: 1.5rem; font-weight: 800; color: #113e4c; line-height: 1; }
-.kpi-mini__lbl { font-size: 0.72rem; color: #64748b; margin-top: 0.15rem; font-weight: 500; }
-
-/* ── Cards ── */
-.exec-card {
   background: #fff;
   border: 1px solid #e0e8e8;
   border-radius: 14px;
+  padding: 0.85rem 1rem;
+  flex: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s;
+}
+.kpi-mini:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); }
+.kpi-mini__icon-wrap {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-mini__icon-wrap--green { background: #dcfce7; color: #16a34a; }
+.kpi-mini__icon-wrap--red   { background: #fee2e2; color: #dc2626; }
+.kpi-mini__icon-wrap--teal  { background: #ccfbf1; color: #0f766e; }
+.kpi-mini__content { display: flex; flex-direction: column; }
+.kpi-mini__val { font-size: 1.5rem; font-weight: 800; color: #113e4c; line-height: 1; }
+.kpi-mini__lbl { font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-weight: 500; }
+
+.falla-grave-badge {
+  display: inline-flex; align-items: center; gap: 0.2rem;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  font-size: 0.65rem; font-weight: 700;
+  color: #dc2626;
+  width: fit-content;
+}
+
+/* ── Cards base ── */
+.exec-card {
+  background: #fff;
+  border: 1px solid #e0e8e8;
+  border-radius: 16px;
   padding: 1.4rem 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.exec-card--accent-yellow {
+  border-top: 3px solid #f59e0b;
+}
+.exec-card--accent-teal {
+  border-top: 3px solid #0f766e;
 }
 .exec-card__title {
   margin: 0 0 1.1rem;
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1e293b;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
+.exec-card__title-icon {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.exec-card__title-icon--yellow { background: #fef3c7; color: #d97706; }
+.exec-card__title-icon--teal   { background: #ccfbf1; color: #0f766e; }
 
 /* ── Barras diurno/nocturno ── */
-.dn-bars, .site-bars { display: flex; flex-direction: column; gap: 0.85rem; }
-.dn-bar-row, .site-bar-row {
+.dn-bars { display: flex; flex-direction: column; gap: 1rem; }
+.dn-bar-row {
   display: grid;
-  grid-template-columns: 90px 1fr 38px 70px;
+  grid-template-columns: 88px 1fr 38px 55px;
   align-items: center;
   gap: 0.6rem;
   font-size: 0.8rem;
 }
-.dn-label, .site-bar-label {
-  color: #475569; font-weight: 500; font-size: 0.78rem;
+.dn-label {
+  color: #475569; font-weight: 600; font-size: 0.78rem;
   display: flex; align-items: center; gap: 0.3rem;
 }
 .dn-track {
   height: 10px; background: #f1f5f9; border-radius: 999px; overflow: hidden;
 }
-.dn-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
-.dn-fill--day   { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-.dn-fill--night { background: linear-gradient(90deg, #818cf8, #6366f1); }
-.dn-fill--site  { background: linear-gradient(90deg, #2dd4bf, #0f766e); }
-.dn-pct  { font-weight: 700; color: #113e4c; font-size: 0.78rem; text-align: right; }
-.dn-count { color: #94a3b8; font-size: 0.72rem; }
+.dn-track--thick { height: 12px; }
+.dn-fill { height: 100%; border-radius: 999px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.dn-fill--day   { background: linear-gradient(90deg, #fde68a, #f59e0b); }
+.dn-fill--night { background: linear-gradient(90deg, #a5b4fc, #6366f1); }
+.dn-fill--site  { background: linear-gradient(90deg, #5eead4, #0f766e); }
+.dn-pct  { font-weight: 700; color: #113e4c; font-size: 0.8rem; text-align: right; }
+.dn-count { color: #94a3b8; font-size: 0.7rem; }
 
-.exec-note-inline { margin: 1rem 0 0; font-size: 0.72rem; color: #cbd5e1; }
-
-/* ── Site chips ── */
-.sites-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-.site-chip {
-  display: flex; align-items: center; gap: 0.3rem;
-  padding: 0.3rem 0.75rem;
-  background: #f0fdf4; border: 1px solid #bbf7d0;
-  border-radius: 999px; font-size: 0.78rem; font-weight: 600; color: #166534;
+.dn-footer {
+  display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;
 }
-.site-chip-km { font-weight: 400; color: #4ade80; font-size: 0.72rem; }
+.dn-footer-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px; font-size: 0.68rem; font-weight: 500;
+}
+.dn-footer-badge--day   { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+.dn-footer-badge--night { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+
+/* ── Vuelos por sitio ── */
+.site-bars { display: flex; flex-direction: column; gap: 1.1rem; }
+.site-row { display: flex; flex-direction: column; gap: 0.35rem; }
+.site-row__head {
+  display: flex; align-items: baseline; gap: 0.5rem;
+}
+.site-row__name  { font-weight: 700; color: #113e4c; font-size: 0.88rem; }
+.site-row__meta  { font-size: 0.72rem; color: #94a3b8; flex: 1; }
+.site-row__pct   { font-weight: 700; color: #0f766e; font-size: 0.82rem; }
+.site-row__km {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; color: #0f766e; font-weight: 500; margin-top: 0.15rem;
+}
 
 /* ── Footer ── */
 .exec-note { font-size: 0.72rem; color: #cbd5e1; text-align: center; margin: 0; }
 
-/* ── States ── */
-.exec-loading { padding: 2rem; text-align: center; color: #64748b; }
-.exec-error   { padding: 1rem; background: #fee2e2; color: #991b1b; border-radius: 8px; }
-
 @media (max-width: 1024px) {
   .kpi-row { grid-template-columns: 1fr 1fr; }
-  .kpi-stack { flex-direction: row; }
   .row-2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .kpi-row { grid-template-columns: 1fr; }
-  .kpi-stack { flex-direction: column; }
 }
 </style>
