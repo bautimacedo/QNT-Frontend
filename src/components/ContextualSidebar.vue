@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Plane,
   PlaneTakeoff,
+  TrendingUp,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -65,6 +66,7 @@ const allSections = {
     { id: 'vuelos-cam',   label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'    },
   ],
   administracion: [
+    { id: 'panel-ejecutivo', label: 'Panel Ejecutivo',      icon: TrendingUp,   to: '/home/panel-ejecutivo', adminOnly: true },
     { id: 'mi-perfil',      label: 'Mi Perfil',            icon: UserCircle,   to: '/home/mi-perfil'                   },
     { id: 'perfil-piloto',  label: 'Perfil Piloto',        icon: Plane,        to: '/home/perfil-piloto', pilotoOnly: true },
     { id: 'pilotos',        label: 'Pilotos',              icon: Users,        to: '/home/pilotos',        adminOnly: true },

@@ -80,6 +80,7 @@ import ReportesView from '../views/ReportesView.vue'
 import CoberturaView from '../views/CoberturaView.vue'
 import VuelosFlytbaseView from '../views/VuelosFlytbaseView.vue'
 import VuelosCAMView from '../views/VuelosCAMView.vue'
+import PanelEjecutivoView from '../views/PanelEjecutivoView.vue'
 
 const routes = [
   // Pública — landing page
@@ -106,6 +107,7 @@ const routes = [
       { path: 'logs',                    name: 'logs',                        component: LibrosVueloView            },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
+      { path: 'panel-ejecutivo',          name: 'panel-ejecutivo',             component: PanelEjecutivoView         },
       { path: 'pilotos',                 name: 'pilotos',                     component: PilotosView                },
       { path: 'pilotos/:id',             name: 'piloto-perfil-detalle',       component: PilotoPerfilDetalleView    },
       { path: 'proveedores',             name: 'proveedores',                 component: ProveedoresView            },
