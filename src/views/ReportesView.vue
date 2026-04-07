@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { BarChart2, Target, Package, Wrench, DollarSign, Download, Filter, Calendar, FileText, AlertTriangle, ExternalLink, FlaskConical } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
+import { request, json } from '../api/http.js'
 import { apiBaseUrl } from '../api/config.js'
 
 // ─── Reportes de ejemplo ─────────────────────────
@@ -11,11 +12,8 @@ const loadingReportes = ref(false)
 onMounted(async () => {
   loadingReportes.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${apiBaseUrl}/reportes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    if (res.ok) reportes.value = await res.json()
+    const res = await request('/api/qnt/v1/reportes')
+    reportes.value = await json(res)
   } catch { /* silencioso */ }
   finally { loadingReportes.value = false }
 })
