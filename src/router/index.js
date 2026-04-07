@@ -32,9 +32,9 @@ const PILOT_FORBIDDEN_PREFIXES = [
 ]
 
 // Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar
-// Igual que pilotos + perfil-piloto (no son pilotos)
+// Pueden ver reportes y cobertura operativa, pero no el resto de admin
 const USUARIO_FORBIDDEN_PREFIXES = [
-  ...PILOT_FORBIDDEN_PREFIXES,
+  ...PILOT_FORBIDDEN_PREFIXES.filter(p => p !== '/home/reportes' && p !== '/home/cobertura'),
   '/home/perfil-piloto',
 ]
 import DashboardLayout from '../layouts/DashboardLayout.vue'
