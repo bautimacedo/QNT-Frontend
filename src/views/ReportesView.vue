@@ -1,36 +1,25 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { BarChart2, Target, Package, Wrench, DollarSign, Download, Filter, Calendar, FileText, AlertTriangle, ExternalLink, FlaskConical } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { request, json } from '../api/http.js'
 import { apiBaseUrl } from '../api/config.js'
 
-// ─── Reportes de ejemplo ─────────────────────────
-const reportes = ref([])
-const loadingReportes = ref(false)
+// ─── Reportes de ejemplo (hardcodeados) ──────────
+const reportes = ref([
+  {
+    nombre: 'Informe Termográfico — 27/03/2026',
+    archivo: 'Informe_Termografico_20260327_140630.pdf',
+    desc: 'Inspección termográfica de equipos en campo',
+  },
+  {
+    nombre: 'Mantenimiento Predictivo — Informe Termográfico CAM-194-72',
+    archivo: 'Mantenimiento_Predictivo-informe_termografico_CAm-194-72.pdf',
+    desc: 'Análisis predictivo basado en termografía infrarroja',
+  },
+])
 
-onMounted(async () => {
-  loadingReportes.value = true
-  try {
-    const res = await request('/api/qnt/v1/reportes')
-    reportes.value = await json(res)
-  } catch { /* silencioso */ }
-  finally { loadingReportes.value = false }
-})
-
-function downloadUrl(nombre) {
-  return `${apiBaseUrl}/reportes/descargar/${encodeURIComponent(nombre)}`
-}
-
-function formatSize(bytes) {
-  const n = Number(bytes)
-  if (n < 1024) return n + ' B'
-  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB'
-  return (n / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-function formatNombre(nombre) {
-  return nombre.replace(/_/g, ' ').replace(/\.pdf$/i, '')
+function downloadUrl(archivo) {
+  return `${apiBaseUrl}/reportes/descargar/${encodeURIComponent(archivo)}`
 }
 
 // ─── Feature cards ───────────────────────────────
@@ -96,22 +85,20 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
         </div>
       </div>
 
-      <div v-if="loadingReportes" class="rep-empty">Cargando reportes...</div>
-      <div v-else-if="!reportes.length" class="rep-empty">No se encontraron reportes de ejemplo.</div>
-      <div v-else class="rep-grid">
-        <div v-for="r in reportes" :key="r.nombre" class="rep-card">
+      <div class="rep-grid">
+        <div v-for="r in reportes" :key="r.archivo" class="rep-card">
           <div class="rep-card__icon">
             <FileText class="w-5 h-5" />
           </div>
           <div class="rep-card__info">
-            <p class="rep-card__name">{{ formatNombre(r.nombre) }}</p>
-            <p class="rep-card__meta">PDF · {{ formatSize(r.tamanio) }}</p>
+            <p class="rep-card__name">{{ r.nombre }}</p>
+            <p class="rep-card__meta">{{ r.desc }}</p>
           </div>
           <div class="rep-card__actions">
-            <a :href="downloadUrl(r.nombre)" target="_blank" class="rep-btn" title="Ver PDF">
+            <a :href="downloadUrl(r.archivo)" target="_blank" class="rep-btn">
               <ExternalLink class="w-3.5 h-3.5" /> Ver
             </a>
-            <a :href="downloadUrl(r.nombre)" :download="r.nombre" class="rep-btn rep-btn--dl" title="Descargar">
+            <a :href="downloadUrl(r.archivo)" :download="r.archivo" class="rep-btn rep-btn--dl">
               <Download class="w-3.5 h-3.5" /> Descargar
             </a>
           </div>
