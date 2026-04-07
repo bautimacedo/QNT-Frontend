@@ -17,6 +17,7 @@ const filtroHasta  = ref('')
 
 const EVENTOS = [
   { value: '',                 label: 'Todos los eventos' },
+  { value: 'VUELO',            label: 'Vuelo' },
   { value: 'DESPEGUE',         label: 'Despegue' },
   { value: 'ATERRIZAJE',       label: 'Aterrizaje' },
   { value: 'FALLA_DESPEGUE',   label: 'Falla de despegue' },
@@ -24,7 +25,8 @@ const EVENTOS = [
 ]
 
 const EVENTO_CONFIG = {
-  DESPEGUE:         { label: 'Despegue',         color: '#16a34a', bg: '#dcfce7' },
+  VUELO:            { label: 'Vuelo',             color: '#0369a1', bg: '#e0f2fe' },
+  DESPEGUE:         { label: 'Despegue',          color: '#16a34a', bg: '#dcfce7' },
   ATERRIZAJE:       { label: 'Aterrizaje',        color: '#2563eb', bg: '#dbeafe' },
   FALLA_DESPEGUE:   { label: 'Falla despegue',    color: '#dc2626', bg: '#fee2e2' },
   DESPEGUE_FALLIDO: { label: 'Despegue fallido',  color: '#dc2626', bg: '#fee2e2' },
@@ -95,7 +97,7 @@ const totalFiltrados = computed(() => registros.value.length)
 </script>
 
 <template>
-  <div class="vuelos-page">
+  <div class="qnt-page">
     <PageHeader title="Vuelos CAM" subtitle="Tareas FlightHub - Cañadón" />
 
     <!-- Stats cards -->
@@ -211,7 +213,6 @@ const totalFiltrados = computed(() => registros.value.length)
 </template>
 
 <style scoped>
-.vuelos-page { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .stats-row {
   display: grid;

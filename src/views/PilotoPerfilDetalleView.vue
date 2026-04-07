@@ -214,7 +214,7 @@ function closeLicImageModal() {
           </div>
           <div class="dato-item">
             <span class="dato-label">Venc. CMA (usuario)</span>
-            <span class="dato-value">{{ formatFecha(piloto.cmaVencimiento) }}</span>
+            <span class="dato-value">{{ formatFecha(getCmaFechaEfectiva(piloto)) }}</span>
           </div>
         </div>
       </div>

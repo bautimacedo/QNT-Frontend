@@ -31,6 +31,7 @@ const EVENTOS = [
 ]
 
 const EVENTO_CONFIG = {
+  VUELO:              { label: 'Vuelo',              color: '#0369a1', bg: '#e0f2fe', icon: 'takeoff'  },
   DESPEGUE:           { label: 'Despegue',          color: '#16a34a', bg: '#dcfce7', icon: 'takeoff'  },
   ATERRIZAJE:         { label: 'Aterrizaje',         color: '#2563eb', bg: '#dbeafe', icon: 'landing'  },
   FALLA_DESPEGUE:     { label: 'Falla despegue',     color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
@@ -110,7 +111,7 @@ const totalFiltrados = computed(() => registros.value.length)
 </script>
 
 <template>
-  <div class="vuelos-page">
+  <div class="qnt-page">
     <PageHeader title="Vuelos EFO" subtitle="Eventos FlytBase - Estación Fernández Oro" />
 
     <!-- Stats cards -->
@@ -243,7 +244,6 @@ const totalFiltrados = computed(() => registros.value.length)
 </template>
 
 <style scoped>
-.vuelos-page { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* Stats */
 .stats-row {
