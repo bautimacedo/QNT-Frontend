@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Search, RefreshCw, Users, UserCheck, UserX, Clock, Shield } from 'lucide-vue-next'
+import { Search, RefreshCw, Users, UserCheck, UserX, Clock, Shield, Trash2 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import {
@@ -13,6 +13,7 @@ import {
   assignRole,
   removeRole,
 } from '../api'
+import { eliminarUsuario } from '../api/usuarios.js'
 
 const activeTab = ref('todos')
 const usuarios = ref([])
@@ -197,6 +198,13 @@ function handleRechazar(u) {
     async () => { await disableUsuario(u.email); showToast(`Usuario ${u.nombre || u.email} rechazado.`) },
   )
 }
+function handleEliminar(u) {
+  openConfirm(
+    'Eliminar usuario',
+    `¿Eliminar permanentemente a ${u.nombre || ''} (${u.email})? Esta acción no se puede deshacer.`,
+    async () => { await eliminarUsuario(u.id); showToast(`Usuario ${u.nombre || u.email} eliminado.`) },
+  )
+}
 
 function refreshCurrent() {
   if (activeTab.value === 'todos') fetchTodos()
@@ -293,6 +301,9 @@ onUnmounted(() => clearTimeout(toastTimer))
             <button v-if="u.estado === 'ACTIVO'" class="uca-btn uca-btn--deactivate" @click="handleDesactivar(u)">Desactivar</button>
             <button class="uca-btn" @click="openModal('asignar', u)">Asignar rol</button>
             <button v-if="u.roles?.length > 1" class="uca-btn uca-btn--danger" @click="openModal('quitar', u)">Quitar rol</button>
+            <button class="uca-btn uca-btn--delete" @click="handleEliminar(u)" title="Eliminar usuario">
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -486,6 +497,8 @@ onUnmounted(() => clearTimeout(toastTimer))
 .uca-btn--deactivate:hover { background: #fef3c7; }
 .uca-btn--danger    { color: #991b1b; border-color: #fecaca; }
 .uca-btn--danger:hover { background: #fee2e2; }
+.uca-btn--delete    { color: #6b7280; border-color: #e5e7eb; padding: 0.28rem 0.5rem; margin-left: auto; }
+.uca-btn--delete:hover { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 
 /* Modal */
 .modal-hd { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
