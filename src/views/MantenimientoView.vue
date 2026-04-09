@@ -133,12 +133,11 @@ onMounted(async () => {
   loading.value = true
   error.value   = ''
   try {
-    const [md, mk, dr, dk, us, bt, he] = await Promise.all([
+    const [md, mk, dr, dk, bt, he] = await Promise.all([
       getMantenimientosDrones(),
       getMantenimientosDocks(),
       getList('drones'),
       getList('docks'),
-      getPilotos(),
       getList('baterias'),
       getList('helices'),
     ])
@@ -146,7 +145,6 @@ onMounted(async () => {
     mantenimientosDocks.value  = mk
     drones.value   = dr
     docks.value    = dk
-    usuarios.value = us
     baterias.value = bt
     helices.value  = he
   } catch {
@@ -154,6 +152,8 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  // Pilotos solo disponible para ADMIN; si falla, se ignora
+  try { usuarios.value = await getPilotos() } catch { /* sin acceso */ }
 })
 
 // ─── Helpers ─────────────────────────────────────

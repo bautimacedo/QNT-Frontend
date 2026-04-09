@@ -40,9 +40,8 @@ onMounted(async () => {
   loading.value = true
   error.value   = ''
   try {
-    const [l, u, dr, ms] = await Promise.all([getLogs(), getPilotos(), getList('drones'), getMisiones()])
+    const [l, dr, ms] = await Promise.all([getLogs(), getList('drones'), getMisiones()])
     logs.value     = l
-    usuarios.value = u
     drones.value   = dr
     misiones.value = ms
   } catch {
@@ -50,6 +49,8 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  // Pilotos solo disponible para ADMIN; si falla, se ignora
+  try { usuarios.value = await getPilotos() } catch { /* sin acceso */ }
 })
 
 async function aplicarFiltro() {
