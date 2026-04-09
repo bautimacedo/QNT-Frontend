@@ -33,6 +33,7 @@ const TIPOS = [
   { value: 'COMPROBANTE_PAGO',      label: 'Comprobante de Pago',      icon: CreditCard,    color: '#166534', bg: '#dcfce7' },
   { value: 'FACTURA',               label: 'Factura',                  icon: Receipt,       color: '#92400e', bg: '#fef3c7' },
   { value: 'SOLICITUD_PRESUPUESTO', label: 'Solicitud de Presupuesto', icon: FileCheck,     color: '#6b21a8', bg: '#f3e8ff' },
+  { value: 'OTROS',                 label: 'Otros',                    icon: FileText,      color: '#374151', bg: '#f3f4f6' },
 ]
 const tipoMap = Object.fromEntries(TIPOS.map(t => [t.value, t]))
 
