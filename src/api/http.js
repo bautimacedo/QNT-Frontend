@@ -68,7 +68,7 @@ async function request(path, options = {}, { skipAuth = false } = {}) {
  * Compatible con el objeto tipo Response que devuelve request().
  */
 async function json(res) {
-  if (res.data !== undefined && res.data !== null && typeof res.data === 'object' && !(res.data instanceof Blob)) {
+  if (res.ok && res.data !== undefined && res.data !== null && typeof res.data === 'object' && !(res.data instanceof Blob)) {
     return res.data
   }
   const text = await res.text()
