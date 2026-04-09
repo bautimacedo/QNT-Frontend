@@ -52,7 +52,7 @@ const isUsuario = computed(() => {
 const allSections = {
   dashboard: [
     { id: 'home',     label: 'Resumen',          icon: LayoutDashboard, to: '/home'               },
-    { id: 'tareas',   label: 'Tablero de Tareas', icon: ClipboardList,   to: '/home/tareas',   adminOnly: true },
+    { id: 'tareas',   label: 'Tablero de Tareas', icon: ClipboardList,   to: '/home/tareas'   },
     { id: 'reportes', label: 'Reportes',          icon: FileBarChart2,   to: '/home/reportes' },
   ],
   operaciones: [

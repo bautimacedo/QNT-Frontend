@@ -16,7 +16,6 @@ function getAuthoritiesFromToken() {
 
 // Rutas que los pilotos (ROLE_PILOTO sin ROLE_ADMIN) NO pueden visitar
 const PILOT_FORBIDDEN_PREFIXES = [
-  '/home/tareas',
   '/home/mapa',
   '/home/pilotos',
   '/home/proveedores',
