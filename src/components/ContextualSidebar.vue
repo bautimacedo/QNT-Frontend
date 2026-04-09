@@ -58,9 +58,9 @@ const allSections = {
   operaciones: [
     { id: 'misiones',      label: 'Misiones',            icon: Target,        to: '/home/misiones'      },
     { id: 'cobertura',     label: 'Cobertura Operativa',  icon: Shield,        to: '/home/cobertura'     },
-    { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias',   adminOnly: true },
-    { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock',         adminOnly: true },
-    { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento', adminOnly: true },
+    { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias'   },
+    { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock'         },
+    { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento' },
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
     { id: 'vuelos-efo',    label: 'Vuelos EFO',           icon: PlaneTakeoff,  to: '/home/vuelos-efo'    },
     { id: 'vuelos-cam',   label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'    },
@@ -73,8 +73,8 @@ const allSections = {
     { id: 'proveedores',    label: 'Proveedores',          icon: Building2,    to: '/home/proveedores',    adminOnly: true },
     { id: 'compras',        label: 'Compras',              icon: ShoppingCart, to: '/home/compras',        adminOnly: true },
     { id: 'usuarios',       label: 'Gestión de Usuarios',  icon: Settings,     to: '/home/usuarios',       adminOnly: true },
-    { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias',      adminOnly: true },
-    { id: 'seguros',        label: 'Seguros',              icon: FileCheck,    to: '/home/seguros',        adminOnly: true },
+    { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias'      },
+    { id: 'seguros',        label: 'Seguros',              icon: FileCheck,    to: '/home/seguros'        },
   ],
 }
 

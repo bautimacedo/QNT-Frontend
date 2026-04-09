@@ -17,24 +17,16 @@ function getAuthoritiesFromToken() {
 // Rutas que los pilotos (ROLE_PILOTO sin ROLE_ADMIN) NO pueden visitar
 const PILOT_FORBIDDEN_PREFIXES = [
   '/home/tareas',
-  '/home/reportes',
-  '/home/cobertura',
-  '/home/emergencias',
-  '/home/stock',
   '/home/mapa',
-  '/home/mantenimiento',
   '/home/pilotos',
   '/home/proveedores',
   '/home/compras',
   '/home/usuarios',
-  '/home/licencias',
-  '/home/seguros',
 ]
 
 // Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar
-// Pueden ver reportes y cobertura operativa, pero no el resto de admin
 const USUARIO_FORBIDDEN_PREFIXES = [
-  ...PILOT_FORBIDDEN_PREFIXES.filter(p => p !== '/home/reportes' && p !== '/home/cobertura'),
+  ...PILOT_FORBIDDEN_PREFIXES,
   '/home/perfil-piloto',
 ]
 import DashboardLayout from '../layouts/DashboardLayout.vue'
