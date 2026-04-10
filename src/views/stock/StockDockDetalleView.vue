@@ -34,6 +34,7 @@ const editModal = ref({
   numeroSerie: '',
   garantia: '',
   estado: '',
+  yacimiento: '',
   latitud: '',
   longitud: '',
   altitud: '',
@@ -59,6 +60,7 @@ function openEdit() {
     numeroSerie: o.numeroSerie || '',
     garantia: o.garantia || '',
     estado: o.estado || '',
+    yacimiento: o.yacimiento || '',
     latitud: o.latitud != null ? String(o.latitud) : '',
     longitud: o.longitud != null ? String(o.longitud) : '',
     altitud: o.altitud != null ? String(o.altitud) : '',
@@ -82,6 +84,7 @@ async function saveEdit() {
       numeroSerie: editModal.value.numeroSerie || null,
       garantia: editModal.value.garantia || null,
       estado: editModal.value.estado,
+      yacimiento: editModal.value.yacimiento || null,
       latitud: parseCoord(editModal.value.latitud),
       longitud: parseCoord(editModal.value.longitud),
       altitud: parseCoord(editModal.value.altitud),
@@ -170,6 +173,15 @@ onMounted(load)
             <label>Estado</label>
             <select v-model="editModal.estado" class="form-input">
               <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Yacimiento</label>
+            <select v-model="editModal.yacimiento" class="form-input">
+              <option value="">Sin asignar</option>
+              <option value="CAM">CAM</option>
+              <option value="EFO">EFO</option>
+              <option value="CANADON_LEON">Cañadón León</option>
             </select>
           </div>
           <div class="form-group form-group--coords">

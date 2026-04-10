@@ -34,6 +34,7 @@ const editModal = ref({
   numeroSerie: '',
   garantia: '',
   estado: '',
+  yacimiento: '',
 })
 
 const toast = ref('')
@@ -56,6 +57,7 @@ function openEdit() {
     numeroSerie: o.numeroSerie || '',
     garantia: o.garantia || '',
     estado: o.estado || '',
+    yacimiento: o.yacimiento || '',
   }
 }
 
@@ -75,6 +77,7 @@ async function saveEdit() {
       numeroSerie: editModal.value.numeroSerie || null,
       garantia: editModal.value.garantia || null,
       estado: editModal.value.estado,
+      yacimiento: editModal.value.yacimiento || null,
     }
     item.value = await updateItem(TIPO, body)
     closeEdit()
@@ -160,6 +163,15 @@ onMounted(load)
             <label>Estado</label>
             <select v-model="editModal.estado" class="form-input">
               <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Yacimiento</label>
+            <select v-model="editModal.yacimiento" class="form-input">
+              <option value="">Sin asignar</option>
+              <option value="CAM">CAM</option>
+              <option value="EFO">EFO</option>
+              <option value="CANADON_LEON">Cañadón León</option>
             </select>
           </div>
           <div v-if="editModal.apiError" class="modal-banner modal-banner--error">{{ editModal.apiError }}</div>
