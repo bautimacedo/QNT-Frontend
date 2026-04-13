@@ -14,7 +14,7 @@ import { getPilotos, getList } from '../api'
 const user = inject('dashboardUser')
 const isAdmin  = computed(() => user.value?.authorities?.includes('ROLE_ADMIN'))
 const isPiloto = computed(() => user.value?.authorities?.includes('ROLE_PILOTO'))
-const canLaunch = (m) => (isAdmin.value || isPiloto.value) && m.estado === 'PLANIFICADA' && !!m.dronNombre
+const canLaunch = (m) => (isAdmin.value || isPiloto.value) && (m.estado === 'PLANIFICADA' || m.estado === 'COMPLETADA') && !!m.dronNombre
 
 // ─── estado ─────────────────────────────────────
 const misiones    = ref([])
