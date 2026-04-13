@@ -64,6 +64,7 @@ export {
   actualizarMision,
   cambiarEstadoMision,
   eliminarMision,
+  lanzarMision,
 } from './misiones.js'
 
 export {

@@ -43,3 +43,8 @@ export async function eliminarMision(id) {
   if (res.status === 204) return null
   return json(res)
 }
+
+export async function lanzarMision(id) {
+  const res = await request(`/misiones/${id}/lanzar`, { method: 'POST' })
+  return json(res)
+}

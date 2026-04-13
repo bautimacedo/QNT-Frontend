@@ -2,15 +2,19 @@
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import {
   Target, Plus, Search, RefreshCw, X, ChevronDown,
-  User, Cpu, Box, AlertTriangle, CheckCircle2, Clock, Ban, Pencil, Trash2,
+  User, Cpu, Box, AlertTriangle, CheckCircle2, Clock, Ban, Pencil, Trash2, Rocket, Tv2,
 } from 'lucide-vue-next'
+
+const COCKPIT_URL = 'https://guest.flytbase.com/video-feed/55e675a015b7ee1f59c16f12e8a8a9d3cb5cc82036bfbae414741e0eaa2a1832'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { getMisiones, crearMision, actualizarMision, cambiarEstadoMision, eliminarMision } from '../api'
+import { getMisiones, crearMision, actualizarMision, cambiarEstadoMision, eliminarMision, lanzarMision } from '../api'
 import { getPilotos, getList } from '../api'
 
 // ─── auth ───────────────────────────────────────
 const user = inject('dashboardUser')
-const isAdmin = computed(() => user.value?.authorities?.includes('ROLE_ADMIN'))
+const isAdmin  = computed(() => user.value?.authorities?.includes('ROLE_ADMIN'))
+const isPiloto = computed(() => user.value?.authorities?.includes('ROLE_PILOTO'))
+const canLaunch = (m) => (isAdmin.value || isPiloto.value) && m.estado === 'PLANIFICADA' && !!m.dronNombre
 
 // ─── estado ─────────────────────────────────────
 const misiones    = ref([])
@@ -123,9 +127,10 @@ const form  = ref(emptyForm())
 
 function emptyForm() {
   return {
-    nombre: '', descripcion: '', observaciones: '', linkRtsp: '',
+    nombre: '', descripcion: '', observaciones: '',
     categoria: 'OTRO', prioridad: 'MEDIA', estado: 'PLANIFICADA',
-    pilotoId: null, dronId: null, dockId: null,
+    dronId: null,
+    webhookUrl: '', webhookBearer: '',
   }
 }
 
@@ -139,13 +144,12 @@ function openEdit(m) {
     nombre: m.nombre || '',
     descripcion: m.descripcion || '',
     observaciones: m.observaciones || '',
-    linkRtsp: m.linkRtsp || '',
     categoria: m.categoria || 'OTRO',
     prioridad: m.prioridad || 'MEDIA',
     estado: m.estado || 'PLANIFICADA',
-    pilotoId: m.pilotoId || null,
     dronId: m.dronId || null,
-    dockId: m.dockId || null,
+    webhookUrl: m.webhookUrl || '',
+    webhookBearer: '',
   }
   modal.value = { open: true, loading: false, mision: m }
 }
@@ -154,7 +158,6 @@ function closeModal() { modal.value.open = false }
 
 async function submitModal() {
   if (!form.value.nombre?.trim()) return
-  if (!form.value.pilotoId) return
 
   modal.value.loading = true
   try {
@@ -193,6 +196,36 @@ async function onCambiarEstado(mision, nuevoEstado) {
     showToast(`Estado cambiado a ${estadoCfg(nuevoEstado).label}`)
   } catch {
     showToast('Error al cambiar estado', 'error')
+  }
+}
+
+// ─── cockpit video ──────────────────────────────
+const cockpit = ref({ open: false })
+function openCockpit()  { cockpit.value.open = true }
+function closeCockpit() { cockpit.value.open = false }
+
+// ─── lanzar misión ──────────────────────────────
+const confirmLanzar = ref({ open: false, mision: null, loading: false })
+
+function openLanzar(m) { confirmLanzar.value = { open: true, mision: m, loading: false } }
+function closeLanzar()  { confirmLanzar.value.open = false }
+
+async function doLanzar() {
+  const m = confirmLanzar.value.mision
+  if (!m) return
+  confirmLanzar.value.loading = true
+  try {
+    await lanzarMision(m.id)
+    // Actualizar estado local en la lista
+    const idx = misiones.value.findIndex(x => x.id === m.id)
+    if (idx !== -1) misiones.value[idx] = { ...misiones.value[idx], estado: 'EN_CURSO' }
+    showToast(`Misión '${m.nombre}' lanzada en FlytBase`)
+    closeLanzar()
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || 'Error al lanzar la misión'
+    showToast(msg, 'error')
+  } finally {
+    confirmLanzar.value.loading = false
   }
 }
 
@@ -253,6 +286,31 @@ async function doDelete() {
         </button>
       </template>
     </PageHeader>
+
+    <!-- Cockpit card -->
+    <div
+      @click="openCockpit"
+      style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-radius:14px;border:1px solid #1e3540;background:linear-gradient(135deg,#05141a,#0a2530);margin-bottom:1.25rem;cursor:pointer;transition:box-shadow .2s;"
+      @mouseenter="$event.currentTarget.style.boxShadow='0 4px 24px rgba(0,180,210,.15)'"
+      @mouseleave="$event.currentTarget.style.boxShadow='none'"
+    >
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0a4a5c,#0a6875);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <Tv2 style="width:22px;height:22px;color:#7dd3e0;" />
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 8px rgba(239,68,68,.7);" />
+            <span style="font-size:.875rem;font-weight:700;color:#fff;">Cockpit EFO — En vivo</span>
+          </div>
+          <span style="font-size:.75rem;color:#4a8a9a;">EFO-Q1 · Estación Fernández Oro · Transmisión FlytBase</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.375rem;padding:.5rem 1rem;border-radius:8px;background:rgba(125,211,224,.08);border:1px solid #1e5060;color:#7dd3e0;font-size:.8125rem;font-weight:600;flex-shrink:0;">
+        <Tv2 style="width:14px;height:14px;" />
+        Ver transmisión
+      </div>
+    </div>
 
     <!-- Filtros -->
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;">
@@ -396,6 +454,15 @@ async function doDelete() {
               <!-- Acciones -->
               <td style="padding:.875rem 1rem;text-align:right;">
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:.375rem;">
+                  <button v-if="canLaunch(m)" @click="openLanzar(m)"
+                    title="Lanzar misión"
+                    style="display:flex;align-items:center;gap:.375rem;padding:.375rem .625rem;border-radius:6px;border:1px solid #86efac;background:#f0fdf4;font-size:.6875rem;font-weight:700;color:#15803d;cursor:pointer;"
+                    @mouseenter="$event.currentTarget.style.background='#dcfce7'"
+                    @mouseleave="$event.currentTarget.style.background='#f0fdf4'"
+                  >
+                    <Rocket style="width:12px;height:12px;" />
+                    Lanzar
+                  </button>
                   <button @click="openEdit(m)"
                     title="Editar"
                     style="width:30px;height:30px;border-radius:6px;border:1px solid #e0e8e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#536c6b;"
@@ -449,18 +516,6 @@ async function doDelete() {
                 style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
             </div>
 
-            <!-- Piloto -->
-            <div>
-              <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Piloto *</label>
-              <select v-model="form.pilotoId"
-                style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;background:#fff;">
-                <option :value="null" disabled>Seleccioná un piloto</option>
-                <option v-for="p in pilotos" :key="p.id" :value="p.id">
-                  {{ p.nombre }} {{ p.apellido }}
-                </option>
-              </select>
-            </div>
-
             <!-- Categoría + Prioridad -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
               <div>
@@ -502,32 +557,39 @@ async function doDelete() {
                 style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;resize:vertical;box-sizing:border-box;" />
             </div>
 
-            <!-- Dron + Dock -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Dron <span style="font-weight:400;color:#a0b5b5;">(opcional)</span></label>
-                <select v-model="form.dronId"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;background:#fff;">
-                  <option :value="null">Sin dron</option>
-                  <option v-for="d in drones" :key="d.id" :value="d.id">{{ d.nombre }}</option>
-                </select>
-              </div>
-              <div>
-                <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Dock <span style="font-weight:400;color:#a0b5b5;">(opcional)</span></label>
-                <select v-model="form.dockId"
-                  style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;background:#fff;">
-                  <option :value="null">Sin dock</option>
-                  <option v-for="d in docks" :key="d.id" :value="d.id">{{ d.nombre }}</option>
-                </select>
-              </div>
+            <!-- Dron -->
+            <div>
+              <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Dron <span style="font-weight:400;color:#a0b5b5;">(opcional — el dock se obtiene automáticamente)</span></label>
+              <select v-model="form.dronId"
+                style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;background:#fff;">
+                <option :value="null">Sin dron</option>
+                <option v-for="d in drones" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+              </select>
             </div>
 
-            <!-- Link RTSP -->
-            <div>
-              <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Link RTSP <span style="font-weight:400;color:#a0b5b5;">(opcional)</span></label>
-              <input v-model="form.linkRtsp" placeholder="rtsp://…"
-                style="width:100%;padding:.625rem .875rem;border-radius:8px;border:1px solid #e0e8e8;font-size:.875rem;color:#113e4c;outline:none;box-sizing:border-box;" />
-            </div>
+            <!-- FlytBase Webhook (solo ADMIN) -->
+            <template v-if="isAdmin">
+              <div style="padding:.75rem;border-radius:10px;background:#f0fdf4;border:1px solid #86efac;">
+                <p style="font-size:.6875rem;font-weight:700;color:#15803d;margin:0 0 .75rem;display:flex;align-items:center;gap:.375rem;">
+                  <Rocket style="width:12px;height:12px;" /> Configuración FlytBase (EFO)
+                </p>
+                <div style="display:flex;flex-direction:column;gap:.625rem;">
+                  <div>
+                    <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Webhook URL</label>
+                    <input v-model="form.webhookUrl" placeholder="https://api.flytbase.com/v2/integrations/webhook/…"
+                      style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid #d1fae5;font-size:.8125rem;color:#113e4c;outline:none;box-sizing:border-box;" />
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">
+                      Bearer Token
+                      <span v-if="modal.mision" style="font-weight:400;color:#a0b5b5;">(dejá vacío para no cambiarlo)</span>
+                    </label>
+                    <input v-model="form.webhookBearer" type="password" placeholder="Token de autorización"
+                      style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid #d1fae5;font-size:.8125rem;color:#113e4c;outline:none;box-sizing:border-box;" />
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
 
           <!-- Footer modal -->
@@ -536,11 +598,86 @@ async function doDelete() {
               style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
               Cancelar
             </button>
-            <button @click="submitModal" :disabled="modal.loading || !form.nombre?.trim() || !form.pilotoId"
+            <button @click="submitModal" :disabled="modal.loading || !form.nombre?.trim()"
               style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#fff;background:linear-gradient(135deg,#113e4c,#2b555b);border:none;cursor:pointer;opacity:1;transition:opacity .15s;"
-              :style="{ opacity: (modal.loading || !form.nombre?.trim() || !form.pilotoId) ? '.5' : '1' }"
+              :style="{ opacity: (modal.loading || !form.nombre?.trim()) ? '.5' : '1' }"
             >
               {{ modal.loading ? 'Guardando…' : (modal.mision ? 'Guardar cambios' : 'Crear misión') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ═══ Cockpit video en vivo ═══ -->
+    <Teleport to="body">
+      <div v-if="cockpit.open"
+        style="position:fixed;inset:0;z-index:1200;background:#05141a;display:flex;flex-direction:column;"
+      >
+        <!-- Header cockpit -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.5rem;border-bottom:1px solid #1e3540;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:.875rem;">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#113e4c,#0a6875);display:flex;align-items:center;justify-content:center;">
+              <Tv2 style="width:18px;height:18px;color:#7dd3e0;" />
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 6px #ef4444;" />
+                <span style="font-size:.875rem;font-weight:700;color:#fff;letter-spacing:.02em;">COCKPIT EFO — EN VIVO</span>
+              </div>
+              <span style="font-size:.6875rem;color:#4a8a9a;">EFO-Q1 · Estación Fernández Oro</span>
+            </div>
+          </div>
+          <button @click="closeCockpit"
+            style="display:flex;align-items:center;gap:.375rem;padding:.5rem .875rem;border-radius:8px;border:1px solid #1e3540;background:transparent;font-size:.8125rem;font-weight:600;color:#64b5c4;cursor:pointer;"
+            @mouseenter="$event.currentTarget.style.background='#0d2a35'"
+            @mouseleave="$event.currentTarget.style.background='transparent'"
+          >
+            <X style="width:14px;height:14px;" />
+            Cerrar
+          </button>
+        </div>
+        <!-- Video fullscreen -->
+        <div style="flex:1;position:relative;overflow:hidden;">
+          <iframe
+            :src="COCKPIT_URL"
+            style="position:absolute;inset:0;width:100%;height:100%;border:none;"
+            allow="autoplay; fullscreen; camera; microphone"
+            allowfullscreen
+          />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ═══ Confirm lanzar ═══ -->
+    <Teleport to="body">
+      <div v-if="confirmLanzar.open"
+        style="position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:1rem;"
+        @click.self="closeLanzar"
+      >
+        <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="closeLanzar" />
+        <div style="position:relative;background:#fff;border-radius:16px;width:100%;max-width:420px;padding:2rem;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.16);">
+          <div style="width:52px;height:52px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+            <Rocket style="width:24px;height:24px;color:#15803d;" />
+          </div>
+          <h3 style="font-size:1rem;font-weight:700;color:#113e4c;margin:0 0 .5rem;">Lanzar misión</h3>
+          <p style="font-size:.875rem;color:#536c6b;margin:0 0 .25rem;">
+            ¿Confirmar lanzamiento de <strong>{{ confirmLanzar.mision?.nombre }}</strong>?
+          </p>
+          <p style="font-size:.75rem;color:#a0b5b5;margin:0 0 1.5rem;">
+            Drone: {{ confirmLanzar.mision?.dronNombre || '—' }}
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center;">
+            <button @click="closeLanzar" :disabled="confirmLanzar.loading"
+              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
+              Cancelar
+            </button>
+            <button @click="doLanzar" :disabled="confirmLanzar.loading"
+              style="display:flex;align-items:center;gap:.375rem;padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#fff;background:linear-gradient(135deg,#15803d,#16a34a);border:none;cursor:pointer;"
+              :style="{ opacity: confirmLanzar.loading ? '.6' : '1' }"
+            >
+              <Rocket style="width:14px;height:14px;" />
+              {{ confirmLanzar.loading ? 'Lanzando…' : 'Confirmar lanzamiento' }}
             </button>
           </div>
         </div>
