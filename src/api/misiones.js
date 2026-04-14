@@ -48,3 +48,8 @@ export async function lanzarMision(id) {
   const res = await request(`/misiones/${id}/lanzar`, { method: 'POST' })
   return json(res)
 }
+
+export async function getMisionesByPiloto(pilotoId) {
+  const res = await request(`/misiones/piloto/${pilotoId}`, { method: 'GET' })
+  return json(res)
+}

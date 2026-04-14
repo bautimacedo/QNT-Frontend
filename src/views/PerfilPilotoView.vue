@@ -6,7 +6,8 @@ import {
   subirImagenCmaLicencia, obtenerImagenCmaLicencia,
   subirImagenCertIdoneidad, obtenerImagenCertIdoneidad,
 } from '../api'
-import { Upload, Eye, Trash2, Plus, Plane, Clock, FileText, AlertCircle, CheckCircle, XCircle } from 'lucide-vue-next'
+import { getMisionesByPiloto } from '../api/misiones.js'
+import { Upload, Eye, Trash2, Plus, Plane, Clock, FileText, AlertCircle, CheckCircle, XCircle, History } from 'lucide-vue-next'
 
 const perfil = ref(null)
 const loading = ref(true)
@@ -29,6 +30,10 @@ const licConfirm = ref({ open: false, licencia: null, loading: false })
 
 // File inputs refs keyed by licencia id + tipo
 const fileInputs = ref({})
+
+const historial = ref([])
+const historialLoading = ref(false)
+const historialError = ref('')
 
 const toast = ref('')
 let toastTimer = null
@@ -250,9 +255,45 @@ function openImage(url) {
   window.open(url, '_blank')
 }
 
+async function loadHistorial() {
+  if (!perfil.value?.id) return
+  historialLoading.value = true
+  historialError.value = ''
+  try {
+    historial.value = await getMisionesByPiloto(perfil.value.id)
+  } catch (e) {
+    historialError.value = e.message || 'Error al cargar el historial.'
+  } finally {
+    historialLoading.value = false
+  }
+}
+
+function formatDateTime(dt) {
+  if (!dt) return '—'
+  const d = new Date(dt)
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDuracion(minutos) {
+  if (minutos == null) return '—'
+  if (minutos < 60) return `${minutos} min`
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  return m > 0 ? `${h}h ${m}min` : `${h}h`
+}
+
+const ESTADO_CFG = {
+  PLANIFICADA: { label: 'Planificada', bg: '#eff6ff', color: '#1d4ed8' },
+  EN_CURSO:    { label: 'En curso',    bg: '#fefce8', color: '#a16207' },
+  COMPLETADA:  { label: 'Completada',  bg: '#f0fdf4', color: '#15803d' },
+  CANCELADA:   { label: 'Cancelada',   bg: '#fff1f2', color: '#be123c' },
+}
+
 watch(esPilotoOAdmin, (newVal) => {
   if (newVal && !licencias.value.length && !licenciasLoading.value) {
     loadLicencias()
+    loadHistorial()
   }
 })
 
@@ -260,6 +301,7 @@ onMounted(async () => {
   await loadPerfil()
   if (esPilotoOAdmin.value) {
     loadLicencias()
+    loadHistorial()
   }
 })
 
@@ -328,6 +370,61 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
           </span>
         </div>
       </div>
+
+      <!-- Historial de vuelos -->
+      <section class="card">
+        <div class="card__header-row">
+          <div>
+            <h2 class="card__title">Historial de vuelos</h2>
+            <p class="card__subtitle">Misiones ejecutadas como piloto</p>
+          </div>
+        </div>
+
+        <div v-if="historialLoading" class="state-msg-inline">
+          <span class="spinner" /> Cargando historial…
+        </div>
+        <div v-else-if="historialError" class="state-msg-inline state-msg--error">
+          {{ historialError }}
+          <button class="btn-retry btn-sm" @click="loadHistorial">Reintentar</button>
+        </div>
+        <div v-else-if="historial.length === 0" class="empty-state">
+          <History class="empty-icon" />
+          <p class="empty-title">Sin vuelos registrados</p>
+          <p class="empty-desc">Acá vas a ver las misiones que ejecutaste como piloto.</p>
+        </div>
+        <div v-else class="historial-table-wrap">
+          <table class="historial-table">
+            <thead>
+              <tr>
+                <th>Misión</th>
+                <th>Drone</th>
+                <th>Estado</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Duración</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in historial" :key="m.id" class="historial-row">
+                <td class="cell-mision">
+                  <span class="mision-nombre">{{ m.nombre }}</span>
+                  <span v-if="m.dockNombre" class="mision-dock">{{ m.dockNombre }}</span>
+                </td>
+                <td class="cell-drone">{{ m.dronNombre || '—' }}</td>
+                <td>
+                  <span
+                    class="estado-badge"
+                    :style="{ background: ESTADO_CFG[m.estado]?.bg, color: ESTADO_CFG[m.estado]?.color }"
+                  >{{ ESTADO_CFG[m.estado]?.label || m.estado }}</span>
+                </td>
+                <td class="cell-fecha">{{ formatDateTime(m.fechaInicio) }}</td>
+                <td class="cell-fecha">{{ formatDateTime(m.fechaFin) }}</td>
+                <td class="cell-dur">{{ formatDuracion(m.duracionMinutos) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Licencias ANAC -->
       <section class="card">
@@ -671,6 +768,34 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
 .badge--yellow { background: #fef3c7; color: #92400e; }
 .badge--red { background: #fee2e2; color: #991b1b; }
 .badge--gray { background: #f1f5f9; color: #64748b; }
+
+/* Historial tabla */
+.historial-table-wrap { overflow-x: auto; margin: 0 -0.25rem; }
+.historial-table {
+  width: 100%; border-collapse: collapse; font-size: 0.88rem;
+}
+.historial-table thead tr {
+  border-bottom: 2px solid #e0e5e5;
+}
+.historial-table th {
+  padding: 0.6rem 0.9rem; text-align: left;
+  font-size: 0.75rem; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+}
+.historial-row { border-bottom: 1px solid #f1f5f9; transition: background 0.12s; }
+.historial-row:last-child { border-bottom: none; }
+.historial-row:hover { background: #f8fafa; }
+.historial-table td { padding: 0.75rem 0.9rem; vertical-align: middle; color: #334155; }
+.cell-mision { min-width: 160px; }
+.mision-nombre { display: block; font-weight: 600; color: #1e293b; }
+.mision-dock { display: block; font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
+.cell-drone { white-space: nowrap; }
+.cell-fecha { white-space: nowrap; font-size: 0.83rem; color: #64748b; }
+.cell-dur { white-space: nowrap; font-weight: 600; color: #1e293b; }
+.estado-badge {
+  display: inline-block; padding: 0.2rem 0.65rem; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+}
 
 /* Empty state */
 .empty-state { text-align: center; padding: 3rem 1rem; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
