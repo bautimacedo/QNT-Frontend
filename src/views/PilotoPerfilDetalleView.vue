@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPilotos, obtenerImagenCmaLicenciaPiloto, obtenerImagenCertIdoneidadLicenciaPiloto } from '../api'
+import { getMisionesByPiloto } from '../api/misiones.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,7 +93,9 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load().then(() => loadHistorial())
+})
 
 function licenciaTieneAlgunaImagen(lic) {
   return !!(lic?.tieneImagenCma || lic?.tieneImagenCertificadoIdoneidad)
@@ -147,6 +150,44 @@ async function detectPdf(blob) {
 
 function openInTab(url) {
   if (url) window.open(url, '_blank')
+}
+
+const historial = ref([])
+const historialLoading = ref(false)
+const historialError = ref('')
+
+async function loadHistorial() {
+  historialLoading.value = true
+  historialError.value = ''
+  try {
+    historial.value = await getMisionesByPiloto(route.params.id)
+  } catch (e) {
+    historialError.value = e.message || 'Error al cargar el historial.'
+  } finally {
+    historialLoading.value = false
+  }
+}
+
+function formatDateTime(dt) {
+  if (!dt) return '—'
+  const d = new Date(dt)
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDuracion(minutos) {
+  if (minutos == null) return '—'
+  if (minutos < 60) return `${minutos} min`
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  return m > 0 ? `${h}h ${m}min` : `${h}h`
+}
+
+const ESTADO_CFG = {
+  PLANIFICADA: { label: 'Planificada', bg: '#eff6ff', color: '#1d4ed8' },
+  EN_CURSO:    { label: 'En curso',    bg: '#fefce8', color: '#a16207' },
+  COMPLETADA:  { label: 'Completada',  bg: '#f0fdf4', color: '#15803d' },
+  CANCELADA:   { label: 'Cancelada',   bg: '#fff1f2', color: '#be123c' },
 }
 
 function closeLicImageModal() {
@@ -277,6 +318,53 @@ function closeLicImageModal() {
                   </button>
                   <span v-else class="text-muted">—</span>
                 </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Tarjeta: historial de vuelos -->
+      <div class="perfil-card">
+        <h2 class="perfil-card-title">Historial de vuelos</h2>
+
+        <div v-if="historialLoading" class="state-msg state-msg--inline">
+          <span class="spinner" /> Cargando historial…
+        </div>
+        <div v-else-if="historialError" class="state-msg state-msg--inline state-msg--error">
+          {{ historialError }}
+          <button class="btn-retry" @click="loadHistorial">Reintentar</button>
+        </div>
+        <div v-else-if="historial.length === 0" class="state-msg state-msg--inline">
+          Sin vuelos registrados.
+        </div>
+        <div v-else class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Misión</th>
+                <th>Drone</th>
+                <th>Estado</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Duración</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in historial" :key="m.id">
+                <td>
+                  <span class="mision-nombre">{{ m.nombre }}</span>
+                  <span v-if="m.dockNombre" class="mision-dock">{{ m.dockNombre }}</span>
+                </td>
+                <td>{{ m.dronNombre || '—' }}</td>
+                <td>
+                  <span
+                    class="estado-badge"
+                    :style="{ background: ESTADO_CFG[m.estado]?.bg, color: ESTADO_CFG[m.estado]?.color }"
+                  >{{ ESTADO_CFG[m.estado]?.label || m.estado }}</span>
+                </td>
+                <td class="td-fecha">{{ formatDateTime(m.fechaInicio) }}</td>
+                <td class="td-fecha">{{ formatDateTime(m.fechaFin) }}</td>
+                <td class="td-dur">{{ formatDuracion(m.duracionMinutos) }}</td>
               </tr>
             </tbody>
           </table>
@@ -426,6 +514,12 @@ function closeLicImageModal() {
 .modal-enter-from .modal-card { transform: scale(0.95); }
 .modal-leave-to { opacity: 0; }
 .modal-leave-to .modal-card { transform: scale(0.95); }
+
+.mision-nombre { display: block; font-weight: 600; color: #1e293b; }
+.mision-dock { display: block; font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
+.td-fecha { white-space: nowrap; font-size: 0.83rem; color: #64748b; }
+.td-dur { white-space: nowrap; font-weight: 600; color: #1e293b; }
+.estado-badge { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 
 @media (max-width: 768px) {
   .perfil-page { padding: 1rem; }
