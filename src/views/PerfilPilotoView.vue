@@ -102,7 +102,8 @@ async function loadPerfil() {
   loading.value = true
   loadError.value = ''
   try {
-    perfil.value = await getMiPerfil()
+    const data = await getMiPerfil()
+    perfil.value = { ...data.usuario, roles: data.roles, tieneFotoPerfil: data.tieneFotoPerfil }
   } catch (e) {
     loadError.value = e.message || 'Error al cargar el perfil.'
   } finally {
