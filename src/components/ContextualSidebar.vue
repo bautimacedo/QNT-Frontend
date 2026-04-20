@@ -23,6 +23,7 @@ import {
   Plane,
   PlaneTakeoff,
   TrendingUp,
+  CalendarDays,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -57,6 +58,7 @@ const allSections = {
   ],
   operaciones: [
     { id: 'misiones',      label: 'Misiones',            icon: Target,        to: '/home/misiones'      },
+    { id: 'calendario',   label: 'Calendario',          icon: CalendarDays,  to: '/home/calendario'    },
     { id: 'cobertura',     label: 'Cobertura Operativa',  icon: Shield,        to: '/home/cobertura'     },
     { id: 'emergencias',   label: 'Emergencias y Roles',  icon: AlertTriangle, to: '/home/emergencias'   },
     { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock'         },

@@ -62,6 +62,7 @@ import StockAntenaStarlinkDetalleView from '../views/stock/StockAntenaStarlinkDe
 import StockLicenciaDetalleView from '../views/stock/StockLicenciaDetalleView.vue'
 import StockAccesorioDetalleView from '../views/stock/StockAccesorioDetalleView.vue'
 import MisionesView from '../views/MisionesView.vue'
+import CalendarioView from '../views/CalendarioView.vue'
 import TareasView from '../views/TareasView.vue'
 import SegurosView from '../views/SegurosView.vue'
 import LicenciasView from '../views/LicenciasView.vue'
@@ -91,6 +92,7 @@ const routes = [
       { path: '',                        name: 'home',                        component: HomeView                   },
       { path: 'tareas',                  name: 'tareas',                      component: TareasView                 },
       { path: 'misiones',                name: 'misiones',                    component: MisionesView               },
+      { path: 'calendario',              name: 'calendario',                  component: CalendarioView             },
       { path: 'reportes',                name: 'reportes',                    component: ReportesView               },
       { path: 'cobertura',               name: 'cobertura',                   component: CoberturaView              },
       { path: 'emergencias',             name: 'emergencias',                 component: PlaceholderView            },
