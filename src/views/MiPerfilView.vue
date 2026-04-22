@@ -62,12 +62,18 @@ async function loadPerfil() {
   loadError.value = ''
   try {
     const data = await getMiPerfil()
-    perfil.value = data
+    const u = data.usuario || data
+    perfil.value = {
+      ...u,
+      roles: data.roles,
+      tieneFotoPerfil: data.tieneFotoPerfil,
+      licencias: data.licencias,
+    }
     form.value = {
-      nombre: data.nombre || '',
-      apellido: data.apellido || '',
-      dni: data.dni || '',
-      passwordMission: data.passwordMission || '',
+      nombre: u.nombre || '',
+      apellido: u.apellido || '',
+      dni: u.dni || '',
+      passwordMission: u.passwordMission || '',
     }
     if (data.tieneFotoPerfil) {
       const blob = await obtenerFotoPerfil()
