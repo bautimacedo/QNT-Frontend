@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { PlaneTakeoff, PlaneLanding, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
+import { Plane, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones } from '../api/vuelosLog.js'
 
@@ -19,6 +19,7 @@ const filtroHasta  = ref('')
 
 const EVENTOS = [
   { value: '',                   label: 'Todos los eventos' },
+  { value: 'VUELO',              label: 'Vuelo' },
   { value: 'DESPEGUE',           label: 'Despegue' },
   { value: 'ATERRIZAJE',         label: 'Aterrizaje' },
   { value: 'FALLA_DESPEGUE',     label: 'Falla de despegue' },
@@ -117,17 +118,10 @@ const totalFiltrados = computed(() => registros.value.length)
     <!-- Stats cards -->
     <div v-if="stats" class="stats-row">
       <div class="stat-card">
-        <PlaneTakeoff class="stat-icon" style="color:#16a34a" />
+        <Plane class="stat-icon" style="color:#0369a1" />
         <div>
-          <div class="stat-num">{{ stats.totalDespegues }}</div>
-          <div class="stat-label">Despegues</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <PlaneLanding class="stat-icon" style="color:#2563eb" />
-        <div>
-          <div class="stat-num">{{ stats.totalAterrizajes }}</div>
-          <div class="stat-label">Aterrizajes</div>
+          <div class="stat-num">{{ stats.totalVuelos }}</div>
+          <div class="stat-label">Vuelos</div>
         </div>
       </div>
       <div class="stat-card stat-card--danger">
@@ -248,7 +242,7 @@ const totalFiltrados = computed(() => registros.value.length)
 /* Stats */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
 }
 .stat-card {
