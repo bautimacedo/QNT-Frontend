@@ -120,6 +120,16 @@ const graficosSecond  = computed(() => graficos.value.filter(g => !g.wide))
           <span v-if="inspeccion.gpm != null" class="gpm-badge">
             {{ fmt(inspeccion.gpm, 1) }} GPM
           </span>
+          <a
+            v-if="inspeccion.videoUrl"
+            :href="inspeccion.videoUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-video"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Ver video
+          </a>
           <button class="btn-pdf" :disabled="pdfLoading" @click="downloadPdf">
             <svg v-if="!pdfLoading" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span class="spinner-sm" v-else />
@@ -294,6 +304,16 @@ const graficosSecond  = computed(() => graficos.value.filter(g => !g.wide))
 }
 
 .pdf-error { font-size: 0.78rem; color: #dc2626; }
+
+.btn-video {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: #0ea5e9; color: #fff;
+  border-radius: 8px; text-decoration: none;
+  font-size: 0.82rem; font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  transition: background 0.15s;
+}
+.btn-video:hover { background: #0284c7; }
 
 /* Métricas */
 .metrics-grid {

@@ -286,7 +286,7 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...GRAY)
-  doc.text('NQN Petrol — Reporte de Inspección AIB', ML, H - 7)
+  doc.text('QNT Drones — Reporte de Inspección AIB', ML, H - 7)
   doc.text(new Date().toLocaleDateString('es-AR'), W - ML, H - 7, { align: 'right' })
 
   const filename = `inspeccion-${inspeccion.aibId}-${new Date().toISOString().slice(0, 10)}.pdf`
