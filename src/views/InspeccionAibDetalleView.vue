@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getInspeccion } from '../api/inspecciones.js'
 import { getToken } from '../api/storage.js'
+import { generatePdfReport } from '../utils/reportPdf.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,7 +11,9 @@ const router = useRouter()
 const inspeccion = ref(null)
 const loading = ref(true)
 const error = ref('')
-const lightbox = ref(null) // { url, label }
+const lightbox    = ref(null) // { url, label }
+const pdfLoading  = ref(false)
+const pdfError    = ref('')
 
 async function load() {
   loading.value = true
@@ -52,6 +55,20 @@ function closeLightbox() {
 
 function handleKeydown(e) {
   if (e.key === 'Escape') closeLightbox()
+}
+
+async function downloadPdf() {
+  if (!inspeccion.value) return
+  pdfLoading.value = true
+  pdfError.value = ''
+  try {
+    await generatePdfReport(inspeccion.value, imgUrl)
+  } catch (e) {
+    pdfError.value = 'No se pudo generar el PDF.'
+    console.error(e)
+  } finally {
+    pdfLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -103,6 +120,12 @@ const graficosSecond  = computed(() => graficos.value.filter(g => !g.wide))
           <span v-if="inspeccion.gpm != null" class="gpm-badge">
             {{ fmt(inspeccion.gpm, 1) }} GPM
           </span>
+          <button class="btn-pdf" :disabled="pdfLoading" @click="downloadPdf">
+            <svg v-if="!pdfLoading" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="spinner-sm" v-else />
+            {{ pdfLoading ? 'Generando…' : 'Descargar PDF' }}
+          </button>
+          <span v-if="pdfError" class="pdf-error">{{ pdfError }}</span>
         </div>
       </div>
 
@@ -252,6 +275,25 @@ const graficosSecond  = computed(() => graficos.value.filter(g => !g.wide))
   font-size: 0.875rem; font-weight: 700; color: #113e4c;
   background: #e0f2fe; padding: 0.35rem 0.9rem; border-radius: 999px;
 }
+
+.btn-pdf {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: #113e4c; color: #fff;
+  border: none; border-radius: 8px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-pdf:hover:not(:disabled) { background: #0d303b; }
+.btn-pdf:disabled { opacity: 0.6; cursor: default; }
+
+.spinner-sm {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+
+.pdf-error { font-size: 0.78rem; color: #dc2626; }
 
 /* Métricas */
 .metrics-grid {
