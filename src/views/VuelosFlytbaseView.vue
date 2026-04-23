@@ -20,8 +20,6 @@ const filtroHasta  = ref('')
 const EVENTOS = [
   { value: '',                   label: 'Todos los eventos' },
   { value: 'VUELO',              label: 'Vuelo' },
-  { value: 'DESPEGUE',           label: 'Despegue' },
-  { value: 'ATERRIZAJE',         label: 'Aterrizaje' },
   { value: 'FALLA_DESPEGUE',     label: 'Falla de despegue' },
   { value: 'DESPEGUE_FALLIDO',   label: 'Despegue fallido (< 1 min)' },
   { value: 'MAL_TIEMPO',         label: 'Mal tiempo' },

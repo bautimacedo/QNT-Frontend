@@ -18,8 +18,6 @@ const filtroHasta  = ref('')
 const EVENTOS = [
   { value: '',                 label: 'Todos los eventos' },
   { value: 'VUELO',            label: 'Vuelo' },
-  { value: 'DESPEGUE',         label: 'Despegue' },
-  { value: 'ATERRIZAJE',       label: 'Aterrizaje' },
   { value: 'FALLA_DESPEGUE',   label: 'Falla de despegue' },
   { value: 'DESPEGUE_FALLIDO', label: 'Despegue fallido' },
 ]
@@ -209,7 +207,7 @@ const totalFiltrados = computed(() => registros.value.length)
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
 }
 .stat-card {
