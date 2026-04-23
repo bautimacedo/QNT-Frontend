@@ -28,7 +28,7 @@ const menuGroups = [
     title: 'Operaciones',
     items: [
       { label: 'Misiones', path: '/misiones', icon: 'mission' },
-      { label: 'Pozos', path: '/pozos', icon: 'well' },
+      { label: 'Pozos', path: '/home/pozos', icon: 'well' },
       { label: 'Logs', path: '/logs', icon: 'log' },
     ],
   },

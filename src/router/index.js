@@ -73,6 +73,9 @@ import CoberturaView from '../views/CoberturaView.vue'
 import VuelosFlytbaseView from '../views/VuelosFlytbaseView.vue'
 import VuelosCAMView from '../views/VuelosCAMView.vue'
 import PanelEjecutivoView from '../views/PanelEjecutivoView.vue'
+import PozosView from '../views/PozosView.vue'
+import PozoDetalleView from '../views/PozoDetalleView.vue'
+import InspeccionAibDetalleView from '../views/InspeccionAibDetalleView.vue'
 
 const routes = [
   // Pública — landing page
@@ -98,6 +101,9 @@ const routes = [
       { path: 'emergencias',             name: 'emergencias',                 component: PlaceholderView            },
       { path: 'mantenimiento',           name: 'mantenimiento',               component: MantenimientoView          },
       { path: 'logs',                    name: 'logs',                        component: LibrosVueloView            },
+      { path: 'pozos',                   name: 'pozos',                       component: PozosView                  },
+      { path: 'pozos/:aibId',            name: 'pozo-detalle',                component: PozoDetalleView            },
+      { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
       { path: 'panel-ejecutivo',          name: 'panel-ejecutivo',             component: PanelEjecutivoView         },
