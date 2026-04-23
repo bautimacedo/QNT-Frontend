@@ -24,6 +24,7 @@ import {
   PlaneTakeoff,
   TrendingUp,
   CalendarDays,
+  Gauge,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -64,6 +65,7 @@ const allSections = {
     { id: 'stock',         label: 'Stock',                icon: Package,       to: '/home/stock'         },
     { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento' },
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
+    { id: 'pozos',         label: 'Pozos',                icon: Gauge,         to: '/home/pozos'         },
     { id: 'vuelos-efo',    label: 'Vuelos EFO',           icon: PlaneTakeoff,  to: '/home/vuelos-efo'    },
     { id: 'vuelos-cam',   label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'    },
   ],
