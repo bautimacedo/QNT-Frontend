@@ -21,34 +21,42 @@ function formatFecha(ts) {
   })
 }
 
-function imgFormat(url) {
-  const lower = (url || '').toLowerCase()
-  return lower.includes('.jpg') || lower.includes('.jpeg') ? 'JPEG' : 'PNG'
-}
-
-async function fetchBase64(url) {
-  const resp = await fetch(url)
-  if (!resp.ok) throw new Error(resp.status)
-  const blob = await resp.blob()
-  return new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload  = () => resolve(r.result)
-    r.onerror = reject
-    r.readAsDataURL(blob)
-  })
-}
-
 // Returns { w, h } aspect-correct dimensions fitting in maxW x maxH
 function fitDims(naturalW, naturalH, maxW, maxH) {
   const ratio = Math.min(maxW / naturalW, maxH / naturalH)
   return { w: naturalW * ratio, h: naturalH * ratio }
 }
 
-async function getNaturalSize(dataUrl) {
-  return new Promise(resolve => {
+// Fetch + recomprimir como JPEG al quality indicado para reducir peso del PDF
+async function fetchCompressedJpeg(url, quality = 0.72) {
+  const resp = await fetch(url)
+  if (!resp.ok) throw new Error(resp.status)
+  const blob = await resp.blob()
+
+  const dataUrl = await new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload  = () => resolve(r.result)
+    r.onerror = reject
+    r.readAsDataURL(blob)
+  })
+
+  return new Promise((resolve, reject) => {
     const img = new Image()
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
-    img.onerror = () => resolve({ w: 1, h: 1 })
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      // Escalar a max 1400px de ancho para no perder legibilidad
+      const scale  = Math.min(1, 1400 / img.naturalWidth)
+      canvas.width  = Math.round(img.naturalWidth  * scale)
+      canvas.height = Math.round(img.naturalHeight * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve({
+        data: canvas.toDataURL('image/jpeg', quality),
+        w: img.naturalWidth,
+        h: img.naturalHeight,
+      })
+    }
+    img.onerror = reject
     img.src = dataUrl
   })
 }
@@ -191,12 +199,12 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
     { label: 'Captura anotada',        key: 'capturaAnotadaUrl',       main: false },
   ].filter(c => inspeccion[c.key])
 
-  // Cargar todas las imágenes en paralelo
+  // Cargar y comprimir todas las imágenes en paralelo
   const imgs = {}
   await Promise.allSettled(
     chartDefs.map(async c => {
       try {
-        imgs[c.key] = await fetchBase64(imgUrlFn(inspeccion[c.key]))
+        imgs[c.key] = await fetchCompressedJpeg(imgUrlFn(inspeccion[c.key]))
       } catch (_) { /* skip */ }
     })
   )
@@ -213,10 +221,11 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
 
     let rowH = 0
     for (let i = 0; i < mainCharts.length; i++) {
-      const c  = mainCharts[i]
-      const cx = ML + i * (iW + gapMain)
-      const nat = await getNaturalSize(imgs[c.key])
-      const { w, h } = fitDims(nat.w, nat.h, iW - 2, maxH - 2)
+      const c   = mainCharts[i]
+      const cx  = ML + i * (iW + gapMain)
+      const img = imgs[c.key]
+      if (!img) continue
+      const { w, h } = fitDims(img.w, img.h, iW - 2, maxH - 2)
       rowH = Math.max(rowH, h + LABEL_H + 2)
 
       doc.setFillColor(255, 255, 255)
@@ -229,7 +238,7 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
       doc.setTextColor(71, 85, 105)
       doc.text(c.label, cx + 3, y + 4.5)
 
-      doc.addImage(imgs[c.key], imgFormat(inspeccion[c.key]), cx + 1, y + LABEL_H, w, h)
+      doc.addImage(img.data, 'JPEG', cx + 1, y + LABEL_H, w, h)
     }
     y += rowH + 4
   }
@@ -247,10 +256,11 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
       let rowH = 0
 
       for (let i = 0; i < slice.length; i++) {
-        const c  = slice[i]
-        const cx = ML + i * (iW + gapSec)
-        const nat = await getNaturalSize(imgs[c.key])
-        const { w, h } = fitDims(nat.w, nat.h, iW - 2, maxH - 2)
+        const c   = slice[i]
+        const cx  = ML + i * (iW + gapSec)
+        const img = imgs[c.key]
+        if (!img) continue
+        const { w, h } = fitDims(img.w, img.h, iW - 2, maxH - 2)
         rowH = Math.max(rowH, h + LABEL_H + 2)
 
         doc.setFillColor(255, 255, 255)
@@ -263,7 +273,7 @@ export async function generatePdfReport(inspeccion, imgUrlFn) {
         doc.setTextColor(71, 85, 105)
         doc.text(c.label, cx + 3, y + 4.5)
 
-        doc.addImage(imgs[c.key], imgFormat(inspeccion[c.key]), cx + 1, y + LABEL_H, w, h)
+        doc.addImage(img.data, 'JPEG', cx + 1, y + LABEL_H, w, h)
       }
       y += rowH + 4
     }
