@@ -1,6 +1,6 @@
 export { BASE_URL, apiBaseUrl } from './config.js'
 export { api } from './api.js'
-export { getToken, setToken, clearToken } from './storage.js'
+export { getToken, setToken, clearToken, isTokenExpired } from './storage.js'
 export { request, json } from './http.js'
 export { login, register, me, logout, forgotPassword, resetPassword } from './auth.js'
 export {

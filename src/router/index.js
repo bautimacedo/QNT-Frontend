@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '../api'
-import { getToken as getRawToken } from '../api/storage.js'
+import { getToken as getRawToken, isTokenExpired } from '../api/storage.js'
 
 // Decodifica el payload del JWT para obtener las authorities sin llamar al backend
 function getAuthoritiesFromToken() {
@@ -145,7 +145,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const hasToken = !!getToken()
+  const rawToken = getRawToken()
+  const hasToken = !!rawToken && !isTokenExpired()
 
   // Si tiene token y va a landing/login/register → redirigir al dashboard
   if (hasToken && (to.name === 'landing' || to.name === 'login' || to.name === 'register')) {

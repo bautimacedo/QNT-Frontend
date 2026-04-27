@@ -31,8 +31,7 @@ const EVENTOS = [
 
 const EVENTO_CONFIG = {
   VUELO:              { label: 'Vuelo',              color: '#0369a1', bg: '#e0f2fe', icon: 'takeoff'  },
-  DESPEGUE:           { label: 'Despegue',          color: '#16a34a', bg: '#dcfce7', icon: 'takeoff'  },
-  ATERRIZAJE:         { label: 'Aterrizaje',         color: '#2563eb', bg: '#dbeafe', icon: 'landing'  },
+  DESPEGUE:           { label: 'Despegue (en curso)', color: '#16a34a', bg: '#dcfce7', icon: 'takeoff'  },
   FALLA_DESPEGUE:     { label: 'Falla despegue',     color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
   DESPEGUE_FALLIDO:   { label: 'Despegue fallido',   color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
   MAL_TIEMPO:         { label: 'Mal tiempo',         color: '#d97706', bg: '#fef3c7', icon: 'weather'  },
