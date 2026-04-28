@@ -53,3 +53,12 @@ export async function getMisionesByPiloto(pilotoId) {
   const res = await request(`/misiones/piloto/${pilotoId}`, { method: 'GET' })
   return json(res)
 }
+
+export async function getHistorialMisiones({ desde, hasta } = {}) {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  const url = `/misiones/historial${params.toString() ? '?' + params.toString() : ''}`
+  const res = await request(url, { method: 'GET' })
+  return json(res)
+}

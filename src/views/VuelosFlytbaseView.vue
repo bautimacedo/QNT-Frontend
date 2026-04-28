@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Plane, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
+import QuickDateFilters from '../components/QuickDateFilters.vue'
 import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones } from '../api/vuelosLog.js'
 
 // ─── Datos ──────────────────────────────────────────────────────────────────
@@ -88,6 +89,12 @@ function clearFilters() {
   loadAll()
 }
 
+function onQuickFilter({ desde, hasta }) {
+  filtroDesde.value = desde
+  filtroHasta.value = hasta
+  loadAll()
+}
+
 onMounted(loadAll)
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -164,6 +171,7 @@ const totalFiltrados = computed(() => registros.value.length)
       </button>
       <span class="result-count">{{ totalFiltrados }} registros</span>
     </div>
+    <QuickDateFilters @select="onQuickFilter" />
 
     <!-- Error -->
     <div v-if="error" class="qnt-error-banner">{{ error }}</div>

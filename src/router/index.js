@@ -72,6 +72,7 @@ import ReportesView from '../views/ReportesView.vue'
 import CoberturaView from '../views/CoberturaView.vue'
 import VuelosFlytbaseView from '../views/VuelosFlytbaseView.vue'
 import VuelosCAMView from '../views/VuelosCAMView.vue'
+import HistorialMisionesView from '../views/HistorialMisionesView.vue'
 import PanelEjecutivoView from '../views/PanelEjecutivoView.vue'
 import PozosView from '../views/PozosView.vue'
 import PozoDetalleView from '../views/PozoDetalleView.vue'
@@ -106,6 +107,7 @@ const routes = [
       { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
+      { path: 'historial-misiones',       name: 'historial-misiones',          component: HistorialMisionesView      },
       { path: 'panel-ejecutivo',          name: 'panel-ejecutivo',             component: PanelEjecutivoView         },
       { path: 'pilotos',                 name: 'pilotos',                     component: PilotosView                },
       { path: 'pilotos/:id',             name: 'piloto-perfil-detalle',       component: PilotoPerfilDetalleView    },

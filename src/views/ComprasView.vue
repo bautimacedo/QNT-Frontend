@@ -6,6 +6,7 @@ import {
 } from '../api'
 import { Search, Plus, RefreshCw } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
+import QuickDateFilters from '../components/QuickDateFilters.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -646,6 +647,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
         </select>
         <input v-model="filtroFechaDesde" type="date" class="qnt-input date-input" title="Desde" />
         <input v-model="filtroFechaHasta" type="date" class="qnt-input date-input" title="Hasta" />
+        <QuickDateFilters :simplified="true" @select="({ desde, hasta }) => { filtroFechaDesde = desde; filtroFechaHasta = hasta }" />
         <button v-if="hayFiltrosActivos" class="qnt-btn qnt-btn--secondary qnt-btn--sm" @click="clearFilters">Limpiar</button>
         <span class="filter-count">{{ sortedCompras.length }} / {{ compras.length }}</span>
       </div>
