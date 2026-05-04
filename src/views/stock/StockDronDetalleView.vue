@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getById, updateItem } from '../../api'
+import { getById, updateItem, getList, patchDronDock } from '../../api'
 import StockDetalleLayout from '../../components/stock/StockDetalleLayout.vue'
 
 const route = useRoute()
@@ -23,6 +23,7 @@ const item = ref(null)
 const loading = ref(true)
 const error = ref('')
 const notFound = ref(false)
+const docks = ref([])
 
 const editModal = ref({
   open: false,
@@ -35,6 +36,7 @@ const editModal = ref({
   garantia: '',
   estado: '',
   yacimiento: '',
+  dockId: '',
   latitud: '',
   longitud: '',
   altitud: '',
@@ -61,6 +63,7 @@ function openEdit() {
     garantia: o.garantia || '',
     estado: o.estado || '',
     yacimiento: o.yacimiento || '',
+    dockId: o.dock?.id ? String(o.dock.id) : '',
     latitud: o.latitud != null ? String(o.latitud) : '',
     longitud: o.longitud != null ? String(o.longitud) : '',
     altitud: o.altitud != null ? String(o.altitud) : '',
@@ -85,11 +88,14 @@ async function saveEdit() {
       garantia: editModal.value.garantia || null,
       estado: editModal.value.estado,
       yacimiento: editModal.value.yacimiento || null,
+      dock: editModal.value.dockId ? { id: Number(editModal.value.dockId) } : null,
       latitud: parseCoord(editModal.value.latitud),
       longitud: parseCoord(editModal.value.longitud),
       altitud: parseCoord(editModal.value.altitud),
     }
-    item.value = await updateItem(TIPO, body)
+    const updated = await updateItem(TIPO, body)
+    await patchDronDock(updated.id, editModal.value.dockId ? Number(editModal.value.dockId) : null)
+    item.value = await getById(TIPO, updated.id)
     closeEdit()
     showToast('Ítem actualizado correctamente.')
   } catch (e) {
@@ -106,7 +112,12 @@ async function load() {
   error.value = ''
   notFound.value = false
   try {
-    item.value = await getById(TIPO, route.params.id)
+    const [data, docksData] = await Promise.all([
+      getById(TIPO, route.params.id),
+      getList('docks'),
+    ])
+    item.value = data
+    docks.value = docksData
   } catch (e) {
     item.value = null
     if (e.response?.status === 404) {
@@ -183,6 +194,13 @@ onMounted(load)
               <option value="CAM">CAM</option>
               <option value="EFO">EFO</option>
               <option value="CANADON_LEON">Cañadón León</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Dock vinculado</label>
+            <select v-model="editModal.dockId" class="form-input">
+              <option value="">Sin dock</option>
+              <option v-for="d in docks" :key="d.id" :value="String(d.id)">{{ d.nombre }}</option>
             </select>
           </div>
           <div class="form-group form-group--coords">

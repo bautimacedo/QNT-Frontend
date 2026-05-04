@@ -93,3 +93,13 @@ export async function updateItem(tipo, body) {
   const { data } = await api.put(`/${tipo}`, body)
   return data
 }
+
+export async function createItem(tipo, body) {
+  const { data } = await api.post(`/${tipo}`, body)
+  return data
+}
+
+export async function patchDronDock(dronId, dockId) {
+  const { data } = await api.patch(`/drones/${dronId}/dock`, { dockId: dockId || null })
+  return data
+}

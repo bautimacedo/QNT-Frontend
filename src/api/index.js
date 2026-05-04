@@ -44,6 +44,8 @@ export {
   getList,
   getById,
   updateItem,
+  createItem,
+  patchDronDock,
   getLicencias,
   getLicencia,
   getAccesorios,
