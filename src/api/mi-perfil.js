@@ -21,6 +21,14 @@ export async function cambiarPasswordMiPerfil(oldPassword, newPassword) {
   return json(res)
 }
 
+export async function actualizarTelegramUserId(telegramUserId) {
+  const res = await request('/mi-perfil/telegram', {
+    method: 'PATCH',
+    body: { telegramUserId: telegramUserId || null },
+  })
+  return json(res)
+}
+
 // --- Foto de perfil ---
 
 export async function subirFotoPerfil(file) {

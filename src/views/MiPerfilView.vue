@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { getMiPerfil, actualizarMiPerfil, cambiarPasswordMiPerfil, subirFotoPerfil, obtenerFotoPerfil } from '../api'
+import { actualizarTelegramUserId } from '../api/mi-perfil.js'
 import { useRouter } from 'vue-router'
 import PageHeader from '../components/ui/PageHeader.vue'
-import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle, Camera } from 'lucide-vue-next'
+import { User, Mail, CreditCard, Lock, Shield, Plane, Clock, CheckCircle, Camera, HelpCircle, Send } from 'lucide-vue-next'
 
 const router = useRouter()
 const dashboardUser = inject('dashboardUser', ref(null))
@@ -20,7 +21,8 @@ const fotoPerfil = ref(null) // blob URL
 const fotoInput = ref(null)
 const fotoUploading = ref(false)
 
-const form = ref({ nombre: '', apellido: '', dni: '', passwordMission: '' })
+const form = ref({ nombre: '', apellido: '', dni: '', passwordMission: '', telegramUserId: '' })
+const showTelegramHelp = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 
@@ -74,6 +76,7 @@ async function loadPerfil() {
       apellido: u.apellido || '',
       dni: u.dni || '',
       passwordMission: u.passwordMission || '',
+      telegramUserId: u.telegramUserId ? String(u.telegramUserId) : '',
     }
     if (data.tieneFotoPerfil) {
       const blob = await obtenerFotoPerfil()
@@ -117,6 +120,15 @@ async function onSaveProfile() {
     }
     const updated = await actualizarMiPerfil(body)
     if (updated) perfil.value = updated
+
+    const tgId = form.value.telegramUserId.trim()
+    const tgNum = tgId ? Number(tgId) : null
+    if (tgId && isNaN(tgNum)) {
+      saveError.value = 'El ID de Telegram debe ser un número.'
+      return
+    }
+    await actualizarTelegramUserId(tgNum)
+
     showToast('Perfil actualizado correctamente.')
   } catch (e) {
     saveError.value = e.message || 'Error al guardar el perfil.'
@@ -248,6 +260,37 @@ onMounted(loadPerfil)
             <div class="pf-field-body">
               <label class="pf-label">DNI</label>
               <input v-model="form.dni" type="text" class="pf-input" :disabled="saving" placeholder="Tu DNI" />
+            </div>
+          </div>
+          <div class="pf-field-card pf-field-card--full">
+            <div class="pf-field-icon"><Send class="fc-icon" /></div>
+            <div class="pf-field-body">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;">
+                <label class="pf-label" style="margin:0;">ID de Telegram</label>
+                <button type="button" class="tg-help-btn" @click="showTelegramHelp = !showTelegramHelp" title="¿Cómo obtener mi ID?">
+                  <HelpCircle style="width:15px;height:15px;" />
+                </button>
+              </div>
+              <Transition name="tg-help">
+                <div v-if="showTelegramHelp" class="tg-help-box">
+                  <p style="font-weight:600;margin:0 0 .5rem;">¿Cómo obtener tu ID de Telegram?</p>
+                  <ol style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:.25rem;">
+                    <li>Abrí Telegram y buscá el bot <strong>@userinfobot</strong></li>
+                    <li>Mandále cualquier mensaje</li>
+                    <li>Te responde con tu User ID numérico</li>
+                    <li>Copiá ese número y pegalo acá</li>
+                  </ol>
+                </div>
+              </Transition>
+              <input
+                v-model="form.telegramUserId"
+                type="text"
+                inputmode="numeric"
+                class="pf-input"
+                placeholder="Ej: 123456789"
+                :disabled="saving"
+              />
+              <p class="pf-helper">Necesario para que las misiones lanzadas desde Telegram te acrediten las horas de vuelo.</p>
             </div>
           </div>
           <div class="pf-field-card pf-field-card--full">
@@ -514,4 +557,19 @@ onMounted(loadPerfil)
   .pf-grid { grid-template-columns: 1fr; }
   .hero-stats { gap: 1rem; }
 }
+
+/* Telegram help */
+.tg-help-btn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: #658582; display: flex; align-items: center;
+  transition: color .15s;
+}
+.tg-help-btn:hover { color: #113e4c; }
+.tg-help-box {
+  background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;
+  padding: .75rem 1rem; margin-bottom: .5rem;
+  font-size: .8125rem; color: #166534; line-height: 1.6;
+}
+.tg-help-enter-active, .tg-help-leave-active { transition: all .2s ease; }
+.tg-help-enter-from, .tg-help-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>
