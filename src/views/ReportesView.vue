@@ -156,7 +156,10 @@ async function buscarDiarios() {
   diariosList.value = []
   try {
     const { desde, hasta } = mesADesdeHasta(diariosMes.value)
-    diariosList.value = await getDiariosSummary(desde, hasta)
+    const hoy = new Date().toLocaleString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).slice(0, 10)
+    const horaArg = new Date().toLocaleString('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hour12: false }).slice(0, 2)
+    const lista = await getDiariosSummary(desde, hasta)
+    diariosList.value = lista.filter(d => d.fecha !== hoy || Number(horaArg) >= 20)
   } catch { /* silencioso */ }
   finally { loadingDiarios.value = false }
 }
