@@ -14,32 +14,34 @@ const error     = ref('')
 
 // ─── Filtros ─────────────────────────────────────────────────────────────────
 const filtroDron   = ref('')
-const filtroEvento = ref('')
+const filtroEvento = ref('VUELO')
 const filtroDesde  = ref('')
 const filtroHasta  = ref('')
 
 const EVENTOS = [
-  { value: '',                   label: 'Todos los eventos' },
-  { value: 'VUELO',              label: 'Vuelo' },
-  { value: 'FALLA_DESPEGUE',     label: 'Falla de despegue' },
-  { value: 'DESPEGUE_FALLIDO',   label: 'Despegue fallido (< 1 min)' },
-  { value: 'MAL_TIEMPO',         label: 'Mal tiempo' },
+  { value: 'VUELO',               label: 'Vuelo' },
+  { value: 'FALLA_DESPEGUE',      label: 'Falla de despegue' },
+  { value: 'DESPEGUE_FALLIDO',    label: 'Despegue fallido (< 1 min)' },
+  { value: 'MAL_TIEMPO',          label: 'Mal tiempo' },
   { value: 'MAL_TIEMPO_MEJORADO', label: 'Tiempo mejorado' },
-  { value: 'DIAGNOSTICO',        label: 'Diagnóstico' },
-  { value: 'RECORDATORIO',       label: 'Recordatorio misión' },
-  { value: 'OTRO',               label: 'Otro' },
+  { value: 'DIAGNOSTICO',         label: 'Diagnóstico' },
+  { value: 'RECORDATORIO',        label: 'Recordatorio misión' },
+  { value: 'DESPEGUE',            label: 'Despegue (técnico)' },
+  { value: 'ATERRIZAJE',          label: 'Aterrizaje (técnico)' },
+  { value: '',                    label: 'Todos (incluye técnicos)' },
 ]
 
 const EVENTO_CONFIG = {
-  VUELO:              { label: 'Vuelo',              color: '#0369a1', bg: '#e0f2fe', icon: 'takeoff'  },
-  DESPEGUE:           { label: 'Despegue (en curso)', color: '#16a34a', bg: '#dcfce7', icon: 'takeoff'  },
-  FALLA_DESPEGUE:     { label: 'Falla despegue',     color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
-  DESPEGUE_FALLIDO:   { label: 'Despegue fallido',   color: '#dc2626', bg: '#fee2e2', icon: 'alert'    },
-  MAL_TIEMPO:         { label: 'Mal tiempo',         color: '#d97706', bg: '#fef3c7', icon: 'weather'  },
-  MAL_TIEMPO_MEJORADO:{ label: 'Tiempo mejorado',    color: '#0891b2', bg: '#e0f2fe', icon: 'weather'  },
-  DIAGNOSTICO:        { label: 'Diagnóstico',        color: '#7c3aed', bg: '#ede9fe', icon: 'diag'     },
-  RECORDATORIO:       { label: 'Recordatorio',       color: '#64748b', bg: '#f1f5f9', icon: 'bell'     },
-  OTRO:               { label: 'Otro',               color: '#64748b', bg: '#f1f5f9', icon: 'bell'     },
+  VUELO:              { label: 'Vuelo',               color: '#0369a1', bg: '#e0f2fe' },
+  DESPEGUE:           { label: 'Despegue (en curso)', color: '#16a34a', bg: '#dcfce7' },
+  ATERRIZAJE:         { label: 'Aterrizaje',           color: '#0891b2', bg: '#e0f2fe' },
+  FALLA_DESPEGUE:     { label: 'Falla despegue',      color: '#dc2626', bg: '#fee2e2' },
+  DESPEGUE_FALLIDO:   { label: 'Despegue fallido',    color: '#dc2626', bg: '#fee2e2' },
+  MAL_TIEMPO:         { label: 'Mal tiempo',          color: '#d97706', bg: '#fef3c7' },
+  MAL_TIEMPO_MEJORADO:{ label: 'Tiempo mejorado',     color: '#0891b2', bg: '#e0f2fe' },
+  DIAGNOSTICO:        { label: 'Diagnóstico',         color: '#7c3aed', bg: '#ede9fe' },
+  RECORDATORIO:       { label: 'Recordatorio',        color: '#64748b', bg: '#f1f5f9' },
+  OTRO:               { label: 'Otro',                color: '#64748b', bg: '#f1f5f9' },
 }
 
 const SEVERIDAD_COLOR = {

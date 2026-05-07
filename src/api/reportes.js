@@ -24,3 +24,12 @@ export async function eliminarReporteFalla(id) {
 export function descargarFallaUrl(id) {
   return `${apiBaseUrl}/reportes/fallas/${id}/descargar`
 }
+
+export async function getDiariosSummary(desde, hasta) {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  const query = params.toString() ? '?' + params.toString() : ''
+  const res = await request(`/reportes/diarios${query}`, { method: 'GET' })
+  return json(res)
+}

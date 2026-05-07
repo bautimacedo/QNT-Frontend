@@ -3,7 +3,10 @@ import { ref, computed, inject } from 'vue'
 import { BarChart2, Target, Package, Wrench, DollarSign, Download, Filter, Calendar, FileText, AlertTriangle, ExternalLink, FlaskConical, ShieldAlert, Plus, Loader2, Trash2 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { apiBaseUrl } from '../api/config.js'
-import { getReportesFallas, subirReporteFalla, eliminarReporteFalla, descargarFallaUrl } from '../api/reportes.js'
+import { getReportesFallas, subirReporteFalla, eliminarReporteFalla, descargarFallaUrl, getDiariosSummary } from '../api/reportes.js'
+import { getVuelosLog } from '../api/vuelosLog.js'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const dashboardUser = inject('dashboardUser')
 const isAdmin = computed(() => dashboardUser?.value?.authorities?.includes('ROLE_ADMIN'))
@@ -132,6 +135,144 @@ const features = [
 ]
 
 const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
+
+// ─── Reportes Diarios ────────────────────────────────────────────────────────
+const showDiarios     = ref(false)
+const diariosList     = ref([])
+const loadingDiarios  = ref(false)
+const diariosMes      = ref(new Date().toISOString().slice(0, 7))  // YYYY-MM
+const pdfGenerating   = ref({})  // {fecha: true/false}
+
+function mesADesdeHasta(mes) {
+  const [y, m] = mes.split('-')
+  const desde = `${y}-${m}-01`
+  const lastDay = new Date(Number(y), Number(m), 0).getDate()
+  const hasta = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+  return { desde, hasta }
+}
+
+async function buscarDiarios() {
+  loadingDiarios.value = true
+  diariosList.value = []
+  try {
+    const { desde, hasta } = mesADesdeHasta(diariosMes.value)
+    diariosList.value = await getDiariosSummary(desde, hasta)
+  } catch { /* silencioso */ }
+  finally { loadingDiarios.value = false }
+}
+
+function toggleDiarios() {
+  showDiarios.value = !showDiarios.value
+  if (showDiarios.value && diariosList.value.length === 0) buscarDiarios()
+}
+
+function formatFechaDiario(str) {
+  if (!str) return ''
+  const [y, m, d] = str.split('-')
+  const date = new Date(Number(y), Number(m) - 1, Number(d))
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  return `${dias[date.getDay()]} ${d}/${m}/${y}`
+}
+
+const SITE_COLORS = {
+  EFO: { color: '#0369a1', bg: '#e0f2fe' },
+  CAM: { color: '#15803d', bg: '#dcfce7' },
+}
+
+async function generarPdfDiario(diario) {
+  pdfGenerating.value = { ...pdfGenerating.value, [diario.fecha]: true }
+  try {
+    const [y, m, d] = diario.fecha.split('-')
+    const desde = `${diario.fecha}T00:00:00-03:00`
+    const hasta  = `${diario.fecha}T23:59:59-03:00`
+    const vuelos = await getVuelosLog({ desde, hasta, evento: 'VUELO' })
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const W = doc.internal.pageSize.getWidth()
+
+    // Header band
+    doc.setFillColor(17, 62, 76)
+    doc.rect(0, 0, W, 32, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('QNT Drones', 14, 13)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Reporte Diario de Vuelos', 14, 20)
+    doc.setFontSize(9)
+    doc.text(`Fecha: ${formatFechaDiario(diario.fecha)}`, 14, 27)
+
+    // Stats bar
+    doc.setTextColor(17, 62, 76)
+    doc.setFontSize(9)
+    const statsY = 42
+    const stats = [
+      { label: 'Vuelos', value: diario.totalVuelos, color: [3, 105, 161] },
+      { label: 'Fallas', value: diario.totalFallas, color: [220, 38, 38] },
+      { label: 'Cortos (< 3min)', value: diario.totalVuelosCortos, color: [180, 83, 9] },
+    ]
+    stats.forEach((s, i) => {
+      const x = 14 + i * 60
+      doc.setFillColor(245, 247, 247)
+      doc.roundedRect(x, statsY - 6, 55, 16, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(...s.color)
+      doc.text(String(s.value), x + 6, statsY + 4)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(83, 108, 107)
+      doc.text(s.label, x + 6, statsY + 9)
+    })
+
+    // Table
+    const tableStartY = statsY + 20
+    const rows = vuelos.map(v => [
+      v.timestampFlytbase
+        ? new Date(v.timestampFlytbase).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' })
+        : '—',
+      v.nombreDron || '—',
+      v.site || '—',
+      v.piloto || '—',
+      v.bateria != null ? `${v.bateria}%` : '—',
+      v.duracionMinutos != null ? `${v.duracionMinutos} min` : '—',
+    ])
+
+    autoTable(doc, {
+      startY: tableStartY,
+      head: [['Hora', 'Drone', 'Site', 'Piloto', 'Batería', 'Duración']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [17, 62, 76], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 248, 248] },
+      columnStyles: {
+        0: { cellWidth: 16 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 50 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 22 },
+      },
+      margin: { left: 14, right: 14 },
+    })
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(150)
+      doc.text(`Generado por QNT Gestión — Página ${i} de ${pageCount}`, 14, doc.internal.pageSize.getHeight() - 8)
+    }
+
+    doc.save(`reporte-diario-${diario.fecha}.pdf`)
+  } catch (e) {
+    alert('Error al generar el PDF')
+  } finally {
+    pdfGenerating.value = { ...pdfGenerating.value, [diario.fecha]: false }
+  }
+}
 </script>
 
 <template>
@@ -142,6 +283,86 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
       subtitle="Generación y exportación de informes operativos y financieros"
       :icon="BarChart2"
     />
+
+    <!-- ── Sección: Reportes Diarios ────────────────────────────────────── -->
+    <div class="rep-section" style="margin-bottom:1.5rem;">
+      <div class="rep-section__head" style="cursor:pointer;" @click="toggleDiarios">
+        <div class="rep-section__icon" style="background:#e0f2fe;color:#0369a1;">
+          <Calendar class="w-4 h-4" />
+        </div>
+        <div>
+          <h3 class="rep-section__title">Reportes diarios</h3>
+          <p class="rep-section__sub">Actividad de vuelo por día — generación de PDF on-demand</p>
+        </div>
+        <div style="margin-left:auto;color:#536c6b;font-size:.75rem;">
+          {{ showDiarios ? '▲ Ocultar' : '▼ Ver reportes' }}
+        </div>
+      </div>
+
+      <template v-if="showDiarios">
+        <!-- Filtro de mes -->
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+          <input v-model="diariosMes" type="month" class="falla-input" style="width:auto;max-width:180px;" />
+          <button class="rep-btn rep-btn--dl" :disabled="loadingDiarios" @click="buscarDiarios">
+            <Loader2 v-if="loadingDiarios" class="w-3.5 h-3.5 animate-spin" />
+            <span v-else>Buscar</span>
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="loadingDiarios" style="padding:1.5rem;text-align:center;color:#536c6b;font-size:.875rem;">
+          <Loader2 class="w-5 h-5 animate-spin" style="display:inline;" /> Cargando...
+        </div>
+
+        <!-- Sin resultados -->
+        <div v-else-if="diariosList.length === 0" class="rep-empty" style="text-align:center;padding:1.5rem 0;">
+          Sin actividad de vuelo en el período seleccionado.
+        </div>
+
+        <!-- Tabla de días -->
+        <div v-else class="diarios-table-wrap">
+          <table class="diarios-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Vuelos</th>
+                <th>Fallas</th>
+                <th>Sites</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in diariosList" :key="d.fecha">
+                <td class="td-fecha">{{ formatFechaDiario(d.fecha) }}</td>
+                <td><span class="num-badge">{{ d.totalVuelos }}</span></td>
+                <td>
+                  <span v-if="d.totalFallas > 0" class="num-badge num-badge--danger">{{ d.totalFallas }}</span>
+                  <span v-else class="num-muted">—</span>
+                </td>
+                <td>
+                  <span
+                    v-for="site in d.sites" :key="site"
+                    class="site-badge"
+                    :style="{ color: SITE_COLORS[site]?.color || '#64748b', background: SITE_COLORS[site]?.bg || '#f1f5f9' }"
+                  >{{ site }}</span>
+                </td>
+                <td>
+                  <button
+                    class="rep-btn rep-btn--dl"
+                    :disabled="pdfGenerating[d.fecha]"
+                    @click="generarPdfDiario(d)"
+                    style="white-space:nowrap;"
+                  >
+                    <Loader2 v-if="pdfGenerating[d.fecha]" class="w-3.5 h-3.5 animate-spin" />
+                    <template v-else><Download class="w-3.5 h-3.5" /> PDF</template>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </div>
 
     <!-- ── Sección: Reportes de fallas ──────────────────────────────────── -->
     <div class="rep-section" style="margin-bottom:1.5rem;">
@@ -445,4 +666,35 @@ const exportFormats = ['PDF', 'Excel (.xlsx)', 'CSV', 'JSON']
   box-sizing: border-box;
 }
 .falla-input:focus { outline: none; border-color: #113e4c; }
+
+/* Tabla reportes diarios */
+.diarios-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e8f0f0; }
+.diarios-table {
+  width: 100%; border-collapse: collapse; font-size: .85rem;
+}
+.diarios-table th {
+  background: #f5f7f7; padding: .55rem .85rem;
+  text-align: left; font-size: .75rem; font-weight: 600;
+  color: #536c6b; border-bottom: 1px solid #e8f0f0;
+}
+.diarios-table td {
+  padding: .6rem .85rem; border-bottom: 1px solid #f0f4f4;
+  vertical-align: middle;
+}
+.diarios-table tbody tr:last-child td { border-bottom: none; }
+.diarios-table tbody tr:hover { background: #fafbfb; }
+.td-fecha { font-weight: 600; color: #113e4c; white-space: nowrap; }
+.num-badge {
+  display: inline-block; min-width: 24px; text-align: center;
+  padding: .15rem .5rem; border-radius: 20px;
+  font-size: .78rem; font-weight: 700;
+  background: #e0f2fe; color: #0369a1;
+}
+.num-badge--danger { background: #fee2e2; color: #b91c1c; }
+.num-muted { color: #c0cccc; font-size: .8rem; }
+.site-badge {
+  display: inline-block; padding: .15rem .5rem;
+  border-radius: 6px; font-size: .7rem; font-weight: 700;
+  margin-right: .3rem;
+}
 </style>
