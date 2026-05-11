@@ -131,6 +131,7 @@ function emptyForm() {
     categoria: 'OTRO', prioridad: 'MEDIA', estado: 'PLANIFICADA',
     dronId: null,
     webhookUrl: '', webhookBearer: '',
+    flightHubWaylineUuid: '',
   }
 }
 
@@ -150,6 +151,7 @@ function openEdit(m) {
     dronId: m.dronId || null,
     webhookUrl: m.webhookUrl || '',
     webhookBearer: '',
+    flightHubWaylineUuid: m.flightHubWaylineUuid || '',
   }
   modal.value = { open: true, loading: false, mision: m }
 }
@@ -587,6 +589,18 @@ async function doDelete() {
                     <input v-model="form.webhookBearer" type="password" placeholder="Token de autorización"
                       style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid #d1fae5;font-size:.8125rem;color:#113e4c;outline:none;box-sizing:border-box;" />
                   </div>
+                </div>
+              </div>
+
+              <!-- FlightHub 2 (CAM) -->
+              <div style="padding:.75rem;border-radius:10px;background:#eff6ff;border:1px solid #93c5fd;">
+                <p style="font-size:.6875rem;font-weight:700;color:#1d4ed8;margin:0 0 .75rem;">
+                  🚁 Configuración FlightHub 2 (CAM)
+                </p>
+                <div>
+                  <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Wayline UUID</label>
+                  <input v-model="form.flightHubWaylineUuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid #bfdbfe;font-size:.8125rem;color:#113e4c;outline:none;box-sizing:border-box;font-family:monospace;" />
                 </div>
               </div>
             </template>
