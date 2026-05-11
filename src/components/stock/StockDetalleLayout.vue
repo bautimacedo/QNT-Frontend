@@ -15,6 +15,7 @@ const props = defineProps({
   estadoColors: { type: Object, default: () => ({}) },
   placeholderType: { type: String, default: '' },
   showEditButton: { type: Boolean, default: true },
+  extraExclude: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['retry', 'volver', 'editar'])
@@ -83,10 +84,11 @@ const estadoUbicacionFields = computed(() => {
 const OTROS_EXCLUDE = ['nombre', 'marca', 'modelo', 'numeroSerie', 'numero_serie', 'estado', 'fechaCompra', 'garantia', 'garantía']
 const otrosFields = computed(() => {
   if (!props.item) return []
+  const exclude = new Set([...OTROS_EXCLUDE, ...props.extraExclude])
   const o = props.item
   const list = []
   Object.keys(o).forEach((k) => {
-    if (OTROS_EXCLUDE.includes(k)) return
+    if (exclude.has(k)) return
     const v = o[k]
     if (v !== null && v !== undefined && typeof v === 'object' && v !== null && !Array.isArray(v)) {
       const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
@@ -217,6 +219,8 @@ function onVolver() {
             </div>
           </div>
         </section>
+
+        <slot name="after-cards" />
       </div>
     </template>
   </div>

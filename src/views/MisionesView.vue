@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import {
   Target, Plus, Search, RefreshCw, X, ChevronDown,
-  User, Cpu, Box, AlertTriangle, CheckCircle2, Clock, Ban, Pencil, Trash2, Rocket, Tv2,
+  User, Cpu, Box, AlertTriangle, CheckCircle2, Clock, Ban, Pencil, Trash2, Rocket, Tv2, Info, MapPin, Route,
 } from 'lucide-vue-next'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const COCKPIT_URL = 'https://guest.flytbase.com/video-feed/55e675a015b7ee1f59c16f12e8a8a9d3cb5cc82036bfbae414741e0eaa2a1832'
 import PageHeader from '../components/ui/PageHeader.vue'
@@ -25,6 +27,7 @@ const loading     = ref(false)
 const error       = ref('')
 const searchText  = ref('')
 const filtroEstado = ref('')
+const filtroSite  = ref('EFO') // 'EFO' | 'CAM'
 
 // toast
 const toast = ref({ show: false, msg: '', type: 'ok' })
@@ -68,16 +71,19 @@ onUnmounted(() => {
 })
 
 // ─── filtrado ────────────────────────────────────
-// El filtro de estado se aplica en el servidor (fetchMisiones); aquí solo filtramos por texto.
 const misionesFiltradas = computed(() => {
   const q = searchText.value.toLowerCase()
-  if (!q) return misiones.value
-  return misiones.value.filter(m =>
-    m.nombre?.toLowerCase().includes(q) ||
-    m.pilotoNombre?.toLowerCase().includes(q) ||
-    m.dronNombre?.toLowerCase().includes(q)
-  )
+  return misiones.value.filter(m => {
+    if (m.site !== filtroSite.value) return false
+    if (!q) return true
+    return m.nombre?.toLowerCase().includes(q) ||
+           m.pilotoNombre?.toLowerCase().includes(q) ||
+           m.dronNombre?.toLowerCase().includes(q)
+  })
 })
+
+const countEFO = computed(() => misiones.value.filter(m => m.site === 'EFO').length)
+const countCAM = computed(() => misiones.value.filter(m => m.site === 'CAM').length)
 
 // ─── helpers visuales ───────────────────────────
 const ESTADOS = [
@@ -231,6 +237,60 @@ async function doLanzar() {
   }
 }
 
+// ─── info CAM ───────────────────────────────────
+const infoModal = ref({ open: false, mision: null })
+const mapContainer = ref(null)
+let leafletMap = null
+
+function openInfo(m) { infoModal.value = { open: true, mision: m } }
+function closeInfo() {
+  infoModal.value.open = false
+  if (leafletMap) { leafletMap.remove(); leafletMap = null }
+}
+
+watch(() => infoModal.value.open, async (open) => {
+  if (!open) return
+  await nextTick()
+  const m = infoModal.value.mision
+  if (!mapContainer.value || !m?.coordenadasJson) return
+
+  if (leafletMap) { leafletMap.remove(); leafletMap = null }
+
+  leafletMap = L.map(mapContainer.value, { zoomControl: true })
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri'
+  }).addTo(leafletMap)
+
+  let coords
+  try { coords = JSON.parse(m.coordenadasJson) } catch { return }
+  if (!coords?.length) return
+
+  const latlngs = coords.map(c => [c.lat, c.lon])
+
+  // Dock como punto de partida/llegada
+  const dockLatLng = (m.dockLat != null && m.dockLon != null) ? [m.dockLat, m.dockLon] : null
+  if (dockLatLng) {
+    L.polyline([dockLatLng, latlngs[0]], { color: '#f97316', weight: 2.5, dashArray: '8 5', opacity: 1 }).addTo(leafletMap)
+    L.polyline([latlngs[latlngs.length - 1], dockLatLng], { color: '#f97316', weight: 2.5, dashArray: '8 5', opacity: 1 }).addTo(leafletMap)
+    L.circleMarker(dockLatLng, { radius: 8, color: '#7c3aed', fillColor: '#a78bfa', fillOpacity: 1, weight: 2 })
+      .bindTooltip('Dock').addTo(leafletMap)
+  }
+
+  L.polyline(latlngs, { color: '#facc15', weight: 3, opacity: 0.9 }).addTo(leafletMap)
+
+  L.circleMarker(latlngs[0], { radius: 7, color: '#15803d', fillColor: '#22c55e', fillOpacity: 1, weight: 2 })
+    .bindTooltip('Inicio').addTo(leafletMap)
+
+  if (latlngs.length > 1) {
+    const ultimo = latlngs[latlngs.length - 1]
+    L.circleMarker(ultimo, { radius: 7, color: '#dc2626', fillColor: '#ef4444', fillOpacity: 1, weight: 2 })
+      .bindTooltip('Fin').addTo(leafletMap)
+  }
+
+  const allPoints = dockLatLng ? [dockLatLng, ...latlngs] : latlngs
+  leafletMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] })
+})
+
 // ─── eliminar ────────────────────────────────────
 const confirmDelete = ref({ open: false, mision: null })
 
@@ -314,6 +374,38 @@ async function doDelete() {
       </div>
     </div>
 
+    <!-- Tabs EFO / CAM -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem;">
+      <button @click="filtroSite='EFO'; filtroEstado=''; fetchMisiones()"
+        style="display:flex;align-items:center;gap:.875rem;padding:1rem 1.25rem;border-radius:14px;border:2px solid;cursor:pointer;text-align:left;transition:all .15s;"
+        :style="filtroSite==='EFO'
+          ? 'background:#f0fdf4;border-color:#22c55e;'
+          : 'background:#fff;border-color:#e0e8e8;'"
+      >
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#15803d,#16a34a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-size:1.25rem;">🛸</span>
+        </div>
+        <div>
+          <div style="font-size:.875rem;font-weight:700;color:#113e4c;">Misiones EFO</div>
+          <div style="font-size:.75rem;color:#64748b;">{{ countEFO }} misión{{ countEFO !== 1 ? 'es' : '' }} · Estación Fernández Oro</div>
+        </div>
+      </button>
+      <button @click="filtroSite='CAM'; filtroEstado=''; fetchMisiones()"
+        style="display:flex;align-items:center;gap:.875rem;padding:1rem 1.25rem;border-radius:14px;border:2px solid;cursor:pointer;text-align:left;transition:all .15s;"
+        :style="filtroSite==='CAM'
+          ? 'background:#eff6ff;border-color:#3b82f6;'
+          : 'background:#fff;border-color:#e0e8e8;'"
+      >
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-size:1.25rem;">🚁</span>
+        </div>
+        <div>
+          <div style="font-size:.875rem;font-weight:700;color:#113e4c;">Misiones CAM</div>
+          <div style="font-size:.75rem;color:#64748b;">{{ countCAM }} misión{{ countCAM !== 1 ? 'es' : '' }} · Campoduron</div>
+        </div>
+      </button>
+    </div>
+
     <!-- Filtros -->
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <!-- buscador -->
@@ -381,8 +473,18 @@ async function doDelete() {
             >
               <!-- Misión -->
               <td style="padding:.875rem 1rem;">
-                <p style="font-size:.8125rem;font-weight:600;color:#113e4c;margin:0;">{{ m.nombre }}</p>
-                <p style="font-size:.6875rem;color:#a0b5b5;margin:.125rem 0 0;">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.125rem;">
+                  <p style="font-size:.8125rem;font-weight:600;color:#113e4c;margin:0;">{{ m.nombre }}</p>
+                  <span v-if="m.site === 'CAM'"
+                    style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .4rem;border-radius:4px;font-size:.6rem;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;flex-shrink:0;">
+                    🚁 CAM
+                  </span>
+                  <span v-else-if="m.site === 'EFO'"
+                    style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .4rem;border-radius:4px;font-size:.6rem;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #86efac;flex-shrink:0;">
+                    🛸 EFO
+                  </span>
+                </div>
+                <p style="font-size:.6875rem;color:#a0b5b5;margin:0;">
                   {{ CATEGORIA_LABELS[m.categoria] || m.categoria || '—' }}
                 </p>
               </td>
@@ -465,6 +567,12 @@ async function doDelete() {
                     <Rocket style="width:12px;height:12px;" />
                     Lanzar
                   </button>
+                  <button v-if="m.flightHubWaylineUuid" @click="openInfo(m)"
+                    title="Info de ruta CAM"
+                    style="width:30px;height:30px;border-radius:6px;border:1px solid #bfdbfe;background:#eff6ff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#1d4ed8;"
+                    @mouseenter="$event.currentTarget.style.background='#dbeafe'"
+                    @mouseleave="$event.currentTarget.style.background='#eff6ff'"
+                  ><Info style="width:13px;height:13px;" /></button>
                   <button @click="openEdit(m)"
                     title="Editar"
                     style="width:30px;height:30px;border-radius:6px;border:1px solid #e0e8e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#536c6b;"
@@ -693,6 +801,72 @@ async function doDelete() {
               <Rocket style="width:14px;height:14px;" />
               {{ confirmLanzar.loading ? 'Lanzando…' : 'Confirmar lanzamiento' }}
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ═══ Info CAM ═══ -->
+    <Teleport to="body">
+      <div v-if="infoModal.open"
+        style="position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:1rem;"
+        @click.self="closeInfo"
+      >
+        <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="closeInfo" />
+        <div style="position:relative;background:#fff;border-radius:20px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.18);">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid #e0e8e8;">
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;">
+                <Route style="width:18px;height:18px;color:#fff;" />
+              </div>
+              <div>
+                <h2 style="font-size:1rem;font-weight:700;color:#113e4c;margin:0;">{{ infoModal.mision?.nombre }}</h2>
+                <span style="font-size:.6875rem;color:#64748b;">🚁 CAM — Ruta de inspección</span>
+              </div>
+            </div>
+            <button @click="closeInfo" style="width:32px;height:32px;border-radius:8px;border:1px solid #e0e8e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#536c6b;">
+              <X style="width:16px;height:16px;" />
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;padding:1.25rem 1.5rem 0;">
+            <div style="padding:.875rem;border-radius:12px;background:#f8fafc;border:1px solid #e0e8e8;text-align:center;">
+              <p style="font-size:1.25rem;font-weight:700;color:#113e4c;margin:0;">
+                {{ infoModal.mision?.distanciaMetros != null ? infoModal.mision.distanciaMetros.toFixed(0) + ' m' : '—' }}
+              </p>
+              <p style="font-size:.6875rem;color:#64748b;margin:.25rem 0 0;">Distancia</p>
+            </div>
+            <div style="padding:.875rem;border-radius:12px;background:#f8fafc;border:1px solid #e0e8e8;text-align:center;">
+              <p style="font-size:1.25rem;font-weight:700;color:#113e4c;margin:0;">
+                {{ infoModal.mision?.waypointCount ?? '—' }}
+              </p>
+              <p style="font-size:.6875rem;color:#64748b;margin:.25rem 0 0;">Waypoints</p>
+            </div>
+            <div style="padding:.875rem;border-radius:12px;background:#f8fafc;border:1px solid #e0e8e8;text-align:center;">
+              <p style="font-size:.8125rem;font-weight:700;margin:0;"
+                :style="{ color: infoModal.mision?.estado === 'PLANIFICADA' ? '#1d4ed8' : infoModal.mision?.estado === 'EN_CURSO' ? '#a16207' : '#15803d' }">
+                {{ estadoCfg(infoModal.mision?.estado)?.label || '—' }}
+              </p>
+              <p style="font-size:.6875rem;color:#64748b;margin:.25rem 0 0;">Estado</p>
+            </div>
+          </div>
+
+          <!-- Mapa -->
+          <div style="padding:1rem 1.5rem 1.5rem;">
+            <p style="font-size:.75rem;font-weight:600;color:#536c6b;margin:0 0 .5rem;display:flex;align-items:center;gap:.375rem;">
+              <MapPin style="width:12px;height:12px;" /> Trayectoria del dron
+            </p>
+            <div v-if="infoModal.mision?.coordenadasJson" ref="mapContainer"
+              style="height:300px;border-radius:12px;overflow:hidden;border:1px solid #e0e8e8;"
+            />
+            <div v-else style="height:160px;border-radius:12px;background:#f8fafc;border:1px solid #e0e8e8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;">
+              <MapPin style="width:28px;height:28px;color:#c8d8d8;" />
+              <p style="font-size:.8125rem;color:#a0b5b5;margin:0;">Coordenadas no disponibles aún</p>
+              <p style="font-size:.6875rem;color:#c8d8d8;margin:0;">Se obtienen en la próxima sincronización</p>
+            </div>
           </div>
         </div>
       </div>

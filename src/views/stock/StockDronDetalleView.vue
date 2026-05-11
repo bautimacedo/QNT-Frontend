@@ -148,9 +148,38 @@ onMounted(load)
       :estado-labels="ESTADO_LABELS"
       placeholder-type="dron"
       :show-edit-button="true"
+      :extra-exclude="['cantidadVuelos','cantidadMinutosVolados','distanciaMetrosVolados','ultimoVuelo']"
       @retry="load"
       @editar="openEdit"
-    />
+    >
+      <template #after-cards>
+        <section v-if="item && (item.cantidadVuelos != null || item.cantidadMinutosVolados != null || item.distanciaMetrosVolados != null)" class="card stats-card">
+          <h3 class="card__title">Estadísticas de vuelo</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-icon">🛸</span>
+              <span class="stat-val">{{ item.cantidadVuelos ?? '—' }}</span>
+              <span class="stat-label">Vuelos realizados</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">⏱️</span>
+              <span class="stat-val">{{ item.cantidadMinutosVolados != null ? (item.cantidadMinutosVolados >= 60 ? Math.floor(item.cantidadMinutosVolados/60) + 'h ' + (item.cantidadMinutosVolados%60) + 'm' : item.cantidadMinutosVolados + ' min') : '—' }}</span>
+              <span class="stat-label">Tiempo volado</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">📏</span>
+              <span class="stat-val">{{ item.distanciaMetrosVolados != null ? (item.distanciaMetrosVolados >= 1000 ? (item.distanciaMetrosVolados/1000).toFixed(2) + ' km' : item.distanciaMetrosVolados.toFixed(0) + ' m') : '—' }}</span>
+              <span class="stat-label">Distancia recorrida</span>
+            </div>
+            <div v-if="item.ultimoVuelo" class="stat-item">
+              <span class="stat-icon">🗓️</span>
+              <span class="stat-val">{{ new Date(item.ultimoVuelo).toLocaleDateString('es-AR') }}</span>
+              <span class="stat-label">Último vuelo</span>
+            </div>
+          </div>
+        </section>
+      </template>
+    </StockDetalleLayout>
 
     <!-- Modal de edición (v0.11.0) -->
     <Teleport to="body">
@@ -251,4 +280,11 @@ onMounted(load)
 .toast { position: fixed; top: 1.5rem; right: 1.5rem; background: #166534; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; z-index: 2000; }
 .toast-enter-active, .toast-leave-active { transition: opacity 0.2s; }
 .toast-enter-from, .toast-leave-to { opacity: 0; }
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; }
+.card__title { font-size: 0.85rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 1rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
+.stat-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; background: #f8fafc; border-radius: 10px; padding: 1rem 0.75rem; text-align: center; }
+.stat-icon { font-size: 1.4rem; }
+.stat-val { font-size: 1.1rem; font-weight: 700; color: #113e4c; }
+.stat-label { font-size: 0.75rem; color: #64748b; }
 </style>
