@@ -137,9 +137,9 @@ function renderMapa() {
     layerEquipos.addLayer(marker)
   })
 
-  // Pins de misiones con posición de dock/dron
+  // Pins de misiones EN_CURSO con posición de dock/dron
   misiones.value.forEach(m => {
-    // Buscar dron de la misión en equipos
+    if (m.estado !== 'EN_CURSO') return
     if (!m.dronNombre) return
     const eq = equipos.value.find(e => e.nombre === m.dronNombre && e.tipoEquipo === 'DRON')
     if (!eq) return

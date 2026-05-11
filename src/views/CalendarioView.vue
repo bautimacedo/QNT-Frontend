@@ -446,11 +446,11 @@ const cantidadMes = computed(() => {
               Drone: <span class="text-gray-600">{{ p.misionPlantillaDronNombre }}</span>
             </p>
             <p class="text-xs text-gray-400 flex items-center gap-1">
-              <component :is="p.misionPlantillaTieneWebhook ? CheckCircle : AlertCircle"
-                :class="p.misionPlantillaTieneWebhook ? 'text-emerald-400' : 'text-amber-400'"
+              <component :is="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? CheckCircle : AlertCircle"
+                :class="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? 'text-emerald-400' : 'text-amber-400'"
                 class="w-3 h-3" />
-              <span :class="p.misionPlantillaTieneWebhook ? 'text-emerald-600' : 'text-amber-500'">
-                {{ p.misionPlantillaTieneWebhook ? 'Con webhook' : 'Sin webhook' }}
+              <span :class="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? 'text-emerald-600' : 'text-amber-500'">
+                {{ p.misionPlantillaSite === 'CAM' ? 'FlightHub CAM' : (p.misionPlantillaTieneWebhook ? 'Con webhook' : 'Sin webhook') }}
               </span>
             </p>
             <p class="text-xs text-gray-400">
@@ -501,21 +501,23 @@ const cantidadMes = computed(() => {
                 <option v-for="m in misiones" :key="m.id" :value="m.id">
                   {{ m.nombre }}
                   {{ m.dronNombre ? `· ${m.dronNombre}` : '' }}
-                  {{ (m.webhookUrl) ? '✓' : '' }}
+                  {{ m.site === 'CAM' ? '🚁 CAM' : (m.webhookUrl ? '✓' : '') }}
                 </option>
               </select>
               <!-- Preview de la misión seleccionada -->
               <div v-if="form.misionPlantillaId"
                 class="mt-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex items-center gap-2">
                 <component
-                  :is="misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl ? CheckCircle : AlertCircle"
-                  :class="misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl ? 'text-emerald-500' : 'text-amber-400'"
+                  :is="(misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM' || misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl) ? CheckCircle : AlertCircle"
+                  :class="(misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM' || misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl) ? 'text-emerald-500' : 'text-amber-400'"
                   class="w-4 h-4 flex-shrink-0" />
                 <div class="text-xs text-gray-600">
                   <span class="font-medium">{{ misiones.find(m => m.id == form.misionPlantillaId)?.nombre }}</span>
-                  <span v-if="!misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl"
-                    class="ml-2 text-amber-500">Sin webhook — se creará en PLANIFICADA</span>
-                  <span v-else class="ml-2 text-emerald-600">Con webhook FlytBase</span>
+                  <span v-if="misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM'"
+                    class="ml-2 text-emerald-600">Misión CAM · FlightHub 2</span>
+                  <span v-else-if="misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl"
+                    class="ml-2 text-emerald-600">Con webhook FlytBase</span>
+                  <span v-else class="ml-2 text-amber-500">Sin webhook — se creará en PLANIFICADA</span>
                 </div>
               </div>
             </div>
