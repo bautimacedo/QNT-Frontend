@@ -21,6 +21,7 @@ const PILOT_FORBIDDEN_PREFIXES = [
   '/home/proveedores',
   '/home/compras',
   '/home/usuarios',
+  '/home/testeo-estacion',
 ]
 
 // Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar
@@ -77,6 +78,7 @@ const PanelEjecutivoView          = () => import('../views/PanelEjecutivoView.vu
 const PozosView                   = () => import('../views/PozosView.vue')
 const PozoDetalleView             = () => import('../views/PozoDetalleView.vue')
 const InspeccionAibDetalleView    = () => import('../views/InspeccionAibDetalleView.vue')
+const TesteoEstacionView          = () => import('../views/TesteoEstacionView.vue')
 
 const routes = [
   // Pública — landing page
@@ -105,6 +107,7 @@ const routes = [
       { path: 'pozos',                   name: 'pozos',                       component: PozosView                  },
       { path: 'pozos/:aibId',            name: 'pozo-detalle',                component: PozoDetalleView            },
       { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
+      { path: 'testeo-estacion',              name: 'testeo-estacion',          component: TesteoEstacionView         },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
       { path: 'historial-misiones',       name: 'historial-misiones',          component: HistorialMisionesView      },
