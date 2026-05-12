@@ -221,15 +221,19 @@ const connectionIcon = computed(() => ({
 const obs = ref(null)
 
 function parseObs(raw) {
-  // WeatherFlow Tempest devuelve obs como array de objetos con campos nombrados
-  // (endpoint /observations/station devuelve obs con keys nombradas)
   const obsArr = raw?.obs
   if (!obsArr || obsArr.length === 0) return null
   const o = obsArr[0]
-  if (!o) return null
-  // Si es objeto ya tiene keys; si es array (device endpoint) mapear por índice
-  if (Array.isArray(o)) return null // device obs — no usar aquí
-  return o
+  if (!o || Array.isArray(o)) return null
+
+  // Normalizar: cuando el sensor está en modo indoor la API sufija _indoor en cada key.
+  // Se elimina el sufijo para que el resto del código funcione igual indoor/outdoor.
+  const normalized = {}
+  for (const [key, val] of Object.entries(o)) {
+    const clean = key.endsWith('_indoor') ? key.slice(0, -7) : key
+    normalized[clean] = val
+  }
+  return normalized
 }
 
 // Semáforo de aptitud de vuelo
