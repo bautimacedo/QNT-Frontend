@@ -28,55 +28,55 @@ const USUARIO_FORBIDDEN_PREFIXES = [
   ...PILOT_FORBIDDEN_PREFIXES,
   '/home/perfil-piloto',
 ]
-import DashboardLayout from '../layouts/DashboardLayout.vue'
-import HomeView from '../views/HomeView.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
-import ResetPasswordView from '../views/ResetPasswordView.vue'
-import LandingView from '../views/LandingView.vue'
-import PlaceholderView from '../views/PlaceholderView.vue'
-import PilotosView from '../views/PilotosView.vue'
-import PilotoPerfilDetalleView from '../views/PilotoPerfilDetalleView.vue'
-import UsuariosView from '../views/UsuariosView.vue'
-import MiPerfilView from '../views/MiPerfilView.vue'
-import PerfilPilotoView from '../views/PerfilPilotoView.vue'
-import ComprasView from '../views/ComprasView.vue'
-import CompraDetalleView from '../views/CompraDetalleView.vue'
-import ProveedoresView from '../views/ProveedoresView.vue'
-import StockView from '../views/stock/StockView.vue'
-import MapaEquiposView from '../views/MapaEquiposView.vue'
-import StockDronesView from '../views/stock/StockDronesView.vue'
-import StockDocksView from '../views/stock/StockDocksView.vue'
-import StockBateriasView from '../views/stock/StockBateriasView.vue'
-import StockHelicesView from '../views/stock/StockHelicesView.vue'
-import StockAntenasRtkView from '../views/stock/StockAntenasRtkView.vue'
-import StockAntenasStarlinkView from '../views/stock/StockAntenasStarlinkView.vue'
-import StockLicenciasView from '../views/stock/StockLicenciasView.vue'
-import StockAccesoriosView from '../views/stock/StockAccesoriosView.vue'
-import StockDronDetalleView from '../views/stock/StockDronDetalleView.vue'
-import StockDockDetalleView from '../views/stock/StockDockDetalleView.vue'
-import StockBateriaDetalleView from '../views/stock/StockBateriaDetalleView.vue'
-import StockHeliceDetalleView from '../views/stock/StockHeliceDetalleView.vue'
-import StockAntenaRtkDetalleView from '../views/stock/StockAntenaRtkDetalleView.vue'
-import StockAntenaStarlinkDetalleView from '../views/stock/StockAntenaStarlinkDetalleView.vue'
-import StockLicenciaDetalleView from '../views/stock/StockLicenciaDetalleView.vue'
-import StockAccesorioDetalleView from '../views/stock/StockAccesorioDetalleView.vue'
-import MisionesView from '../views/MisionesView.vue'
-import CalendarioView from '../views/CalendarioView.vue'
-import TareasView from '../views/TareasView.vue'
-import SegurosView from '../views/SegurosView.vue'
-import LicenciasView from '../views/LicenciasView.vue'
-import MantenimientoView from '../views/MantenimientoView.vue'
-import LibrosVueloView from '../views/LibrosVueloView.vue'
-import ReportesView from '../views/ReportesView.vue'
-import CoberturaView from '../views/CoberturaView.vue'
-import VuelosFlytbaseView from '../views/VuelosFlytbaseView.vue'
-import VuelosCAMView from '../views/VuelosCAMView.vue'
-import HistorialMisionesView from '../views/HistorialMisionesView.vue'
-import PanelEjecutivoView from '../views/PanelEjecutivoView.vue'
-import PozosView from '../views/PozosView.vue'
-import PozoDetalleView from '../views/PozoDetalleView.vue'
-import InspeccionAibDetalleView from '../views/InspeccionAibDetalleView.vue'
+const DashboardLayout             = () => import('../layouts/DashboardLayout.vue')
+const HomeView                    = () => import('../views/HomeView.vue')
+const LoginView                   = () => import('../views/LoginView.vue')
+const RegisterView                = () => import('../views/RegisterView.vue')
+const ResetPasswordView           = () => import('../views/ResetPasswordView.vue')
+const LandingView                 = () => import('../views/LandingView.vue')
+const PlaceholderView             = () => import('../views/PlaceholderView.vue')
+const PilotosView                 = () => import('../views/PilotosView.vue')
+const PilotoPerfilDetalleView     = () => import('../views/PilotoPerfilDetalleView.vue')
+const UsuariosView                = () => import('../views/UsuariosView.vue')
+const MiPerfilView                = () => import('../views/MiPerfilView.vue')
+const PerfilPilotoView            = () => import('../views/PerfilPilotoView.vue')
+const ComprasView                 = () => import('../views/ComprasView.vue')
+const CompraDetalleView           = () => import('../views/CompraDetalleView.vue')
+const ProveedoresView             = () => import('../views/ProveedoresView.vue')
+const StockView                   = () => import('../views/stock/StockView.vue')
+const MapaEquiposView             = () => import('../views/MapaEquiposView.vue')
+const StockDronesView             = () => import('../views/stock/StockDronesView.vue')
+const StockDocksView              = () => import('../views/stock/StockDocksView.vue')
+const StockBateriasView           = () => import('../views/stock/StockBateriasView.vue')
+const StockHelicesView            = () => import('../views/stock/StockHelicesView.vue')
+const StockAntenasRtkView         = () => import('../views/stock/StockAntenasRtkView.vue')
+const StockAntenasStarlinkView    = () => import('../views/stock/StockAntenasStarlinkView.vue')
+const StockLicenciasView          = () => import('../views/stock/StockLicenciasView.vue')
+const StockAccesoriosView         = () => import('../views/stock/StockAccesoriosView.vue')
+const StockDronDetalleView        = () => import('../views/stock/StockDronDetalleView.vue')
+const StockDockDetalleView        = () => import('../views/stock/StockDockDetalleView.vue')
+const StockBateriaDetalleView     = () => import('../views/stock/StockBateriaDetalleView.vue')
+const StockHeliceDetalleView      = () => import('../views/stock/StockHeliceDetalleView.vue')
+const StockAntenaRtkDetalleView   = () => import('../views/stock/StockAntenaRtkDetalleView.vue')
+const StockAntenaStarlinkDetalleView = () => import('../views/stock/StockAntenaStarlinkDetalleView.vue')
+const StockLicenciaDetalleView    = () => import('../views/stock/StockLicenciaDetalleView.vue')
+const StockAccesorioDetalleView   = () => import('../views/stock/StockAccesorioDetalleView.vue')
+const MisionesView                = () => import('../views/MisionesView.vue')
+const CalendarioView              = () => import('../views/CalendarioView.vue')
+const TareasView                  = () => import('../views/TareasView.vue')
+const SegurosView                 = () => import('../views/SegurosView.vue')
+const LicenciasView               = () => import('../views/LicenciasView.vue')
+const MantenimientoView           = () => import('../views/MantenimientoView.vue')
+const LibrosVueloView             = () => import('../views/LibrosVueloView.vue')
+const ReportesView                = () => import('../views/ReportesView.vue')
+const CoberturaView               = () => import('../views/CoberturaView.vue')
+const VuelosFlytbaseView          = () => import('../views/VuelosFlytbaseView.vue')
+const VuelosCAMView               = () => import('../views/VuelosCAMView.vue')
+const HistorialMisionesView       = () => import('../views/HistorialMisionesView.vue')
+const PanelEjecutivoView          = () => import('../views/PanelEjecutivoView.vue')
+const PozosView                   = () => import('../views/PozosView.vue')
+const PozoDetalleView             = () => import('../views/PozoDetalleView.vue')
+const InspeccionAibDetalleView    = () => import('../views/InspeccionAibDetalleView.vue')
 
 const routes = [
   // Pública — landing page

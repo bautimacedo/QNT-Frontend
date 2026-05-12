@@ -6,10 +6,21 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     proxy: {
-      // En desarrollo, /api/qnt/v1 se reenvía al backend (mismo puerto que en docker: 8081)
       '/api/qnt/v1': {
         target: 'http://localhost:8081',
         changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'axios'],
+          maps:   ['leaflet'],
+          pdf:    ['jspdf', 'html2canvas'],
+        },
       },
     },
   },

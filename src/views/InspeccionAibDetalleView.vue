@@ -65,7 +65,7 @@ async function downloadPdf() {
     await generatePdfReport(inspeccion.value, imgUrl)
   } catch (e) {
     pdfError.value = 'No se pudo generar el PDF.'
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
   } finally {
     pdfLoading.value = false
   }
