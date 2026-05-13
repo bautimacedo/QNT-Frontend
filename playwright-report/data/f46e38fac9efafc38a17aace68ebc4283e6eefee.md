@@ -1,0 +1,232 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "QNT Drones" [ref=e8]
+        - generic [ref=e9]:
+          - generic [ref=e10]: QNT DRONES
+          - generic [ref=e11]: Sistema de Gestión de Flota
+      - generic [ref=e12]:
+        - button "Buscar... K" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: Buscar...
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - text: K
+        - button [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+        - button "A admin@admin.com" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: A
+          - generic [ref=e30]: admin@admin.com
+          - img [ref=e31]
+    - navigation [ref=e34]:
+      - button "Dashboard" [ref=e35] [cursor=pointer]
+      - button "Operaciones" [ref=e36] [cursor=pointer]
+      - button "Administración" [ref=e37] [cursor=pointer]
+  - generic [ref=e38]:
+    - complementary [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: Administración
+        - button "Colapsar sidebar" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+      - navigation [ref=e45]:
+        - link "Mi Perfil" [ref=e46] [cursor=pointer]:
+          - /url: /home/mi-perfil
+          - img [ref=e47]
+          - generic [ref=e51]: Mi Perfil
+        - link "Pilotos" [ref=e52] [cursor=pointer]:
+          - /url: /home/pilotos
+          - img [ref=e53]
+          - generic [ref=e58]: Pilotos
+        - link "Proveedores" [ref=e59] [cursor=pointer]:
+          - /url: /home/proveedores
+          - img [ref=e60]
+          - generic [ref=e64]: Proveedores
+        - link "Compras" [ref=e65] [cursor=pointer]:
+          - /url: /home/compras
+          - img [ref=e66]
+          - generic [ref=e70]: Compras
+        - link "Gestión de Usuarios" [ref=e71] [cursor=pointer]:
+          - /url: /home/usuarios
+          - img [ref=e72]
+          - generic [ref=e75]: Gestión de Usuarios
+        - link "Licencias" [ref=e76] [cursor=pointer]:
+          - /url: /home/licencias
+          - img [ref=e77]
+          - generic [ref=e81]: Licencias
+        - link "Seguros" [ref=e82] [cursor=pointer]:
+          - /url: /home/seguros
+          - img [ref=e83]
+          - generic [ref=e87]: Seguros
+      - generic [ref=e88]:
+        - generic [ref=e89]: Una División de
+        - generic [ref=e90]: Quintana Energy
+    - main [ref=e91]:
+      - generic [ref=e92]:
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - heading "Proveedores" [level=1] [ref=e96]
+            - paragraph [ref=e97]: 10 proveedores registrados
+          - button "Nuevo proveedor" [ref=e99] [cursor=pointer]:
+            - img [ref=e100]
+            - text: Nuevo proveedor
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - img
+            - textbox "Buscar por nombre, CUIT, contacto, email…" [ref=e103]
+          - combobox [ref=e104]:
+            - option "Todas las categorías" [selected]
+            - option "Equipamiento"
+            - option "Insumos"
+            - option "Servicios"
+            - option "Mantenimiento"
+            - option "Software"
+            - option "Logística"
+            - option "Otro"
+          - generic [ref=e105]: 10 / 10
+        - generic [ref=e106]:
+          - generic [ref=e107] [cursor=pointer]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: A
+              - generic [ref=e110]:
+                - generic [ref=e111]: AUCA MAHUIDA S.RL.
+                - generic [ref=e112]: "CUIT: 30-6725878-3"
+            - generic [ref=e114]: Sin datos de contacto
+            - generic [ref=e115]:
+              - button "Editar" [ref=e116]
+              - button "Eliminar" [ref=e117]
+              - generic [ref=e118]: Ver detalle →
+          - generic [ref=e119] [cursor=pointer]:
+            - generic [ref=e120]:
+              - generic [ref=e121]: D
+              - generic [ref=e122]:
+                - generic [ref=e123]: DEL PARQUE S.R.L.
+                - generic [ref=e124]: "CUIT: 30-71430890-0"
+            - generic [ref=e126]: Sin datos de contacto
+            - generic [ref=e127]:
+              - button "Editar" [ref=e128]
+              - button "Eliminar" [ref=e129]
+              - generic [ref=e130]: Ver detalle →
+          - generic [ref=e131] [cursor=pointer]:
+            - generic [ref=e132]:
+              - generic [ref=e133]: D
+              - generic [ref=e134]:
+                - generic [ref=e135]: DRONES VIP
+                - generic [ref=e136]: "CUIT: 23-17193018-9"
+            - generic [ref=e137]:
+              - generic [ref=e138]:
+                - img [ref=e139]
+                - generic [ref=e142]: Magdalena Dominguez
+              - generic [ref=e143]:
+                - img [ref=e144]
+                - generic [ref=e146]: 299 596 1450
+              - generic [ref=e147]:
+                - img [ref=e148]
+                - generic [ref=e151]: claudiodelpane@gmail.com
+            - generic [ref=e152]:
+              - button "Editar" [ref=e153]
+              - button "Eliminar" [ref=e154]
+              - generic [ref=e155]: Ver detalle →
+          - generic [ref=e156] [cursor=pointer]:
+            - generic [ref=e157]:
+              - generic [ref=e158]: E
+              - generic [ref=e159]:
+                - generic [ref=e160]: EQUIPEL S.R.L.
+                - generic [ref=e161]: "CUIT: 30-68447614-5"
+            - generic [ref=e163]:
+              - img [ref=e164]
+              - generic [ref=e167]: ventas@equipel.com
+            - generic [ref=e168]:
+              - button "Editar" [ref=e169]
+              - button "Eliminar" [ref=e170]
+              - generic [ref=e171]: Ver detalle →
+          - generic [ref=e172] [cursor=pointer]:
+            - generic [ref=e173]:
+              - generic [ref=e174]: G
+              - generic [ref=e176]: GoDaddy
+            - generic [ref=e178]: Sin datos de contacto
+            - generic [ref=e179]:
+              - button "Editar" [ref=e180]
+              - button "Eliminar" [ref=e181]
+              - generic [ref=e182]: Ver detalle →
+          - generic [ref=e183] [cursor=pointer]:
+            - generic [ref=e184]:
+              - generic [ref=e185]: "N"
+              - generic [ref=e186]:
+                - generic [ref=e187]: NQN PETROL S.R.L
+                - generic [ref=e188]: "CUIT: 30-71085519-2"
+            - generic [ref=e189]:
+              - generic [ref=e190]:
+                - img [ref=e191]
+                - generic [ref=e194]: administración@nqnpetrol.com
+              - generic [ref=e195]:
+                - img [ref=e196]
+                - generic [ref=e198]: "2996348141"
+              - generic [ref=e199]:
+                - img [ref=e200]
+                - generic [ref=e203]: gon.rodriguez2@gmail.com
+            - generic [ref=e204]:
+              - button "Editar" [ref=e205]
+              - button "Eliminar" [ref=e206]
+              - generic [ref=e207]: Ver detalle →
+          - generic [ref=e208] [cursor=pointer]:
+            - generic [ref=e209]:
+              - generic [ref=e210]: O
+              - generic [ref=e211]:
+                - generic [ref=e212]: OFIT SRL
+                - generic [ref=e213]: "CUIT: 30-71523235-5"
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - img [ref=e216]
+                - generic [ref=e219]: 5032-3042
+              - generic [ref=e220]:
+                - img [ref=e221]
+                - generic [ref=e224]: ventas@ofit.com.ar
+            - generic [ref=e225]:
+              - button "Editar" [ref=e226]
+              - button "Eliminar" [ref=e227]
+              - generic [ref=e228]: Ver detalle →
+          - generic [ref=e229] [cursor=pointer]:
+            - generic [ref=e230]:
+              - generic [ref=e231]: R
+              - generic [ref=e233]: RUNCO
+            - generic [ref=e235]: Sin datos de contacto
+            - generic [ref=e236]:
+              - button "Editar" [ref=e237]
+              - button "Eliminar" [ref=e238]
+              - generic [ref=e239]: Ver detalle →
+          - generic [ref=e240] [cursor=pointer]:
+            - generic [ref=e241]:
+              - generic [ref=e242]: R
+              - generic [ref=e243]:
+                - generic [ref=e244]: RUNCO S.A
+                - generic [ref=e245]: "CUIT: 30-60396211-3"
+            - generic [ref=e246]:
+              - generic [ref=e247]:
+                - img [ref=e248]
+                - generic [ref=e251]: snusspaumer@runco.com.ar
+              - generic [ref=e252]:
+                - img [ref=e253]
+                - generic [ref=e255]: 11 68414100
+              - generic [ref=e256]:
+                - img [ref=e257]
+                - generic [ref=e260]: runco@runco.com.ar
+            - generic [ref=e261]:
+              - button "Editar" [ref=e262]
+              - button "Eliminar" [ref=e263]
+              - generic [ref=e264]: Ver detalle →
+          - generic [ref=e265] [cursor=pointer]:
+            - generic [ref=e266]:
+              - generic [ref=e267]: V
+              - generic [ref=e268]:
+                - generic [ref=e269]: VIA BARILOCHE S.A
+                - generic [ref=e270]: "CUIT: 30-64392215-7"
+            - generic [ref=e272]: Sin datos de contacto
+            - generic [ref=e273]:
+              - button "Editar" [ref=e274]
+              - button "Eliminar" [ref=e275]
+              - generic [ref=e276]: Ver detalle →
+```

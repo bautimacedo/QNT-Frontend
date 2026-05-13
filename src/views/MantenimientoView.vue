@@ -226,9 +226,10 @@ const bateriaViejaInfo = computed(() => {
 })
 
 function heliceLabel(h) {
-  if (h.nombre) return h.nombre
+  const nombre = (h.nombre || '').trim()
+  if (nombre && /[a-zA-Z0-9]/.test(nombre)) return nombre
   const mk = [h.marca, h.modelo].filter(Boolean).join(' ')
-  return mk || ('Hélice #' + h.id)
+  return mk.trim() || ('Hélice #' + h.id)
 }
 
 // Hélices actualmente en el dron seleccionado (para retirar)

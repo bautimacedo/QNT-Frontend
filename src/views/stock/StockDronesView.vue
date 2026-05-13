@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getList } from '../../api'
-import { Plane, Search, SlidersHorizontal, RefreshCw } from 'lucide-vue-next'
+import { getList, createItem } from '../../api'
+import { Plane, Search, SlidersHorizontal, RefreshCw, Plus } from 'lucide-vue-next'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import PageHeader  from '../../components/ui/PageHeader.vue'
 
@@ -71,6 +71,36 @@ async function load() {
 }
 
 onMounted(load)
+
+const createModal = ref({ open: false, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL' })
+
+function openCreate() {
+  createModal.value = { open: true, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL' }
+}
+function closeCreate() { createModal.value.open = false }
+
+async function saveCreate() {
+  if (!createModal.value.nombre.trim()) { createModal.value.apiError = 'El nombre es obligatorio'; return }
+  createModal.value.loading = true
+  createModal.value.apiError = ''
+  try {
+    const body = {
+      nombre: createModal.value.nombre.trim(),
+      marca: createModal.value.marca || null,
+      modelo: createModal.value.modelo || null,
+      numeroSerie: createModal.value.numeroSerie || null,
+      garantia: createModal.value.garantia || null,
+      estado: createModal.value.estado,
+    }
+    const created = await createItem(TIPO, body)
+    items.value.unshift(created)
+    closeCreate()
+  } catch (e) {
+    createModal.value.apiError = e.message || 'Error al crear el ítem.'
+  } finally {
+    createModal.value.loading = false
+  }
+}
 </script>
 
 <template>
@@ -83,7 +113,13 @@ onMounted(load)
     </nav>
 
     <!-- Header -->
-    <PageHeader title="Drones" :subtitle="`${items.length} equipos registrados`" />
+    <PageHeader title="Drones" :subtitle="`${items.length} equipos registrados`">
+      <template #actions>
+        <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="openCreate">
+          <Plus style="width:14px;height:14px;margin-right:4px" /> Agregar
+        </button>
+      </template>
+    </PageHeader>
 
     <!-- Toolbar -->
     <div class="qnt-toolbar">
@@ -150,6 +186,47 @@ onMounted(load)
       </button>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="createModal.open" class="modal-overlay" @click.self="closeCreate">
+      <div class="modal-card">
+        <h2 class="modal-title">Agregar dron manualmente</h2>
+        <div class="form-group">
+          <label>Nombre <span style="color:#dc2626">*</span></label>
+          <input v-model="createModal.nombre" type="text" class="form-input" placeholder="Ej: EFO-Q1" />
+        </div>
+        <div class="form-group">
+          <label>Marca</label>
+          <input v-model="createModal.marca" type="text" class="form-input" placeholder="Ej: DJI" />
+        </div>
+        <div class="form-group">
+          <label>Modelo</label>
+          <input v-model="createModal.modelo" type="text" class="form-input" placeholder="Ej: Matrice 4TD" />
+        </div>
+        <div class="form-group">
+          <label>Nº de serie</label>
+          <input v-model="createModal.numeroSerie" type="text" class="form-input" placeholder="Nº de serie" />
+        </div>
+        <div class="form-group">
+          <label>Garantía</label>
+          <input v-model="createModal.garantia" type="text" class="form-input" placeholder="Ej: 12 meses" />
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select v-model="createModal.estado" class="form-input">
+            <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+          </select>
+        </div>
+        <div v-if="createModal.apiError" class="modal-banner modal-banner--error">{{ createModal.apiError }}</div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" :disabled="createModal.loading" @click="closeCreate">Cancelar</button>
+          <button type="button" class="btn-primary" :disabled="createModal.loading" @click="saveCreate">
+            {{ createModal.loading ? 'Guardando…' : 'Agregar dron' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -214,4 +291,16 @@ onMounted(load)
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-card { background: #fff; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal-title { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+.modal-banner--error { background: #fef2f2; color: #dc2626; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem; }
+.form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+.btn-secondary { padding: 0.6rem 1.25rem; background: #f1f5f9; color: #475569; border: 1px solid #e0e5e5; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-primary { padding: 0.6rem 1.25rem; background: #113e4c; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

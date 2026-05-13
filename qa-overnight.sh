@@ -173,7 +173,7 @@ while true; do
   log "Ejecutando Claude con qa-loop prompt..."
 
   # Correr Claude no-interactivo con el prompt completo
-  cd "$WORKDIR" && claude --dangerously-skip-permissions -p "$QA_PROMPT" 2>&1 | tee -a "$LOG"
+  cd "$WORKDIR" && claude --dangerously-skip-permissions -p "$QA_PROMPT" < /dev/null 2>&1 | tee -a "$LOG"
 
   log ""
   log "Iteracion #${ITERATION} completada."

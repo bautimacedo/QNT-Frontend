@@ -53,7 +53,7 @@
         <div class="metric-card__label">Viento promedio</div>
         <div class="metric-card__value">{{ fmt(obs.wind_avg, 1) }} <span class="unit">m/s</span></div>
       </div>
-      <div class="metric-card" :class="{ 'metric-card--warn': obs.wind_gust > 12 }">
+      <div class="metric-card" :class="{ 'metric-card--warn': obs.wind_gust > 9.7 }">
         <Zap class="metric-card__icon" />
         <div class="metric-card__label">Ráfaga</div>
         <div class="metric-card__value">{{ fmt(obs.wind_gust, 1) }} <span class="unit">m/s</span></div>
@@ -247,22 +247,27 @@ const semaforo = computed(() => {
   const lastLightningEpoch = o.lightning_strike_last_epoch ?? 0
   const lightningRecent30m = lastLightningEpoch > 0 && (Date.now() / 1000 - lastLightningEpoch) < 1800
 
-  if (windAvg > 13 || windGust > 18 || precip > 0.5 || lightningRecent30m || lightning3h > 3) {
+  // Thresholds confirmados con operaciones (km/h → m/s):
+  // APTO: avg ≤ 20 km/h (5.5), gust ≤ 35 km/h (9.7)
+  // PRECAUCIÓN: avg 20-45 km/h (5.5-12.5), gust 35-50 km/h (9.7-13.9)
+  // NO VOLAR: avg > 45 km/h (12.5), gust > 50 km/h (13.9), lluvia > 2 mm/h, rayos
+  if (windAvg > 12.5 || windGust > 13.9 || precip > 2 || lightningRecent30m || lightning3h > 0) {
     let razon = []
-    if (windAvg > 13)         razon.push(`viento ${windAvg.toFixed(1)} m/s`)
-    if (windGust > 18)        razon.push(`ráfaga ${windGust.toFixed(1)} m/s`)
-    if (precip > 0.5)         razon.push(`lluvia ${precip.toFixed(1)} mm/h`)
+    if (windAvg > 12.5)       razon.push(`viento ${(windAvg * 3.6).toFixed(0)} km/h`)
+    if (windGust > 13.9)      razon.push(`ráfaga ${(windGust * 3.6).toFixed(0)} km/h`)
+    if (precip > 2)           razon.push(`lluvia ${precip.toFixed(1)} mm/h`)
     if (lightningRecent30m)   razon.push('tormenta eléctrica activa')
-    else if (lightning3h > 3) razon.push(`${lightning3h} rayos en 3h`)
+    else if (lightning3h > 0) razon.push(`${lightning3h} rayo(s) en 3h`)
     return { estado: 'NO VOLAR', razon: razon.join(' · '), clase: 'semaforo--rojo' }
   }
-  if (windAvg > 8 || windGust > 12) {
+  if (windAvg > 5.5 || windGust > 9.7 || precip > 0.5) {
     let razon = []
-    if (windAvg > 8)   razon.push(`viento ${windAvg.toFixed(1)} m/s`)
-    if (windGust > 12) razon.push(`ráfaga ${windGust.toFixed(1)} m/s`)
+    if (windAvg > 5.5)  razon.push(`viento ${(windAvg * 3.6).toFixed(0)} km/h`)
+    if (windGust > 9.7) razon.push(`ráfaga ${(windGust * 3.6).toFixed(0)} km/h`)
+    if (precip > 0.5)   razon.push(`lluvia ${precip.toFixed(1)} mm/h`)
     return { estado: 'PRECAUCIÓN', razon: razon.join(' · '), clase: 'semaforo--amarillo' }
   }
-  return { estado: 'APTO', razon: `Viento ${windAvg.toFixed(1)} m/s — condiciones normales`, clase: 'semaforo--verde' }
+  return { estado: 'APTO', razon: `Viento ${(windAvg * 3.6).toFixed(0)} km/h — condiciones normales`, clase: 'semaforo--verde' }
 })
 
 const semaforoIcon = computed(() => ({
