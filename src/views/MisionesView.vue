@@ -27,7 +27,7 @@ const loading     = ref(false)
 const error       = ref('')
 const searchText  = ref('')
 const filtroEstado = ref('')
-const filtroSite  = ref('EFO') // 'EFO' | 'CAM'
+const filtroSite  = ref('EFO') // 'EFO' | 'CAM' | 'CL'
 
 // toast
 const toast = ref({ show: false, msg: '', type: 'ok' })
@@ -84,6 +84,7 @@ const misionesFiltradas = computed(() => {
 
 const countEFO = computed(() => misiones.value.filter(m => m.site === 'EFO').length)
 const countCAM = computed(() => misiones.value.filter(m => m.site === 'CAM').length)
+const countCL  = computed(() => misiones.value.filter(m => m.site === 'CL').length)
 
 // ─── helpers visuales ───────────────────────────
 const ESTADOS = [
@@ -213,7 +214,8 @@ function openCockpit()  { cockpit.value.open = true }
 function closeCockpit() { cockpit.value.open = false }
 
 // ─── lanzar misión ──────────────────────────────
-const confirmLanzar = ref({ open: false, mision: null, loading: false })
+const confirmLanzar   = ref({ open: false, mision: null, loading: false })
+const precaucionAlerta = ref({ open: false, mision: null, detalle: '', loading: false })
 
 function openLanzar(m) { confirmLanzar.value = { open: true, mision: m, loading: false } }
 function closeLanzar()  { confirmLanzar.value.open = false }
@@ -223,17 +225,39 @@ async function doLanzar() {
   if (!m) return
   confirmLanzar.value.loading = true
   try {
-    await lanzarMision(m.id)
-    // Actualizar estado local en la lista
+    const res = await lanzarMision(m.id)
+    if (res?.warning === 'PRECAUCION') {
+      closeLanzar()
+      precaucionAlerta.value = { open: true, mision: m, detalle: res.detalle || '', loading: false }
+      return
+    }
     const idx = misiones.value.findIndex(x => x.id === m.id)
     if (idx !== -1) misiones.value[idx] = { ...misiones.value[idx], estado: 'EN_CURSO' }
-    showToast(`Misión '${m.nombre}' lanzada en FlytBase`)
+    showToast(`Misión '${m.nombre}' lanzada`)
     closeLanzar()
   } catch (e) {
     const msg = e?.response?.data?.error || e?.message || 'Error al lanzar la misión'
     showToast(msg, 'error')
   } finally {
     confirmLanzar.value.loading = false
+  }
+}
+
+async function confirmarLanzarConPrecaucion() {
+  const m = precaucionAlerta.value.mision
+  if (!m) return
+  precaucionAlerta.value.loading = true
+  try {
+    await lanzarMision(m.id, true)
+    const idx = misiones.value.findIndex(x => x.id === m.id)
+    if (idx !== -1) misiones.value[idx] = { ...misiones.value[idx], estado: 'EN_CURSO' }
+    showToast(`Misión '${m.nombre}' lanzada bajo responsabilidad del piloto`)
+    precaucionAlerta.value.open = false
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || 'Error al lanzar la misión'
+    showToast(msg, 'error')
+  } finally {
+    precaucionAlerta.value.loading = false
   }
 }
 
@@ -374,8 +398,8 @@ async function doDelete() {
       </div>
     </div>
 
-    <!-- Tabs EFO / CAM -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem;">
+    <!-- Tabs EFO / CAM / CL -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1.25rem;">
       <button @click="filtroSite='EFO'; filtroEstado=''; fetchMisiones()"
         style="display:flex;align-items:center;gap:.875rem;padding:1rem 1.25rem;border-radius:14px;border:2px solid;cursor:pointer;text-align:left;transition:all .15s;"
         :style="filtroSite==='EFO'
@@ -402,6 +426,20 @@ async function doDelete() {
         <div>
           <div style="font-size:.875rem;font-weight:700;color:#113e4c;">Misiones CAM</div>
           <div style="font-size:.75rem;color:#64748b;">{{ countCAM }} misión{{ countCAM !== 1 ? 'es' : '' }} · Campoduron</div>
+        </div>
+      </button>
+      <button @click="filtroSite='CL'; filtroEstado=''; fetchMisiones()"
+        style="display:flex;align-items:center;gap:.875rem;padding:1rem 1.25rem;border-radius:14px;border:2px solid;cursor:pointer;text-align:left;transition:all .15s;"
+        :style="filtroSite==='CL'
+          ? 'background:#e0f2fe;border-color:#0284c7;'
+          : 'background:#fff;border-color:#e0e8e8;'"
+      >
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0369a1,#0284c7);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-size:1.25rem;">⛰️</span>
+        </div>
+        <div>
+          <div style="font-size:.875rem;font-weight:700;color:#113e4c;">Misiones CL</div>
+          <div style="font-size:.75rem;color:#64748b;">{{ countCL }} misión{{ countCL !== 1 ? 'es' : '' }} · Cañadón León</div>
         </div>
       </button>
     </div>
@@ -482,6 +520,10 @@ async function doDelete() {
                   <span v-else-if="m.site === 'EFO'"
                     style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .4rem;border-radius:4px;font-size:.6rem;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #86efac;flex-shrink:0;">
                     🛸 EFO
+                  </span>
+                  <span v-else-if="m.site === 'CL'"
+                    style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .4rem;border-radius:4px;font-size:.6rem;font-weight:700;background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;flex-shrink:0;">
+                    ⛰️ CL
                   </span>
                 </div>
                 <p style="font-size:.6875rem;color:#a0b5b5;margin:0;">
@@ -767,6 +809,43 @@ async function doDelete() {
             allow="autoplay; fullscreen; camera; microphone"
             allowfullscreen
           />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ═══ Alerta PRECAUCIÓN ═══ -->
+    <Teleport to="body">
+      <div v-if="precaucionAlerta.open"
+        style="position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:1rem;"
+        @click.self="precaucionAlerta.open = false"
+      >
+        <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="precaucionAlerta.open = false" />
+        <div style="position:relative;background:#fff;border-radius:16px;width:100%;max-width:440px;padding:2rem;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.18);">
+          <div style="width:52px;height:52px;border-radius:50%;background:#fefce8;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+            <span style="font-size:1.75rem;">🟡</span>
+          </div>
+          <h3 style="font-size:1rem;font-weight:700;color:#113e4c;margin:0 0 .5rem;">Estado PRECAUCIÓN — Cañadón León</h3>
+          <p style="font-size:.875rem;color:#536c6b;margin:0 0 .375rem;">
+            Las condiciones climáticas actuales están en <strong>precaución</strong>.
+          </p>
+          <p v-if="precaucionAlerta.detalle" style="font-size:.8125rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:.625rem .875rem;margin:0 0 1rem;text-align:left;">
+            {{ precaucionAlerta.detalle }}
+          </p>
+          <p style="font-size:.8125rem;color:#94a3b8;margin:0 0 1.5rem;">
+            El lanzamiento es responsabilidad del piloto. ¿Confirmar de todas formas?
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center;">
+            <button @click="precaucionAlerta.open = false" :disabled="precaucionAlerta.loading"
+              style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
+              Cancelar
+            </button>
+            <button @click="confirmarLanzarConPrecaucion" :disabled="precaucionAlerta.loading"
+              style="display:flex;align-items:center;gap:.375rem;padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#fff;background:linear-gradient(135deg,#b45309,#d97706);border:none;cursor:pointer;"
+              :style="{ opacity: precaucionAlerta.loading ? '.6' : '1' }"
+            >
+              ⚠️ {{ precaucionAlerta.loading ? 'Lanzando…' : 'Lanzar bajo mi responsabilidad' }}
+            </button>
+          </div>
         </div>
       </div>
     </Teleport>

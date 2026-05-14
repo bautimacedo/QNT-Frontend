@@ -44,8 +44,9 @@ export async function eliminarMision(id) {
   return json(res)
 }
 
-export async function lanzarMision(id) {
-  const res = await request(`/misiones/${id}/lanzar`, { method: 'POST' })
+export async function lanzarMision(id, confirmar = false) {
+  const url = confirmar ? `/misiones/${id}/lanzar?confirmar=true` : `/misiones/${id}/lanzar`
+  const res = await request(url, { method: 'POST' })
   return json(res)
 }
 
