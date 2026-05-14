@@ -89,14 +89,14 @@ const countCL  = computed(() => misiones.value.filter(m => m.site === 'CL').leng
 // ─── helpers visuales ───────────────────────────
 const ESTADOS = [
   { value: '',            label: 'Todos'       },
-  { value: 'PLANIFICADA', label: 'Planificada' },
+  { value: 'PLANIFICADA', label: 'Lista' },
   { value: 'EN_CURSO',    label: 'En curso'    },
   { value: 'COMPLETADA',  label: 'Completada'  },
   { value: 'CANCELADA',   label: 'Cancelada'   },
 ]
 
 const ESTADO_CFG = {
-  PLANIFICADA: { label: 'Planificada', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: Clock },
+  PLANIFICADA: { label: 'Lista', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: Clock },
   EN_CURSO:    { label: 'En curso',    bg: '#fefce8', color: '#a16207', border: '#fde047', icon: Target },
   COMPLETADA:  { label: 'Completada',  bg: '#f0fdf4', color: '#15803d', border: '#86efac', icon: CheckCircle2 },
   CANCELADA:   { label: 'Cancelada',   bg: '#fff1f2', color: '#be123c', border: '#fda4af', icon: Ban },
