@@ -219,6 +219,7 @@ const precaucionAlerta = ref({ open: false, mision: null, detalle: '', loading: 
 
 function openLanzar(m) { confirmLanzar.value = { open: true, mision: m, loading: false } }
 function closeLanzar()  { confirmLanzar.value.open = false }
+function closePrecaucion() { precaucionAlerta.value = { open: false, mision: null, detalle: '', loading: false } }
 
 async function doLanzar() {
   const m = confirmLanzar.value.mision
@@ -817,7 +818,7 @@ async function doDelete() {
     <Teleport to="body">
       <div v-if="precaucionAlerta.open"
         style="position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:1rem;"
-        @click.self="precaucionAlerta.open = false"
+        @click.self="closePrecaucion"
       >
         <div style="position:absolute;inset:0;background:rgba(10,38,48,.45);backdrop-filter:blur(4px);" @click="precaucionAlerta.open = false" />
         <div style="position:relative;background:#fff;border-radius:16px;width:100%;max-width:440px;padding:2rem;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.18);">
@@ -835,7 +836,7 @@ async function doDelete() {
             El lanzamiento es responsabilidad del piloto. ¿Confirmar de todas formas?
           </p>
           <div style="display:flex;gap:.75rem;justify-content:center;">
-            <button @click="precaucionAlerta.open = false" :disabled="precaucionAlerta.loading"
+            <button @click="closePrecaucion" :disabled="precaucionAlerta.loading"
               style="padding:.625rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;color:#536c6b;background:#fff;border:1px solid #e0e8e8;cursor:pointer;">
               Cancelar
             </button>
