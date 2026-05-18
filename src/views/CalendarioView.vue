@@ -71,26 +71,46 @@ function calcularOcurrenciasEnMes(p) {
   const ultimoDia = new Date(year, month + 1, 0).getDate()
   const [h, m_] = (p.hora || '08:00').split(':').map(Number)
   const ahora = new Date()
+  const parseVigDate = (val, endOfDay) => {
+    if (!val) return null
+    if (Array.isArray(val)) return new Date(val[0], val[1] - 1, val[2], endOfDay ? 23 : 0, endOfDay ? 59 : 0)
+    return new Date(val + (endOfDay ? 'T23:59:59' : 'T00:00:00'))
+  }
+  const vigDesde = parseVigDate(p.fechaInicioVigencia, false)
+  const vigHasta = parseVigDate(p.fechaFinVigencia, true)
+  console.log('[vigencia]', p.nombre, 'raw:', p.fechaInicioVigencia, p.fechaFinVigencia, '→ parsed:', vigDesde, vigHasta)
   const res = []
+
+  const dentroDeVigencia = (fecha) => {
+    if (vigDesde && fecha < vigDesde) return false
+    if (vigHasta && fecha > vigHasta) return false
+    return true
+  }
 
   if (p.tipoRecurrencia === 'SEMANAL') {
     for (let d = 1; d <= ultimoDia; d++) {
       const fecha = new Date(year, month, d, h, m_)
       if (fecha <= ahora) continue
+      if (!dentroDeVigencia(fecha)) continue
       if (p.diasSemana?.includes(DOW_JS[fecha.getDay()])) res.push(fecha)
     }
   } else if (p.tipoRecurrencia === 'MENSUAL' && p.diaMes) {
     const dia = Math.min(p.diaMes, ultimoDia)
     const fecha = new Date(year, month, dia, h, m_)
-    if (fecha > ahora) res.push(fecha)
+    if (fecha > ahora && dentroDeVigencia(fecha)) res.push(fecha)
   } else if (p.tipoRecurrencia === 'DIARIA' && p.proxEjecucion) {
     const n = p.intervaloDias || 1
-    let c = new Date(p.proxEjecucion)
+    const px = p.proxEjecucion
+    let c = Array.isArray(px)
+      ? new Date(px[0], px[1] - 1, px[2], px[3] || 0, px[4] || 0)
+      : new Date(px)
+    if (isNaN(c.getTime())) return res
     while (c.getFullYear() < year || (c.getFullYear() === year && c.getMonth() < month)) {
       c = new Date(c); c.setDate(c.getDate() + n)
     }
     while (c.getFullYear() === year && c.getMonth() === month) {
-      if (c > ahora) res.push(new Date(c))
+      if (vigHasta && c > vigHasta) break
+      if (c > ahora && dentroDeVigencia(c)) res.push(new Date(c))
       c = new Date(c); c.setDate(c.getDate() + n)
     }
   }
@@ -184,6 +204,10 @@ function abrirEditar(p) {
 
 async function guardar() {
   if (!form.value.misionPlantillaId) { toast.error('Seleccioná una misión'); return }
+  if (form.value.tipoRecurrencia === 'SEMANAL' && form.value.diasSemana.length === 0) {
+    toast.error('Seleccioná al menos un día de la semana')
+    return
+  }
   guardando.value = true
   const payload = {
     misionPlantillaId: Number(form.value.misionPlantillaId),
@@ -265,6 +289,17 @@ function formatFecha(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+const misionSeleccionada = computed(() =>
+  misiones.value.find(m => m.id == form.value.misionPlantillaId) || null
+)
+
+const misionSeleccionadaLanzable = computed(() => {
+  const m = misionSeleccionada.value
+  if (!m) return false
+  if (m.site === 'CAM') return !!m.flightHubWaylineUuid
+  return !!m.webhookUrl
+})
 
 const cantidadMes = computed(() => {
   const year = mesActual.value.getFullYear()
@@ -427,6 +462,8 @@ const cantidadMes = computed(() => {
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-gray-800 truncate">{{ p.nombre }}</p>
               <p class="text-xs text-gray-500 mt-0.5">{{ recurrenciaLabel(p) }}</p>
+              <p v-if="p.tipoRecurrencia === 'SEMANAL' && (!p.diasSemana || p.diasSemana.length === 0)"
+                class="text-xs text-amber-600 font-medium mt-0.5">⚠️ Sin días seleccionados — no se ejecutará</p>
             </div>
             <!-- Toggle activa -->
             <button @click="toggle(p)"
@@ -446,11 +483,11 @@ const cantidadMes = computed(() => {
               Drone: <span class="text-gray-600">{{ p.misionPlantillaDronNombre }}</span>
             </p>
             <p class="text-xs text-gray-400 flex items-center gap-1">
-              <component :is="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? CheckCircle : AlertCircle"
-                :class="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? 'text-emerald-400' : 'text-amber-400'"
+              <component :is="(p.misionPlantillaSite === 'CAM' ? p.misionPlantillaWaylineUuid : p.misionPlantillaTieneWebhook) ? CheckCircle : AlertCircle"
+                :class="(p.misionPlantillaSite === 'CAM' ? p.misionPlantillaWaylineUuid : p.misionPlantillaTieneWebhook) ? 'text-emerald-400' : 'text-amber-400'"
                 class="w-3 h-3" />
-              <span :class="(p.misionPlantillaTieneWebhook || p.misionPlantillaSite === 'CAM') ? 'text-emerald-600' : 'text-amber-500'">
-                {{ p.misionPlantillaSite === 'CAM' ? 'FlightHub CAM' : (p.misionPlantillaTieneWebhook ? 'Con webhook' : 'Sin webhook') }}
+              <span :class="(p.misionPlantillaSite === 'CAM' ? p.misionPlantillaWaylineUuid : p.misionPlantillaTieneWebhook) ? 'text-emerald-600' : 'text-amber-500'">
+                {{ p.misionPlantillaSite === 'CAM' ? (p.misionPlantillaWaylineUuid ? 'FlightHub CAM ✓' : 'CAM sin wayline') : (p.misionPlantillaTieneWebhook ? 'Con webhook' : 'Sin webhook') }}
               </span>
             </p>
             <p class="text-xs text-gray-400">
@@ -508,15 +545,17 @@ const cantidadMes = computed(() => {
               <div v-if="form.misionPlantillaId"
                 class="mt-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex items-center gap-2">
                 <component
-                  :is="(misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM' || misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl) ? CheckCircle : AlertCircle"
-                  :class="(misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM' || misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl) ? 'text-emerald-500' : 'text-amber-400'"
+                  :is="misionSeleccionadaLanzable ? CheckCircle : AlertCircle"
+                  :class="misionSeleccionadaLanzable ? 'text-emerald-500' : 'text-amber-400'"
                   class="w-4 h-4 flex-shrink-0" />
                 <div class="text-xs text-gray-600">
                   <span class="font-medium">{{ misiones.find(m => m.id == form.misionPlantillaId)?.nombre }}</span>
-                  <span v-if="misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM'"
-                    class="ml-2 text-emerald-600">Misión CAM · FlightHub 2</span>
+                  <span v-if="misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM' && misiones.find(m => m.id == form.misionPlantillaId)?.flightHubWaylineUuid"
+                    class="ml-2 text-emerald-600">Misión CAM · FlightHub 2 ✓</span>
+                  <span v-else-if="misiones.find(m => m.id == form.misionPlantillaId)?.site === 'CAM'"
+                    class="ml-2 text-amber-500">CAM sin wayline — se creará en PLANIFICADA</span>
                   <span v-else-if="misiones.find(m => m.id == form.misionPlantillaId)?.webhookUrl"
-                    class="ml-2 text-emerald-600">Con webhook FlytBase</span>
+                    class="ml-2 text-emerald-600">Con webhook FlytBase ✓</span>
                   <span v-else class="ml-2 text-amber-500">Sin webhook — se creará en PLANIFICADA</span>
                 </div>
               </div>
