@@ -3,6 +3,7 @@ import { ref, computed, inject } from 'vue'
 import { BarChart2, Target, Package, Wrench, DollarSign, Download, Filter, Calendar, FileText, AlertTriangle, ExternalLink, FlaskConical, ShieldAlert, Plus, Loader2, Trash2 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import { apiBaseUrl } from '../api/config.js'
+import { getToken } from '../api/storage.js'
 import { getReportesFallas, subirReporteFalla, eliminarReporteFalla, descargarFallaUrl, getDiariosSummary } from '../api/reportes.js'
 import { getVuelosLog } from '../api/vuelosLog.js'
 import { jsPDF } from 'jspdf'
@@ -27,6 +28,22 @@ const reportes = ref([
 
 function downloadUrl(archivo) {
   return `${apiBaseUrl}/reportes/descargar/${encodeURIComponent(archivo)}`
+}
+
+async function downloadConAuth(url, filename) {
+  const token = getToken()
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) { alert('No se pudo descargar el archivo'); return }
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(a.href)
+  } catch {
+    alert('Error al descargar el archivo')
+  }
 }
 
 // ─── Reportes de fallas ───────────────────────────
@@ -436,9 +453,9 @@ async function generarPdfDiario(diario) {
               <p class="rep-card__meta">{{ formatFecha(falla.fecha) }}</p>
             </div>
             <div class="rep-card__actions">
-              <a :href="descargarFallaUrl(falla.id)" :download="falla.archivoNombre" class="rep-btn rep-btn--dl">
+              <button @click="downloadConAuth(descargarFallaUrl(falla.id), falla.archivoNombre)" class="rep-btn rep-btn--dl">
                 <Download class="w-3.5 h-3.5" /> Descargar
-              </a>
+              </button>
               <button v-if="isAdmin" class="rep-btn" style="color:#b91c1c;border-color:#fca5a5;" @click="borrarFalla(falla.id)">
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
@@ -473,12 +490,12 @@ async function generarPdfDiario(diario) {
             <p class="rep-card__meta">{{ r.desc }}</p>
           </div>
           <div class="rep-card__actions">
-            <a :href="downloadUrl(r.archivo)" target="_blank" class="rep-btn">
+            <button @click="downloadConAuth(downloadUrl(r.archivo), r.archivo)" class="rep-btn">
               <ExternalLink class="w-3.5 h-3.5" /> Ver
-            </a>
-            <a :href="downloadUrl(r.archivo)" :download="r.archivo" class="rep-btn rep-btn--dl">
+            </button>
+            <button @click="downloadConAuth(downloadUrl(r.archivo), r.archivo)" class="rep-btn rep-btn--dl">
               <Download class="w-3.5 h-3.5" /> Descargar
-            </a>
+            </button>
           </div>
         </div>
       </div>

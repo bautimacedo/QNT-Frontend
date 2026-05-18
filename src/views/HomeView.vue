@@ -232,6 +232,7 @@ const kpiCards = computed(() => {
   const mActivas   = stats.value != null ? (stats.value.misionesPlanificadas + stats.value.misionesEnCurso) : '—'
   const mPlan      = stats.value?.misionesPlanificadas ?? 0
   const mCurso     = stats.value?.misionesEnCurso    ?? 0
+  const mFallo     = stats.value?.misionesFalloLanzamiento ?? 0
   const alertCount = stats.value?.alertasActivas      ?? (overdue.value + cmaAlerts.value)
   const batWarn    = stats.value?.bateriasCiclosExcedidos ?? 0
   const tempWarn   = stats.value?.dronesConTempAlta   ?? 0
@@ -239,14 +240,16 @@ const kpiCards = computed(() => {
 
   const dronesVal  = stats.value != null ? `${dronesOp}/${dronesTotal}` : '—'
   const droneSub   = dronesM > 0 ? `${dronesM} en mantenimiento` : 'Todos operativos'
-  const mSub       = `${mPlan} planificada${mPlan !== 1 ? 's' : ''} · ${mCurso} en curso`
+  const mSub       = mFallo > 0
+    ? `${mPlan} planificada${mPlan !== 1 ? 's' : ''} · ${mCurso} en curso · ⚠️ ${mFallo} fallo${mFallo !== 1 ? 's' : ''}`
+    : `${mPlan} planificada${mPlan !== 1 ? 's' : ''} · ${mCurso} en curso`
   const alertSub   = alertWarn > 0
     ? `${alertWarn} advertencia${alertWarn !== 1 ? 's' : ''} de equipo`
     : `${cmaAlerts.value} CMA sin actualizar`
 
   return [
     { label: 'Drones operativos', val: dronesVal,                              sub: droneSub,                                           Icon: Plane,        grad: dronesM > 0 ? 'from-amber-500 to-amber-600' : 'from-[#113e4c] to-[#2b555b]' },
-    { label: 'Misiones activas',  val: mActivas,                               sub: mSub,                                               Icon: TrendingUp,   grad: 'from-[#1d4ed8] to-[#2563eb]'                                               },
+    { label: 'Misiones activas',  val: mActivas,                               sub: mSub,                                               Icon: TrendingUp,   grad: mFallo > 0 ? 'from-amber-500 to-amber-600' : 'from-[#1d4ed8] to-[#2563eb]'  },
     { label: 'Tareas abiertas',   val: pending.value + inProgress.value,       sub: `${overdue.value} vencida${overdue.value!==1?'s':''}`, Icon: Wrench,    grad: overdue.value > 0 ? 'from-red-500 to-red-600' : 'from-[#2b555b] to-[#536c6b]' },
     { label: 'Alertas del sistema', val: alertCount,                           sub: alertSub,                                           Icon: AlertCircle,  grad: alertCount > 0 ? 'from-amber-500 to-amber-600' : 'from-[#536c6b] to-[#658582]' },
   ]
