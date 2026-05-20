@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getInspeccionesByAibId } from '../api/inspecciones.js'
+import { getInspeccionesByAibId, eliminarInspeccion } from '../api/inspecciones.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,6 +10,7 @@ const aibId = route.params.aibId
 const inspecciones = ref([])
 const loading = ref(true)
 const error = ref('')
+const deletingId = ref(null)
 
 async function load() {
   loading.value = true
@@ -25,6 +26,25 @@ async function load() {
 
 function verReporte(id) {
   router.push(`/home/pozos/${aibId}/inspecciones/${id}`)
+}
+
+async function onDelete(insp, event) {
+  event.stopPropagation()
+  const fechaTxt = formatFecha(insp.timestamp)
+  const ok = window.confirm(
+    `¿Eliminar la inspección del ${fechaTxt}?\n\nEsta acción es irreversible.`
+  )
+  if (!ok) return
+
+  deletingId.value = insp.id
+  try {
+    await eliminarInspeccion(insp.id)
+    inspecciones.value = inspecciones.value.filter(i => i.id !== insp.id)
+  } catch (e) {
+    error.value = e.message || 'Error al eliminar.'
+  } finally {
+    deletingId.value = null
+  }
 }
 
 function formatFecha(ts) {
@@ -59,11 +79,14 @@ onMounted(load)
     </div>
 
     <div v-else class="timeline">
-      <button
+      <div
         v-for="insp in inspecciones"
         :key="insp.id"
         class="insp-row"
+        role="button"
+        tabindex="0"
         @click="verReporte(insp.id)"
+        @keydown.enter="verReporte(insp.id)"
       >
         <div
           class="insp-row__dot"
@@ -96,8 +119,21 @@ onMounted(load)
           </div>
         </div>
 
+        <button
+          class="insp-delete"
+          :disabled="deletingId === insp.id"
+          :title="deletingId === insp.id ? 'Eliminando…' : 'Eliminar inspección'"
+          @click="onDelete(insp, $event)"
+        >
+          <svg v-if="deletingId !== insp.id" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span v-else class="spinner-mini" />
+        </button>
+
         <span class="insp-row__arrow">→</span>
-      </button>
+      </div>
     </div>
   </div>
 </template>
@@ -233,5 +269,24 @@ onMounted(load)
 .insp-row__arrow {
   color: #94a3b8;
   font-size: 1rem;
+}
+
+.insp-delete {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: #94a3b8;
+  border: 1px solid transparent; border-radius: 6px;
+  width: 32px; height: 32px;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.insp-delete:hover:not(:disabled) {
+  background: #fef2f2; color: #b91c1c; border-color: #fecaca;
+}
+.insp-delete:disabled { opacity: 0.5; cursor: default; }
+
+.spinner-mini {
+  width: 12px; height: 12px;
+  border: 2px solid #e2e8f0; border-top-color: #b91c1c;
+  border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block;
 }
 </style>

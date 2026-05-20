@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getInspeccion, archivoUrl } from '../api/inspecciones.js'
+import { getInspeccion, archivoUrl, eliminarInspeccion } from '../api/inspecciones.js'
 import { generatePdfReport } from '../utils/reportPdf.js'
 
 const route = useRoute()
@@ -13,6 +13,8 @@ const error = ref('')
 const lightbox    = ref(null) // { url, label }
 const pdfLoading  = ref(false)
 const pdfError    = ref('')
+const deleteLoading = ref(false)
+const deleteError   = ref('')
 
 async function load() {
   loading.value = true
@@ -64,6 +66,29 @@ async function downloadPdf() {
     if (import.meta.env.DEV) console.error(e)
   } finally {
     pdfLoading.value = false
+  }
+}
+
+async function onDelete() {
+  if (!inspeccion.value) return
+  const fechaTxt = formatFecha(inspeccion.value.timestamp)
+  const ok = window.confirm(
+    `¿Eliminar la inspección del ${fechaTxt} de ${inspeccion.value.aibId}?\n\n` +
+    `Esta acción es irreversible. Los archivos en S3 no se borran, pero ` +
+    `la inspección y sus métricas se eliminan del sistema.`
+  )
+  if (!ok) return
+
+  deleteLoading.value = true
+  deleteError.value = ''
+  try {
+    await eliminarInspeccion(inspeccion.value.id)
+    router.replace(`/home/pozos/${route.params.aibId}`)
+  } catch (e) {
+    deleteError.value = e.message || 'Error al eliminar.'
+    if (import.meta.env.DEV) console.error(e)
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -162,7 +187,18 @@ function estadoClass(estado) {
             <span class="spinner-sm" v-else />
             {{ pdfLoading ? 'Generando…' : 'Descargar PDF' }}
           </button>
+          <button class="btn-delete" :disabled="deleteLoading" @click="onDelete" title="Eliminar inspección">
+            <svg v-if="!deleteLoading" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            <span class="spinner-sm" v-else />
+            {{ deleteLoading ? 'Eliminando…' : 'Eliminar' }}
+          </button>
           <span v-if="pdfError" class="pdf-error">{{ pdfError }}</span>
+          <span v-if="deleteError" class="pdf-error">{{ deleteError }}</span>
         </div>
       </div>
 
@@ -378,6 +414,22 @@ function estadoClass(estado) {
 }
 .btn-pdf:hover:not(:disabled) { background: #0d303b; }
 .btn-pdf:disabled { opacity: 0.6; cursor: default; }
+
+.btn-delete {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: #fff; color: #b91c1c;
+  border: 1px solid #fecaca; border-radius: 8px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+}
+.btn-delete:hover:not(:disabled) {
+  background: #dc2626; color: #fff; border-color: #dc2626;
+}
+.btn-delete:disabled { opacity: 0.6; cursor: default; }
+.btn-delete .spinner-sm {
+  border: 2px solid rgba(220, 38, 38, 0.3); border-top-color: #b91c1c;
+}
 
 .spinner-sm {
   display: inline-block; width: 12px; height: 12px;
