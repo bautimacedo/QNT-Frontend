@@ -66,7 +66,11 @@ onMounted(load)
           <span
             v-if="aib.ultimoEstado"
             class="estado-badge"
-            :class="aib.ultimoEstado === 'ON' ? 'estado-badge--on' : 'estado-badge--off'"
+            :class="{
+              'estado-badge--on':    aib.ultimoEstado === 'ON',
+              'estado-badge--off':   aib.ultimoEstado === 'OFF',
+              'estado-badge--indet': aib.ultimoEstado === 'INDETERMINADO',
+            }"
           >
             {{ aib.ultimoEstado }}
           </span>
@@ -77,6 +81,10 @@ onMounted(load)
           <div v-if="aib.pozoNombre" class="pozo-card__row">
             <span class="pozo-card__label">Pozo</span>
             <span>{{ aib.pozoNombre }}</span>
+          </div>
+          <div v-if="aib.modelo" class="pozo-card__row">
+            <span class="pozo-card__label">Modelo</span>
+            <span class="truncate" :title="aib.modelo">{{ aib.modelo }}</span>
           </div>
           <div v-if="aib.ultimoGpm != null" class="pozo-card__row">
             <span class="pozo-card__label">GPM</span>
@@ -196,9 +204,15 @@ onMounted(load)
   border-radius: 999px;
 }
 
-.estado-badge--on   { background: #dcfce7; color: #166534; }
-.estado-badge--off  { background: #fee2e2; color: #991b1b; }
+.estado-badge--on    { background: #dcfce7; color: #166534; }
+.estado-badge--off   { background: #fee2e2; color: #991b1b; }
+.estado-badge--indet { background: #fef3c7; color: #92400e; }
 .estado-badge--sin-datos { background: #f1f5f9; color: #94a3b8; }
+
+.truncate {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 12rem; display: inline-block;
+}
 
 .pozo-card__body {
   display: flex;

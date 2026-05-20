@@ -65,23 +65,34 @@ onMounted(load)
         class="insp-row"
         @click="verReporte(insp.id)"
       >
-        <div class="insp-row__dot" :class="insp.estado === 'ON' ? 'dot--on' : 'dot--off'" />
+        <div
+          class="insp-row__dot"
+          :class="{
+            'dot--on':    insp.estado === 'ON',
+            'dot--off':   insp.estado === 'OFF',
+            'dot--indet': insp.estado === 'INDETERMINADO',
+          }"
+        />
 
         <div class="insp-row__content">
           <div class="insp-row__top">
             <span class="insp-row__fecha">{{ formatFecha(insp.timestamp) }}</span>
             <span
               class="estado-badge"
-              :class="insp.estado === 'ON' ? 'estado-badge--on' : 'estado-badge--off'"
+              :class="{
+                'estado-badge--on':    insp.estado === 'ON',
+                'estado-badge--off':   insp.estado === 'OFF',
+                'estado-badge--indet': insp.estado === 'INDETERMINADO',
+              }"
             >
               {{ insp.estado }}
             </span>
           </div>
           <div class="insp-row__metrics">
             <span v-if="insp.gpm != null"><b>{{ insp.gpm }}</b> GPM</span>
-            <span v-if="insp.velSubidaS != null">Subida <b>{{ insp.velSubidaS }}s</b></span>
-            <span v-if="insp.velBajadaS != null">Bajada <b>{{ insp.velBajadaS }}s</b></span>
-            <span v-if="insp.convCarreraIn != null">Carrera <b>{{ insp.convCarreraIn }}"</b></span>
+            <span v-if="insp.tiemposCiclo?.subidaS != null">Subida <b>{{ insp.tiemposCiclo.subidaS }}s</b></span>
+            <span v-if="insp.tiemposCiclo?.bajadaS != null">Bajada <b>{{ insp.tiemposCiclo.bajadaS }}s</b></span>
+            <span v-if="insp.conversion?.carreraIn != null">Carrera <b>{{ insp.conversion.carreraIn }}"</b></span>
           </div>
         </div>
 
@@ -183,8 +194,9 @@ onMounted(load)
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot--on  { background: #22c55e; }
-.dot--off { background: #ef4444; }
+.dot--on    { background: #22c55e; }
+.dot--off   { background: #ef4444; }
+.dot--indet { background: #f59e0b; }
 
 .insp-row__content { flex: 1; display: flex; flex-direction: column; gap: 0.35rem; }
 
@@ -206,8 +218,9 @@ onMounted(load)
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
 }
-.estado-badge--on  { background: #dcfce7; color: #166534; }
-.estado-badge--off { background: #fee2e2; color: #991b1b; }
+.estado-badge--on    { background: #dcfce7; color: #166534; }
+.estado-badge--off   { background: #fee2e2; color: #991b1b; }
+.estado-badge--indet { background: #fef3c7; color: #92400e; }
 
 .insp-row__metrics {
   display: flex;
