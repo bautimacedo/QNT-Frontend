@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAibs } from '../api/inspecciones.js'
+import { getAibs, eliminarAib } from '../api/inspecciones.js'
 
 const router = useRouter()
 const aibs = ref([])
 const loading = ref(true)
 const error = ref('')
+const deletingId = ref(null)
 
 async function load() {
   loading.value = true
@@ -22,6 +23,31 @@ async function load() {
 
 function verDetalle(aibId) {
   router.push(`/home/pozos/${aibId}`)
+}
+
+async function onDelete(aib, event) {
+  event.stopPropagation()
+  if (aib.ultimaInspeccion != null) {
+    window.alert(
+      `No se puede eliminar "${aib.aibId}" porque tiene inspecciones registradas.\n\n` +
+      `Eliminá primero las inspecciones desde la vista del pozo.`
+    )
+    return
+  }
+  const ok = window.confirm(
+    `¿Eliminar el pozo "${aib.aibId}"?\n\nEsta acción es irreversible.`
+  )
+  if (!ok) return
+
+  deletingId.value = aib.id
+  try {
+    await eliminarAib(aib.id)
+    aibs.value = aibs.value.filter(a => a.id !== aib.id)
+  } catch (e) {
+    window.alert(e.message || 'Error al eliminar el pozo.')
+  } finally {
+    deletingId.value = null
+  }
 }
 
 function formatFecha(ts) {
@@ -55,12 +81,30 @@ onMounted(load)
     </div>
 
     <div v-else class="pozos-grid">
-      <button
+      <div
         v-for="aib in aibs"
         :key="aib.id"
         class="pozo-card"
+        role="button"
+        tabindex="0"
         @click="verDetalle(aib.aibId)"
+        @keydown.enter="verDetalle(aib.aibId)"
       >
+        <button
+          class="pozo-delete"
+          :disabled="deletingId === aib.id || aib.ultimaInspeccion != null"
+          :title="aib.ultimaInspeccion != null
+            ? 'No se puede eliminar — el pozo tiene inspecciones'
+            : (deletingId === aib.id ? 'Eliminando…' : 'Eliminar pozo')"
+          @click="onDelete(aib, $event)"
+        >
+          <svg v-if="deletingId !== aib.id" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span v-else class="spinner-mini" />
+        </button>
+
         <div class="pozo-card__header">
           <span class="pozo-card__id">{{ aib.aibId }}</span>
           <span
@@ -99,7 +143,7 @@ onMounted(load)
         <div class="pozo-card__footer">
           Ver historial →
         </div>
-      </button>
+      </div>
     </div>
   </div>
 </template>
@@ -168,6 +212,7 @@ onMounted(load)
 }
 
 .pozo-card {
+  position: relative;
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -178,6 +223,34 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.pozo-delete {
+  position: absolute;
+  top: 0.5rem; right: 0.5rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: #cbd5e1;
+  border: 1px solid transparent; border-radius: 6px;
+  width: 30px; height: 30px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+  opacity: 0;
+}
+.pozo-card:hover .pozo-delete { opacity: 1; }
+.pozo-delete:hover:not(:disabled) {
+  background: #fef2f2; color: #b91c1c; border-color: #fecaca;
+}
+.pozo-delete:disabled {
+  cursor: not-allowed;
+}
+.pozo-card:hover .pozo-delete:disabled {
+  opacity: 0.4;
+}
+
+.spinner-mini {
+  width: 12px; height: 12px;
+  border: 2px solid #e2e8f0; border-top-color: #b91c1c;
+  border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block;
 }
 
 .pozo-card:hover {
