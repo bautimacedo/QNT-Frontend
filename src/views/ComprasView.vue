@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   getCompras, crearCompra, actualizarCompra, eliminarCompra, getTiposEquipo,
 } from '../api'
+import { getProveedores } from '../api/proveedores'
 import { Search, Plus, RefreshCw } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import QuickDateFilters from '../components/QuickDateFilters.vue'
@@ -96,19 +97,16 @@ const detailModal = ref({
 const detailFileInput = ref(null)
 
 const confirmModal = ref({ open: false, compra: null, loading: false })
+const overlayMousedownTarget = ref(false)
 
 const dashboardUser = inject('dashboardUser', ref(null))
 const isAdmin = computed(() => dashboardUser.value?.authorities?.includes('ROLE_ADMIN'))
 
-const proveedoresUnicos = computed(() => {
-  const map = new Map()
-  compras.value.forEach(c => {
-    if (c.proveedor && !map.has(c.proveedor.id)) {
-      map.set(c.proveedor.id, { id: c.proveedor.id, nombre: c.proveedor.nombre, cuit: c.proveedor.cuit })
-    }
-  })
-  return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre))
-})
+const proveedores = ref([])
+
+const proveedoresUnicos = computed(() =>
+  proveedores.value.slice().sort((a, b) => a.nombre.localeCompare(b.nombre))
+)
 
 const monedasPresentes = computed(() => {
   const set = new Set()
@@ -570,6 +568,7 @@ async function doDelete() {
 onMounted(async () => {
   await fetchCompras()
   fetchTiposEquipo()
+  getProveedores().then(list => { proveedores.value = list }).catch(() => {})
   if (route.query.proveedorId) {
     filtroProveedor.value = String(route.query.proveedorId)
   }
@@ -721,7 +720,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
     <!-- Modal: Crear/Editar -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="formModal.open" class="qnt-modal-overlay" @click.self="closeFormModal">
+        <div v-if="formModal.open" class="qnt-modal-overlay" @mousedown.self="overlayMousedownTarget = true" @click.self="overlayMousedownTarget && closeFormModal(); overlayMousedownTarget = false">
           <div class="qnt-modal qnt-modal--xl">
             <h3 class="qnt-modal__title">{{ formModal.editing ? 'Editar compra' : 'Nueva compra' }}</h3>
 
@@ -957,7 +956,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
     <!-- Modal: Detalle -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="detailModal.open" class="qnt-modal-overlay" @click.self="closeDetail">
+        <div v-if="detailModal.open" class="qnt-modal-overlay" @mousedown.self="overlayMousedownTarget = true" @click.self="overlayMousedownTarget && closeDetail(); overlayMousedownTarget = false">
           <div class="qnt-modal qnt-modal--wide">
             <h3 class="qnt-modal__title">Detalle de compra</h3>
 
@@ -1101,7 +1100,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
     <!-- Modal: Confirmar eliminación -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="confirmModal.open" class="qnt-modal-overlay" @click.self="closeConfirm">
+        <div v-if="confirmModal.open" class="qnt-modal-overlay" @mousedown.self="overlayMousedownTarget = true" @click.self="overlayMousedownTarget && closeConfirm(); overlayMousedownTarget = false">
           <div class="qnt-modal">
             <h3 class="qnt-modal__title">¿Eliminar compra?</h3>
             <p class="qnt-modal__subtitle">
