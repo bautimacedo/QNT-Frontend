@@ -27,6 +27,7 @@ import {
   Gauge,
   History,
   CloudRain,
+  Ticket,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -80,6 +81,7 @@ const allSections = {
     { id: 'proveedores',    label: 'Proveedores',          icon: Building2,    to: '/home/proveedores',    adminOnly: true },
     { id: 'compras',        label: 'Compras',              icon: ShoppingCart, to: '/home/compras',        adminOnly: true },
     { id: 'usuarios',       label: 'Gestión de Usuarios',  icon: Settings,     to: '/home/usuarios',       adminOnly: true },
+    { id: 'tickets',        label: 'Tickets',              icon: Ticket,       to: '/home/tickets' },
     { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias'      },
     { id: 'seguros',          label: 'Seguros',          icon: FileCheck,  to: '/home/seguros'                             },
     { id: 'testeo-estacion', label: 'Testeo Estación',  icon: CloudRain,  to: '/home/testeo-estacion', adminOnly: true },

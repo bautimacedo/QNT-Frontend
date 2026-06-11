@@ -29,6 +29,7 @@ const USUARIO_FORBIDDEN_PREFIXES = [
   ...PILOT_FORBIDDEN_PREFIXES,
   '/home/perfil-piloto',
 ]
+const TicketsView                 = () => import('../views/TicketsView.vue')
 const DashboardLayout             = () => import('../layouts/DashboardLayout.vue')
 const HomeView                    = () => import('../views/HomeView.vue')
 const LoginView                   = () => import('../views/LoginView.vue')
@@ -135,6 +136,7 @@ const routes = [
       { path: 'stock/licencias/:id',     name: 'stock-licencia-detalle',      component: StockLicenciaDetalleView   },
       { path: 'stock/accesorios',        name: 'stock-accesorios',            component: StockAccesoriosView        },
       { path: 'stock/accesorios/:id',    name: 'stock-accesorio-detalle',     component: StockAccesorioDetalleView  },
+      { path: 'tickets',                 name: 'tickets',                     component: TicketsView                },
       { path: 'usuarios',                name: 'usuarios',                    component: UsuariosView               },
       { path: 'licencias',               name: 'licencias',                   component: LicenciasView              },
       { path: 'seguros',                 name: 'seguros',                     component: SegurosView                },
