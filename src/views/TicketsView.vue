@@ -12,6 +12,12 @@ const loading = ref(false)
 const error = ref('')
 const toast = ref('')
 const tickets = ref([])
+const filtroEstado = ref('')
+
+const filteredTickets = computed(() =>
+  filtroEstado.value ? tickets.value.filter(t => t.estado === filtroEstado.value) : tickets.value
+)
+const abiertosCount = computed(() => tickets.value.filter(t => t.estado === 'ABIERTO').length)
 
 const ESTADO_LABELS = {
   ABIERTO: 'Abierto',
@@ -138,9 +144,15 @@ onMounted(fetchTickets)
     <div class="qnt-page-header">
       <div>
         <h1 class="qnt-page-title">Tickets</h1>
-        <p class="qnt-page-subtitle">{{ tickets.length }} ticket{{ tickets.length !== 1 ? 's' : '' }}</p>
+        <p class="qnt-page-subtitle">{{ tickets.length }} ticket{{ tickets.length !== 1 ? 's' : '' }} · {{ abiertosCount }} abierto{{ abiertosCount !== 1 ? 's' : '' }}</p>
       </div>
-      <button class="qnt-btn qnt-btn--primary" @click="openForm">+ Nuevo ticket</button>
+      <div class="header-actions">
+        <select v-model="filtroEstado" class="qnt-input qnt-input--filter">
+          <option value="">Todos los estados</option>
+          <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+        </select>
+        <button class="qnt-btn qnt-btn--primary" @click="openForm">+ Nuevo ticket</button>
+      </div>
     </div>
 
     <div v-if="loading" class="qnt-loading">Cargando…</div>
@@ -149,8 +161,8 @@ onMounted(fetchTickets)
       <button class="qnt-btn qnt-btn--secondary" @click="fetchTickets">Reintentar</button>
     </div>
 
-    <div v-else-if="tickets.length === 0" class="qnt-empty">
-      No hay tickets registrados.
+    <div v-else-if="filteredTickets.length === 0" class="qnt-empty">
+      {{ tickets.length === 0 ? 'No hay tickets registrados.' : 'No hay tickets con ese estado.' }}
     </div>
 
     <div v-else class="qnt-table-wrap">
@@ -167,7 +179,7 @@ onMounted(fetchTickets)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="t in tickets" :key="t.id">
+          <tr v-for="t in filteredTickets" :key="t.id">
             <td class="text-muted">#{{ t.id }}</td>
             <td>
               <div class="ticket-titulo">{{ t.titulo }}</div>
@@ -284,6 +296,8 @@ onMounted(fetchTickets)
 <style scoped>
 .qnt-page { padding: 24px 32px; }
 .qnt-page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.qnt-input--filter { width: auto; padding: 8px 12px; }
 .qnt-page-title { font-size: 1.5rem; font-weight: 700; color: var(--qnt-text, #113e4c); margin: 0 0 4px; }
 .qnt-page-subtitle { font-size: 0.85rem; color: var(--qnt-text-muted, #658582); margin: 0; }
 
