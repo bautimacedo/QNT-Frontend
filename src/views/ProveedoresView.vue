@@ -340,7 +340,7 @@ onMounted(() => fetchProveedores())
     <!-- Modal Crear/Editar -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="formModal.open" class="qnt-modal-overlay" @click.self="closeFormModal">
+        <div v-if="formModal.open" class="qnt-modal-overlay">
           <div class="qnt-modal">
             <div class="modal-hd">
               <div class="modal-hd-icon"><Building2 class="mh-icon" /></div>
@@ -405,7 +405,7 @@ onMounted(() => fetchProveedores())
     <!-- Modal Detalle -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="detailModal.open" class="qnt-modal-overlay" @click.self="closeDetail">
+        <div v-if="detailModal.open" class="qnt-modal-overlay">
           <div class="qnt-modal qnt-modal--wide">
             <div class="modal-hd">
               <div class="prov-avatar prov-avatar--lg">{{ getInitial(detailModal.proveedor) }}</div>
@@ -474,7 +474,7 @@ onMounted(() => fetchProveedores())
     <!-- Confirm delete -->
     <Teleport to="body">
       <Transition name="qnt-modal">
-        <div v-if="confirmModal.open" class="qnt-modal-overlay" @click.self="closeConfirm">
+        <div v-if="confirmModal.open" class="qnt-modal-overlay">
           <div class="qnt-modal qnt-modal--sm">
             <h3 class="confirm-title">¿Eliminar proveedor?</h3>
             <p class="confirm-msg">¿Eliminar <strong>{{ confirmModal.proveedor?.nombre }}</strong>? Esta acción no se puede deshacer.</p>

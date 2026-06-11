@@ -674,7 +674,6 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
               <th class="sortable" @click="toggleSort('tipoCompra')">
                 Tipo <span class="sort-arrow">{{ sortArrow('tipoCompra') }}</span>
               </th>
-              <th>Equipo</th>
               <th>Alta por</th>
               <th class="sortable" @click="toggleSort('importe')">
                 Importe <span class="sort-arrow">{{ sortArrow('importe') }}</span>
@@ -694,10 +693,6 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 >
                   {{ TIPO_COMPRA_LABELS[c.tipoCompra] || c.tipoCompra }}
                 </span>
-              </td>
-              <td>
-                <span v-if="c.tipoCompra === 'EQUIPO' && c.tipoEquipo" class="qnt-badge qnt-badge--role">{{ c.tipoEquipo }}</span>
-                <span v-else class="text-muted">—</span>
               </td>
               <td class="text-muted">{{ c.usuarioAlta ? (c.usuarioAlta.nombre || '') + (c.usuarioAlta.apellido ? ' ' + c.usuarioAlta.apellido : '') || c.usuarioAlta.email : '—' }}</td>
               <td class="td-importe">
