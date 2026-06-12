@@ -107,7 +107,7 @@ async function fetchPendientes() {
 }
 
 async function fetchRoles() {
-  try { roles.value = await getRoles() } catch (_) {}
+  try { roles.value = await getRoles() } catch (e) { console.error('[Usuarios] getRoles falló:', e) }
 }
 
 function switchTab(tab) {

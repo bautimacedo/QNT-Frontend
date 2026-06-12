@@ -269,7 +269,7 @@ async function fetchCompras() {
 async function fetchTiposEquipo() {
   try {
     tiposEquipo.value = await getTiposEquipo()
-  } catch (_) { /* silent */ }
+  } catch (e) { console.error('[Compras] getTiposEquipo falló:', e) }
 }
 
 // --- Form Modal ---
