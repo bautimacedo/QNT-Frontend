@@ -26,6 +26,7 @@ const showModal = ref(false)
 const editando  = ref(null)
 const expandedDay = ref(null)
 const guardando = ref(false)
+const siteActivo = ref('TODOS') // 'TODOS' | 'EFO' | 'CAM' | 'CL'
 
 const FORM_DEFAULTS = {
   misionPlantillaId: null,
@@ -117,18 +118,31 @@ function calcularOcurrenciasEnMes(p) {
   return res
 }
 
+// ─── filtros por site ────────────────────────────────────────────────────────
+const misionesFiltradas = computed(() => {
+  if (siteActivo.value === 'TODOS') return misiones.value
+  return misiones.value.filter(m => m.site === siteActivo.value)
+})
+
+const programacionesFiltradas = computed(() => {
+  if (siteActivo.value === 'TODOS') return programaciones.value
+  // programaciones usan el nombre del enum ('CANADON_LEON'), misiones usan 'CL'
+  const siteProg = siteActivo.value === 'CL' ? 'CANADON_LEON' : siteActivo.value
+  return programaciones.value.filter(p => p.misionPlantillaSite === siteProg)
+})
+
 // ─── eventos por día ─────────────────────────────────────────────────────────
 const eventosPorDia = computed(() => {
   const map = {}
 
-  misiones.value.forEach(m => {
+  misionesFiltradas.value.forEach(m => {
     if (!m.fechaProgramada) return
     const key = m.fechaProgramada.slice(0, 10)
     if (!map[key]) map[key] = []
     map[key].push({ tipo: 'mision', data: m })
   })
 
-  programaciones.value.filter(p => p.activa).forEach(p => {
+  programacionesFiltradas.value.filter(p => p.activa).forEach(p => {
     calcularOcurrenciasEnMes(p).forEach(fecha => {
       const key = toKey(fecha)
       if (!map[key]) map[key] = []
@@ -304,7 +318,7 @@ const misionSeleccionadaLanzable = computed(() => {
 const cantidadMes = computed(() => {
   const year = mesActual.value.getFullYear()
   const month = mesActual.value.getMonth()
-  return misiones.value.filter(m => {
+  return misionesFiltradas.value.filter(m => {
     if (!m.fechaProgramada) return false
     const d = new Date(m.fechaProgramada)
     return d.getFullYear() === year && d.getMonth() === month
@@ -342,6 +356,20 @@ const cantidadMes = computed(() => {
             <ChevronRight class="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      <!-- Tabs por site -->
+      <div class="flex items-center gap-1.5 px-6 py-2.5 border-b border-gray-100">
+        <button
+          v-for="s in ['TODOS', 'EFO', 'CAM', 'CL']"
+          :key="s"
+          @click="siteActivo = s"
+          :class="siteActivo === s
+            ? 'bg-emerald-600 text-white shadow-sm'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+          class="px-3.5 py-1 rounded-full text-xs font-semibold transition-all">
+          {{ s }}
+        </button>
       </div>
 
       <!-- Grid del calendario -->
@@ -449,12 +477,12 @@ const cantidadMes = computed(() => {
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-        <div v-if="!programaciones.length && !loading"
+        <div v-if="!programacionesFiltradas.length && !loading"
           class="text-xs text-gray-400 text-center py-8">
           Sin programaciones activas
         </div>
 
-        <div v-for="p in programaciones" :key="p.id"
+        <div v-for="p in programacionesFiltradas" :key="p.id"
           class="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-2">
 
           <!-- Header -->
