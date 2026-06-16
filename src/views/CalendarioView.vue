@@ -563,12 +563,14 @@ const cantidadMes = computed(() => {
               <select v-model="form.misionPlantillaId"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
                 <option :value="null">Seleccionar misión...</option>
-                <option v-for="m in misiones" :key="m.id" :value="m.id">
-                  {{ m.nombre }}
-                  {{ m.dronNombre ? `· ${m.dronNombre}` : '' }}
-                  {{ m.site === 'CAM' ? '🚁 CAM' : (m.webhookUrl ? '✓' : '') }}
+                <option v-for="m in misionesFiltradas" :key="m.id" :value="m.id">
+                  {{ m.site ? `[${m.site}] ` : '' }}{{ m.nombre }}{{ m.dronNombre ? ` · ${m.dronNombre}` : '' }}
                 </option>
               </select>
+              <p class="text-xs text-gray-400 mt-1">
+                ¿No encontrás la misión?
+                <RouterLink to="/home/misiones" class="text-emerald-600 hover:underline font-medium">Ir a Misiones para crearla →</RouterLink>
+              </p>
               <!-- Preview de la misión seleccionada -->
               <div v-if="form.misionPlantillaId"
                 class="mt-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex items-center gap-2">

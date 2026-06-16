@@ -743,10 +743,10 @@ async function doDelete() {
                 </div>
               </div>
 
-              <!-- FlightHub 2 (CAM) -->
+              <!-- FlightHub 2 (CAM / CL) -->
               <div style="padding:.75rem;border-radius:10px;background:#eff6ff;border:1px solid #93c5fd;">
                 <p style="font-size:.6875rem;font-weight:700;color:#1d4ed8;margin:0 0 .75rem;">
-                  🚁 Configuración FlightHub 2 (CAM)
+                  🚁 Configuración FlightHub 2 (CAM / CL)
                 </p>
                 <div>
                   <label style="display:block;font-size:.75rem;font-weight:600;color:#536c6b;margin-bottom:.375rem;">Wayline UUID</label>

@@ -71,10 +71,10 @@ async function load() {
 
 onMounted(load)
 
-const createModal = ref({ open: false, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL' })
+const createModal = ref({ open: false, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL', yacimiento: 'EFO' })
 
 function openCreate() {
-  createModal.value = { open: true, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL' }
+  createModal.value = { open: true, loading: false, apiError: '', nombre: '', marca: '', modelo: '', numeroSerie: '', garantia: '', estado: 'STOCK_ACTUAL', yacimiento: 'EFO' }
 }
 function closeCreate() { createModal.value.open = false }
 
@@ -90,6 +90,7 @@ async function saveCreate() {
       numeroSerie: createModal.value.numeroSerie || null,
       garantia: createModal.value.garantia || null,
       estado: createModal.value.estado,
+      yacimiento: createModal.value.yacimiento || null,
     }
     const created = await createItem(TIPO, body)
     items.value.unshift(created)
@@ -207,6 +208,14 @@ async function saveCreate() {
           <label>Estado</label>
           <select v-model="createModal.estado" class="form-input">
             <option v-for="(label, val) in ESTADO_LABELS" :key="val" :value="val">{{ label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Site / Yacimiento</label>
+          <select v-model="createModal.yacimiento" class="form-input">
+            <option value="EFO">EFO</option>
+            <option value="CAM">CAM</option>
+            <option value="CANADON_LEON">Cañadón León (CL)</option>
           </select>
         </div>
         <div v-if="createModal.apiError" class="modal-banner modal-banner--error">{{ createModal.apiError }}</div>
