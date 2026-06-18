@@ -30,6 +30,7 @@ const routeToTab = {
   'logs':          'operaciones',
   'vuelos-efo':          'operaciones',
   'vuelos-cam':          'operaciones',
+  'vuelos-cl':           'operaciones',
   'historial-misiones':  'operaciones',
   'calendario':          'operaciones',
   'pozos':               'operaciones',

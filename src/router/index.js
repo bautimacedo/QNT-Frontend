@@ -74,6 +74,7 @@ const ReportesView                = () => import('../views/ReportesView.vue')
 const CoberturaView               = () => import('../views/CoberturaView.vue')
 const VuelosFlytbaseView          = () => import('../views/VuelosFlytbaseView.vue')
 const VuelosCAMView               = () => import('../views/VuelosCAMView.vue')
+const VuelosCLView                = () => import('../views/VuelosCLView.vue')
 const HistorialMisionesView       = () => import('../views/HistorialMisionesView.vue')
 const PanelEjecutivoView          = () => import('../views/PanelEjecutivoView.vue')
 const PozosView                   = () => import('../views/PozosView.vue')
@@ -111,6 +112,7 @@ const routes = [
       { path: 'testeo-estacion',              name: 'testeo-estacion',          component: TesteoEstacionView         },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
+      { path: 'vuelos-cl',                name: 'vuelos-cl',                   component: VuelosCLView               },
       { path: 'historial-misiones',       name: 'historial-misiones',          component: HistorialMisionesView      },
       { path: 'panel-ejecutivo',          name: 'panel-ejecutivo',             component: PanelEjecutivoView         },
       { path: 'pilotos',                 name: 'pilotos',                     component: PilotosView                },

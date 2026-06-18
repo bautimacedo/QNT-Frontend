@@ -71,6 +71,7 @@ const allSections = {
     { id: 'pozos',         label: 'Pozos',                icon: Gauge,         to: '/home/pozos'         },
     { id: 'vuelos-efo',         label: 'Vuelos EFO',           icon: PlaneTakeoff,  to: '/home/vuelos-efo'          },
     { id: 'vuelos-cam',         label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'          },
+    { id: 'vuelos-cl',          label: 'Vuelos CL',            icon: PlaneTakeoff,  to: '/home/vuelos-cl'           },
     { id: 'historial-misiones', label: 'Historial de Misiones', icon: History,       to: '/home/historial-misiones'  },
   ],
   administracion: [
