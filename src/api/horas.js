@@ -2,13 +2,26 @@ import { request, json } from './http.js'
 
 const BASE = '/horas'
 
-export async function getHoras() {
-  const res = await request(BASE, { method: 'GET' })
+function rango(desde, hasta) {
+  const p = new URLSearchParams()
+  if (desde) p.set('desde', desde)
+  if (hasta) p.set('hasta', hasta)
+  const q = p.toString()
+  return q ? `?${q}` : ''
+}
+
+export async function getHoras(desde, hasta) {
+  const res = await request(`${BASE}${rango(desde, hasta)}`, { method: 'GET' })
   return json(res)
 }
 
-export async function getResumenHoras() {
-  const res = await request(`${BASE}/resumen`, { method: 'GET' })
+export async function getResumenHoras(desde, hasta) {
+  const res = await request(`${BASE}/resumen${rango(desde, hasta)}`, { method: 'GET' })
+  return json(res)
+}
+
+export async function asistenteHoras(texto) {
+  const res = await request(`${BASE}/asistente`, { method: 'POST', body: { texto } })
   return json(res)
 }
 
