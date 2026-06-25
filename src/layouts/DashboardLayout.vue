@@ -43,6 +43,7 @@ const routeToTab = {
   'compras':       'administracion',
   'usuarios':      'administracion',
   'tickets':       'administracion',
+  'horas':         'administracion',
   'licencias':     'administracion',
   'seguros':       'administracion',
   'mapa':          'operaciones',
