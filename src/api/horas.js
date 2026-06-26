@@ -25,6 +25,11 @@ export async function asistenteHoras(texto) {
   return json(res)
 }
 
+export async function generarHoras(texto) {
+  const res = await request(`${BASE}/generar`, { method: 'POST', body: { texto } })
+  return json(res)
+}
+
 export async function crearHora(body) {
   const res = await request(BASE, { method: 'POST', body })
   return json(res)

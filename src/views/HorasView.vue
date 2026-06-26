@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { getHoras, getResumenHoras, crearHora, actualizarHora, eliminarHora, ampliarDescripcion, asistenteHoras } from '../api/horas'
+import { getHoras, getResumenHoras, crearHora, actualizarHora, eliminarHora, ampliarDescripcion, asistenteHoras, generarHoras } from '../api/horas'
 
 const dashboardUser = inject('dashboardUser', ref(null))
 const miId = computed(() => dashboardUser.value?.id ?? null)
@@ -134,21 +134,27 @@ async function ampliar() {
 }
 
 // ── Asistente IA ─────────────────────────────────────────────────────────
-async function generarBorradores() {
+async function correrAsistente(fn, vacioMsg) {
   if (!asistModal.value.texto.trim()) return
   asistModal.value.loading = true
   asistModal.value.error = ''
   try {
-    const borradores = await asistenteHoras(asistModal.value.texto.trim())
-    if (!borradores.length) {
-      asistModal.value.error = 'El asistente no pudo extraer registros (¿la IA está configurada? ¿el texto es claro?).'
-    }
+    const borradores = await fn(asistModal.value.texto.trim())
+    if (!borradores.length) asistModal.value.error = vacioMsg
     asistModal.value.borradores = borradores.map(b => ({ fecha: b.fecha, horas: String(b.horas), descripcion: b.descripcion }))
   } catch (e) {
     asistModal.value.error = e.message || 'Error al consultar el asistente.'
   } finally {
     asistModal.value.loading = false
   }
+}
+
+function generarBorradores() {
+  correrAsistente(asistenteHoras, 'El asistente no pudo extraer registros (¿la IA está configurada? ¿el texto es claro?).')
+}
+
+function generarIdeas() {
+  correrAsistente(generarHoras, 'El asistente no pudo generar ideas (¿la IA está configurada?).')
 }
 function quitarBorrador(i) { asistModal.value.borradores.splice(i, 1) }
 
@@ -322,11 +328,17 @@ onMounted(loadAll)
         <div v-if="asistModal.open" class="qnt-modal-overlay">
           <div class="qnt-modal qnt-modal--xl">
             <h3 class="qnt-modal__title">✨ Asistente de carga</h3>
-            <p class="qnt-modal__subtitle">Contá en lenguaje natural qué hiciste y la IA arma los registros. Ej: "ayer 3hs configurando el dock de CL, hoy 2hs en el módulo de horas". Revisá los borradores antes de guardar.</p>
-            <textarea v-model="asistModal.texto" class="qnt-textarea" rows="3" placeholder="Escribí tus tareas…" :disabled="asistModal.loading || asistModal.saving" />
-            <div class="qnt-modal__actions" style="justify-content:flex-start;margin:10px 0 0;">
+            <p class="qnt-modal__subtitle">
+              <b>Generar borradores</b>: contá lo que hiciste y la IA lo ordena fielmente (ej. "ayer 3hs en el dock de CL, hoy 2hs en horas").<br>
+              <b>Asistente +</b>: poné un tema/período y la IA <b>propone</b> registros plausibles del proyecto para que elijas. Siempre revisás antes de guardar.
+            </p>
+            <textarea v-model="asistModal.texto" class="qnt-textarea" rows="3" placeholder="Escribí tus tareas, o un tema/período para que el Asistente + proponga…" :disabled="asistModal.loading || asistModal.saving" />
+            <div class="qnt-modal__actions" style="justify-content:flex-start;margin:10px 0 0;gap:8px;">
               <button class="qnt-btn qnt-btn--primary qnt-btn--sm" @click="generarBorradores" :disabled="asistModal.loading || asistModal.saving || !asistModal.texto.trim()">
-                {{ asistModal.loading ? 'Generando…' : 'Generar borradores' }}
+                {{ asistModal.loading ? 'Procesando…' : 'Generar borradores' }}
+              </button>
+              <button class="qnt-btn qnt-btn--ghost qnt-btn--sm" @click="generarIdeas" :disabled="asistModal.loading || asistModal.saving || !asistModal.texto.trim()">
+                🎲 Asistente +
               </button>
             </div>
 
