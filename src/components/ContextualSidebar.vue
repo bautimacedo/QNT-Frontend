@@ -88,6 +88,7 @@ const allSections = {
     { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias'      },
     { id: 'seguros',          label: 'Seguros',          icon: FileCheck,  to: '/home/seguros'                             },
     { id: 'testeo-estacion', label: 'Testeo Estación',  icon: CloudRain,  to: '/home/testeo-estacion', adminOnly: true },
+    { id: 'meteo',          label: 'Meteorología',         icon: CloudRain,    to: '/home/meteo',          adminOnly: true },
   ],
 }
 

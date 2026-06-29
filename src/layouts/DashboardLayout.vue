@@ -35,6 +35,7 @@ const routeToTab = {
   'calendario':          'operaciones',
   'pozos':               'operaciones',
   'testeo-estacion':     'administracion',
+  'meteo':               'administracion',
   'panel-ejecutivo':     'administracion',
   'mi-perfil':     'administracion',
   'perfil-piloto': 'administracion',

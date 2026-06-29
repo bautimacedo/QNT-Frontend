@@ -23,6 +23,7 @@ const PILOT_FORBIDDEN_PREFIXES = [
   '/home/usuarios',
   '/home/testeo-estacion',
   '/home/horas',
+  '/home/meteo',
 ]
 
 // Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar
@@ -83,10 +84,15 @@ const PozosView                   = () => import('../views/PozosView.vue')
 const PozoDetalleView             = () => import('../views/PozoDetalleView.vue')
 const InspeccionAibDetalleView    = () => import('../views/InspeccionAibDetalleView.vue')
 const TesteoEstacionView          = () => import('../views/TesteoEstacionView.vue')
+const WeatherPublicView           = () => import('../views/WeatherPublicView.vue')
+const DashboardMeteoView          = () => import('../views/DashboardMeteoView.vue')
 
 const routes = [
   // Pública — landing page
   { path: '/', name: 'landing', component: LandingView, meta: { requiresAuth: false } },
+
+  // Pública — servicio meteorológico (sin login)
+  { path: '/weather', name: 'weather', component: WeatherPublicView, meta: { requiresAuth: false } },
 
   // Auth
   { path: '/login',          name: 'login',          component: LoginView,         meta: { requiresAuth: false } },
@@ -112,6 +118,7 @@ const routes = [
       { path: 'pozos/:aibId',            name: 'pozo-detalle',                component: PozoDetalleView            },
       { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
       { path: 'testeo-estacion',              name: 'testeo-estacion',          component: TesteoEstacionView         },
+      { path: 'meteo',                    name: 'meteo',                       component: DashboardMeteoView         },
       { path: 'vuelos-efo',               name: 'vuelos-efo',                  component: VuelosFlytbaseView         },
       { path: 'vuelos-cam',               name: 'vuelos-cam',                  component: VuelosCAMView              },
       { path: 'vuelos-cl',                name: 'vuelos-cl',                   component: VuelosCLView               },
