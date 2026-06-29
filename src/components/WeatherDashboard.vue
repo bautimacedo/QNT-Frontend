@@ -51,7 +51,8 @@ async function cargarHistorial() {
 async function refrescar() {
   loading.value = true
   error.value = ''
-  await Promise.all([cargarAreas(), cargarHistorial()])
+  await cargarAreas()       // setea areaSel
+  await cargarHistorial()   // depende de areaSel
   loading.value = false
 }
 
