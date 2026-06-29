@@ -74,6 +74,7 @@ const allSections = {
     { id: 'vuelos-cam',         label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'          },
     { id: 'vuelos-cl',          label: 'Vuelos CL',            icon: PlaneTakeoff,  to: '/home/vuelos-cl'           },
     { id: 'historial-misiones', label: 'Historial de Misiones', icon: History,       to: '/home/historial-misiones'  },
+    { id: 'meteo',         label: 'Meteorología',         icon: CloudRain,     to: '/home/meteo'         },
   ],
   administracion: [
     { id: 'panel-ejecutivo', label: 'Panel Ejecutivo',      icon: TrendingUp,   to: '/home/panel-ejecutivo', adminOnly: true },
@@ -87,8 +88,6 @@ const allSections = {
     { id: 'horas',          label: 'Registro de Actividades', icon: Clock,     to: '/home/horas',          adminOnly: true },
     { id: 'licencias',      label: 'Licencias',            icon: Key,          to: '/home/licencias'      },
     { id: 'seguros',          label: 'Seguros',          icon: FileCheck,  to: '/home/seguros'                             },
-    { id: 'testeo-estacion', label: 'Testeo Estación',  icon: CloudRain,  to: '/home/testeo-estacion', adminOnly: true },
-    { id: 'meteo',          label: 'Meteorología',         icon: CloudRain,    to: '/home/meteo',          adminOnly: true },
   ],
 }
 

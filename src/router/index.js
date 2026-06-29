@@ -23,7 +23,6 @@ const PILOT_FORBIDDEN_PREFIXES = [
   '/home/usuarios',
   '/home/testeo-estacion',
   '/home/horas',
-  '/home/meteo',
 ]
 
 // Rutas que los usuarios (ROLE_USUARIO sin ROLE_ADMIN) NO pueden visitar

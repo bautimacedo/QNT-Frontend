@@ -221,6 +221,7 @@ function horaActual(iso) {
 
 <style scoped>
 .wd { max-width: 1100px; margin: 0 auto; }
+.wd--embedded { max-width: none; margin: 0; }
 .areas-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 .area-tab { padding: 8px 16px; border-radius: 999px; border: 1px solid #cbd5e0; background: #fff; color: #2b555b; font-weight: 600; cursor: pointer; font-size: .9rem; }
 .area-tab.active { background: #113e4c; color: #fff; border-color: #113e4c; }
