@@ -29,6 +29,7 @@ import {
   CloudRain,
   Ticket,
   Clock,
+  Thermometer,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -70,6 +71,7 @@ const allSections = {
     { id: 'mantenimiento', label: 'Mantenimiento',        icon: Wrench,        to: '/home/mantenimiento' },
     { id: 'logs',          label: 'Libros de Vuelo',      icon: FileText,      to: '/home/logs'          },
     { id: 'pozos',         label: 'Pozos',                icon: Gauge,         to: '/home/pozos'         },
+    { id: 'inspector-termico', label: 'Inspector Térmico', icon: Thermometer,  to: '/home/inspector-termico' },
     { id: 'vuelos-efo',         label: 'Vuelos EFO',           icon: PlaneTakeoff,  to: '/home/vuelos-efo'          },
     { id: 'vuelos-cam',         label: 'Vuelos CAM',           icon: PlaneTakeoff,  to: '/home/vuelos-cam'          },
     { id: 'vuelos-cl',          label: 'Vuelos CL',            icon: PlaneTakeoff,  to: '/home/vuelos-cl'           },

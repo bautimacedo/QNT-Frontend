@@ -85,6 +85,8 @@ const InspeccionAibDetalleView    = () => import('../views/InspeccionAibDetalleV
 const TesteoEstacionView          = () => import('../views/TesteoEstacionView.vue')
 const WeatherPublicView           = () => import('../views/WeatherPublicView.vue')
 const DashboardMeteoView          = () => import('../views/DashboardMeteoView.vue')
+const InspectorTermicoView        = () => import('../views/termica/InspectorTermicoView.vue')
+const InspeccionTermicaView       = () => import('../views/termica/InspeccionTermicaView.vue')
 
 const routes = [
   // Pública — landing page
@@ -114,6 +116,8 @@ const routes = [
       { path: 'mantenimiento',           name: 'mantenimiento',               component: MantenimientoView          },
       { path: 'logs',                    name: 'logs',                        component: LibrosVueloView            },
       { path: 'pozos',                   name: 'pozos',                       component: PozosView                  },
+      { path: 'inspector-termico',              name: 'inspector-termico',  component: InspectorTermicoView   },
+      { path: 'inspector-termico/inspeccion',   name: 'inspeccion-termica', component: InspeccionTermicaView  },
       { path: 'pozos/:aibId',            name: 'pozo-detalle',                component: PozoDetalleView            },
       { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
       { path: 'testeo-estacion',              name: 'testeo-estacion',          component: TesteoEstacionView         },
