@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plane, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter } from 'lucide-vue-next'
+import { Plane, AlertTriangle, CloudLightning, Bell, Activity, RefreshCw, Filter, Clock } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 import QuickDateFilters from '../components/QuickDateFilters.vue'
 import { getVuelosLog, getVuelosLogStats, getVuelosLogDrones } from '../api/vuelosLog.js'
@@ -49,6 +49,15 @@ const SEVERIDAD_COLOR = {
   CAUTION:  { color: '#d97706', bg: '#fef3c7' },
   CRITICAL: { color: '#dc2626', bg: '#fee2e2' },
 }
+
+// Tiempo total volado, formateado "Xh Ym" (o "Ym" si es menos de una hora)
+const tiempoTotal = computed(() => {
+  const min = stats.value?.totalMinutos
+  if (min == null) return '—'
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+})
 
 // ─── Carga ───────────────────────────────────────────────────────────────────
 async function loadAll() {
@@ -142,6 +151,13 @@ const totalFiltrados = computed(() => registros.value.length)
         <div>
           <div class="stat-num">{{ stats.totalMalTiempo }}</div>
           <div class="stat-label">Alertas clima</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <Clock class="stat-icon" style="color:#0d9488" />
+        <div>
+          <div class="stat-num">{{ tiempoTotal }}</div>
+          <div class="stat-label">Tiempo total de vuelo</div>
         </div>
       </div>
       <div class="stat-card">
