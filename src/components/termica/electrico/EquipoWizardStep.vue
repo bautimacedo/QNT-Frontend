@@ -20,6 +20,7 @@ const props = defineProps({
         info_imagen: true, parametros_medicion: true, tabla_datos: true, perfil_termico: true,
         measurements: true, graficos_areas: true, marcadores_areas: true,
       },
+      diagnostico: 'Normal',
       useAi: false, aiReportType: 'electrico', aiInstructions: '', diagnosticoIa: '',
     }),
   },
@@ -47,6 +48,7 @@ const params = ref({ ...props.initialValues.measurementParams })
 const equipoNombre = ref(props.initialValues.equipoNombre)
 const gpsCoord = ref(props.initialValues.gpsCoord)
 const ubicacion = ref(props.initialValues.ubicacion)
+const diagnostico = ref(props.initialValues.diagnostico ?? 'Normal')
 const customFields = ref([...props.initialValues.customFields])
 const sections = ref({
   info_imagen: true, parametros_medicion: true, tabla_datos: true,
@@ -163,6 +165,7 @@ async function enviar() {
     form.append('meta_entry', JSON.stringify({ ubicacion: ubicacion.value, equipo: equipoNombre.value, custom_sections: customFields.value }))
     form.append('measurement_params', JSON.stringify(params.value))
     form.append('gps_coord', gpsCoord.value)
+    form.append('diagnostico', diagnostico.value)
     form.append('sections', JSON.stringify(sections.value))
     form.append('use_ai', useAi.value)
     form.append('ai_report_type', aiReportType.value)
@@ -227,9 +230,21 @@ async function enviar() {
       </div>
     </div>
 
-    <div>
-      <label class="qnt-label">Ubicación</label>
-      <input v-model="ubicacion" class="qnt-input" />
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="qnt-label">Ubicación</label>
+        <input v-model="ubicacion" class="qnt-input" />
+      </div>
+      <div>
+        <label class="qnt-label">Diagnóstico</label>
+        <select v-model="diagnostico" class="qnt-input">
+          <option value="Normal">Normal</option>
+          <option value="Leve">Leve</option>
+          <option value="Moderado">Moderado</option>
+          <option value="Serio">Serio</option>
+          <option value="Crítico">Crítico</option>
+        </select>
+      </div>
     </div>
 
     <MeasurementParamsForm v-model="params" />

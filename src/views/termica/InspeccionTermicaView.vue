@@ -170,6 +170,7 @@ onBeforeUnmount(() => window.removeEventListener('electrico:terminar', onTermina
           aiReportType: wizard.state.editingRequest.ai_report_type,
           aiInstructions: wizard.state.editingRequest.ai_custom_instructions,
           diagnosticoIa: wizard.state.editingRequest.diagnostico_ia,
+          diagnostico: wizard.state.editingRequest.diagnostico,
         }"
         mode="standalone" :editing-job-id="wizard.state.editingEntryId"
         @confirmar="wizard.guardarEdicion" @cancelar="wizard.cancelarEdicion"
