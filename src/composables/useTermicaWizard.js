@@ -17,7 +17,13 @@ const state = reactive({
 
   secciones: [], // [{ entryId, tipo: 'equipo'|'extra', nombre, deltaT, estado }] — orden = orden en el PDF
 
-  informeMeta: { empresa: '', inspector: '', ubicacion_general: '', id_informe: '', fecha: '' },
+  informeMeta: { campos: [
+    { label: 'Empresa', value: '' },
+    { label: 'Inspector', value: '' },
+    { label: 'Ubicación general', value: '' },
+    { label: 'N° Informe', value: '' },
+    { label: 'Fecha', value: '' },
+  ] },
   logoJobId: null,
   reportJobId: null,
 
@@ -35,7 +41,13 @@ function resetWizard() {
   state.pendingExtras = []
   state.currentStepIndex = 0
   state.secciones = []
-  state.informeMeta = { empresa: '', inspector: '', ubicacion_general: '', id_informe: '', fecha: '' }
+  state.informeMeta = { campos: [
+    { label: 'Empresa', value: '' },
+    { label: 'Inspector', value: '' },
+    { label: 'Ubicación general', value: '' },
+    { label: 'N° Informe', value: '' },
+    { label: 'Fecha', value: '' },
+  ] }
   state.logoJobId = null
   state.reportJobId = null
   state.editingEntryId = null

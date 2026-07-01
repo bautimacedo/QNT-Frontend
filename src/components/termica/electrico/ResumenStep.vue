@@ -110,6 +110,14 @@ async function generarDocx() {
   }
 }
 
+function agregarCampo() {
+  wizard.state.informeMeta.campos.push({ label: '', value: '' })
+}
+
+function quitarCampo(i) {
+  wizard.state.informeMeta.campos.splice(i, 1)
+}
+
 function eliminarSeccion(seccion) {
   wizard.eliminarSeccion(seccion.entryId)
 }
@@ -145,13 +153,24 @@ function confirmarTerminar() {
     </div>
 
     <div class="qnt-card space-y-4">
-      <h3 class="font-semibold text-[#113e4c]">Datos del informe</h3>
-      <div class="grid grid-cols-2 gap-4">
-        <input v-model="wizard.state.informeMeta.empresa" class="qnt-input" placeholder="Empresa" />
-        <input v-model="wizard.state.informeMeta.inspector" class="qnt-input" placeholder="Inspector" />
-        <input v-model="wizard.state.informeMeta.ubicacion_general" class="qnt-input" placeholder="Ubicación general" />
-        <input v-model="wizard.state.informeMeta.id_informe" class="qnt-input" placeholder="N° Informe" />
-        <input v-model="wizard.state.informeMeta.fecha" class="qnt-input" placeholder="Fecha (dd/mm/aaaa)" />
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-[#113e4c]">Datos del informe</h3>
+        <button type="button" class="qnt-btn--secondary text-sm flex items-center gap-1" @click="agregarCampo">
+          <Plus :size="16" /> Agregar campo
+        </button>
+      </div>
+      <p class="text-xs text-[#536c6b]">Aparecen en la carátula del informe. Podés editarlos, quitarlos o agregar los tuyos.</p>
+      <div class="space-y-2">
+        <div v-for="(campo, i) in wizard.state.informeMeta.campos" :key="i" class="flex items-center gap-2">
+          <input v-model="campo.label" class="qnt-input flex-1" placeholder="Nombre del campo (ej. Empresa)" />
+          <input v-model="campo.value" class="qnt-input flex-1" placeholder="Valor" />
+          <button type="button" class="text-[#536c6b] hover:text-red-600 p-1 flex-shrink-0" title="Quitar campo" @click="quitarCampo(i)">
+            <X :size="16" />
+          </button>
+        </div>
+        <p v-if="!wizard.state.informeMeta.campos.length" class="text-xs text-[#536c6b]">
+          Sin campos en la carátula. Agregá los que quieras con “Agregar campo”.
+        </p>
       </div>
 
       <div>
