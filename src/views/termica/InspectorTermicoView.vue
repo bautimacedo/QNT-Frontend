@@ -101,7 +101,7 @@ async function analizar() {
 </script>
 
 <template>
-  <div class="qnt-page space-y-6">
+  <div class="ti-scope qnt-page space-y-6">
     <div class="flex items-start justify-between gap-4">
       <div>
         <h2 class="text-xl font-semibold text-[#113e4c]">Inspector Térmico</h2>

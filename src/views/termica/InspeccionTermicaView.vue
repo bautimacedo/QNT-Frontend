@@ -118,7 +118,7 @@ onBeforeUnmount(() => window.removeEventListener('electrico:terminar', onTermina
 </script>
 
 <template>
-  <div :class="wizard.state.fase === 'pair-review' ? 'max-w-[100rem] mx-auto p-6 space-y-4' : 'qnt-page space-y-4'">
+  <div class="ti-scope" :class="wizard.state.fase === 'pair-review' ? 'max-w-[100rem] mx-auto p-6 space-y-4' : 'qnt-page space-y-4'">
     <router-link :to="{ name: 'inspector-termico' }" class="text-sm text-[#2471A3] underline">← Volver</router-link>
     <h2 class="text-xl font-semibold text-[#113e4c]">Inspección Térmica</h2>
 

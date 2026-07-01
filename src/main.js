@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import VueKonva from 'vue-konva'
 import './style.css'
 import './assets/design-tokens.css'
+import './assets/thermal-inspector.css'
 import App from './App.vue'
 import router from './router'
 

@@ -1,0 +1,104 @@
+/* ─── Inspector Térmico — estilos scopeados ─────────────────────────────────
+ * El módulo del Inspector se portó desde su frontend standalone, que define sus
+ * propias clases qnt-* (self-contained). QNT ya tiene clases qnt-* GLOBALES con
+ * otra semántica (qnt-page full-width + flex + overflow; qnt-btn--* que dependen
+ * de una clase base .qnt-btn). Para que el Inspector se vea EXACTAMENTE como en
+ * local sin pisar el resto de QNT, redefinimos esas clases scopeadas bajo
+ * .ti-scope (que va en la raíz de las vistas del Inspector). Mayor especificidad
+ * (.ti-scope .qnt-*) gana sobre las globales, solo dentro del módulo.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* Página: contenedor centrado (como local), anulando el flex/overflow de QNT
+   que estiraba todo a lo ancho y generaba scroll anidado ("temblor"). */
+.ti-scope.qnt-page,
+.ti-scope .qnt-page {
+  display: block;
+  max-width: 64rem;      /* max-w-5xl */
+  margin: 0 auto;        /* mx-auto */
+  padding: 1.5rem;       /* p-6 */
+  overflow: visible;
+  min-height: auto;
+  gap: 0;
+}
+
+.ti-scope .qnt-card {
+  background: #fff;
+  border-radius: 0.5rem;                 /* rounded-lg */
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-md */
+  padding: 1.5rem;                       /* p-6 */
+  border: 1px solid #e0e5e5;
+}
+
+/* Botón primario self-contained (local): NO depende de una clase base .qnt-btn */
+.ti-scope .qnt-btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: none;
+  border-radius: 0.375rem;               /* rounded-md */
+  padding: 0.5rem 1rem;                  /* px-4 py-2 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  background: linear-gradient(135deg, #113e4c, #2b555b);
+}
+.ti-scope .qnt-btn--primary:hover:not(:disabled) { opacity: 0.9; }
+.ti-scope .qnt-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ti-scope .qnt-btn--secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border: 1px solid #113e4c;
+  color: #113e4c;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ti-scope .qnt-btn--secondary:hover:not(:disabled) { background: #f3f5f5; }
+.ti-scope .qnt-btn--secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ti-scope .qnt-table {
+  width: 100%;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border-collapse: collapse;
+}
+.ti-scope .qnt-table th {
+  background: #113e4c;
+  color: #fff;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+}
+.ti-scope .qnt-table td {
+  border-bottom: 1px solid #e0e5e5;
+  padding: 0.5rem 0.75rem;
+}
+
+.ti-scope .qnt-input {
+  width: 100%;
+  border: 1px solid #e0e5e5;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  background: #fff;
+}
+.ti-scope .qnt-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(17 62 76 / 0.4);
+}
+
+.ti-scope .qnt-label {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: #113e4c;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
