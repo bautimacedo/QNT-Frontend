@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
 import { getHoras, getResumenHoras, crearHora, actualizarHora, eliminarHora, ampliarDescripcion, asistenteHoras, generarHoras } from '../api/horas'
+import { listarReportes, generarReporte, descargarReporte } from '../api/reportesActividad'
 
 const dashboardUser = inject('dashboardUser', ref(null))
 const miId = computed(() => dashboardUser.value?.id ?? null)
@@ -216,7 +217,49 @@ function formatFecha(iso) {
   return `${d}/${m}/${y}`
 }
 
-onMounted(loadAll)
+// ── Reportes semanales / mensuales ─────────────────────────────────────────
+const reportes    = ref([])
+const genTipo     = ref('SEMANAL')
+const genFecha    = ref(hoyISO())
+const genMes      = ref(mesActual())
+const generando   = ref(false)
+const descargando = ref(null)
+
+async function cargarReportes() {
+  try {
+    reportes.value = await listarReportes()
+  } catch (_) { /* sección secundaria: no bloquea la vista */ }
+}
+
+async function generarNuevoReporte() {
+  generando.value = true
+  try {
+    // Semanal usa una fecha (backend calcula lunes–domingo); mensual usa el 1º del mes elegido
+    const fecha = genTipo.value === 'MENSUAL' ? `${genMes.value}-01` : genFecha.value
+    await generarReporte(genTipo.value, fecha)
+    await cargarReportes()
+    showToast('Reporte generado')
+  } catch (e) {
+    showToast(e.message || 'No se pudo generar el reporte')
+  } finally {
+    generando.value = false
+  }
+}
+
+async function bajarReporte(r) {
+  descargando.value = r.id
+  try {
+    await descargarReporte(r.id, `reporte-${r.tipo.toLowerCase()}-${r.periodoDesde}_${r.periodoHasta}.pdf`)
+  } catch (e) {
+    showToast(e.message || 'No se pudo descargar')
+  } finally {
+    descargando.value = null
+  }
+}
+
+function etiquetaTipo(t) { return t === 'MENSUAL' ? 'Mensual' : 'Semanal' }
+
+onMounted(() => { loadAll(); cargarReportes() })
 </script>
 
 <template>
@@ -277,6 +320,55 @@ onMounted(loadAll)
         </tbody>
       </table>
     </div>
+
+    <!-- Reportes semanales / mensuales -->
+    <section class="reportes-box">
+      <div class="reportes-box__head">
+        <div>
+          <h2 class="reportes-box__title">Reportes de actividades</h2>
+          <p class="reportes-box__sub">Se generan y envían por email automáticamente (semanal los lunes, mensual el día 1). También podés generarlos manualmente.</p>
+        </div>
+      </div>
+
+      <div class="reportes-gen">
+        <label class="filtro">Tipo
+          <select v-model="genTipo" class="qnt-input">
+            <option value="SEMANAL">Semanal</option>
+            <option value="MENSUAL">Mensual</option>
+          </select>
+        </label>
+        <label class="filtro" v-if="genTipo === 'SEMANAL'">Semana (elegí un día)
+          <input v-model="genFecha" type="date" class="qnt-input" :max="hoyISO()" />
+        </label>
+        <label class="filtro" v-else>Mes
+          <input v-model="genMes" type="month" class="qnt-input" />
+        </label>
+        <button class="qnt-btn qnt-btn--primary" :disabled="generando" @click="generarNuevoReporte">
+          {{ generando ? 'Generando…' : 'Generar reporte' }}
+        </button>
+      </div>
+
+      <div v-if="reportes.length" class="qnt-table-wrap">
+        <table class="qnt-table">
+          <thead>
+            <tr><th>Tipo</th><th>Período</th><th>Generado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in reportes" :key="r.id">
+              <td>{{ etiquetaTipo(r.tipo) }}</td>
+              <td class="text-muted">{{ formatFecha(r.periodoDesde) }} – {{ formatFecha(r.periodoHasta) }}</td>
+              <td class="text-muted">{{ formatFecha((r.createdAt || '').slice(0, 10)) }}</td>
+              <td>
+                <button class="qnt-btn qnt-btn--secondary qnt-btn--sm" :disabled="descargando === r.id" @click="bajarReporte(r)">
+                  {{ descargando === r.id ? 'Descargando…' : 'Descargar' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p v-else class="reportes-box__empty">Todavía no hay reportes generados.</p>
+    </section>
 
     <Transition name="toast"><div v-if="toast" class="qnt-toast">{{ toast }}</div></Transition>
 
@@ -381,6 +473,13 @@ onMounted(loadAll)
 
 .filtros-bar { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
 .filtro { display: flex; flex-direction: column; font-size: 0.78rem; font-weight: 600; color: #2b555b; gap: 4px; }
+
+.reportes-box { margin-top: 28px; padding: 20px 22px; background: #f4f7f7; border: 1px solid #dce8e8; border-radius: 14px; }
+.reportes-box__head { margin-bottom: 14px; }
+.reportes-box__title { font-size: 1.05rem; font-weight: 700; color: #113e4c; margin: 0 0 3px; }
+.reportes-box__sub { font-size: 0.78rem; color: #658582; margin: 0; }
+.reportes-gen { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 18px; }
+.reportes-box__empty { font-size: 0.85rem; color: #658582; margin: 0; }
 
 .resumen-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .resumen-card { background: #f4f7f7; border: 1px solid #dce8e8; border-radius: 12px; padding: 14px 16px; }
