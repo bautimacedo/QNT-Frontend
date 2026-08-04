@@ -45,6 +45,9 @@ const TIPO_COMPRA_LABELS = {
 const METODO_PAGO_LABELS = {
   EFECTIVO: 'Efectivo', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta', OTRO: 'Otro',
 }
+const TITULARIDAD_TARJETA_LABELS = {
+  CORPORATIVA: 'Corporativa', PERSONAL: 'Personal',
+}
 const TIPO_EQUIPO_LABELS = {
   DRON: 'Dron', DOCK: 'Dock', ANTENA_RTK: 'Antena RTK', ANTENA_STARLINK: 'Antena Starlink',
   CAMARA: 'Cámara', BATERIA: 'Batería', CARGADOR: 'Cargador', OTRO: 'Otro',
@@ -302,7 +305,7 @@ function fileIcon(archivo) {
               <span class="df-label">Método de pago</span>
               <span class="df-val">
                 {{ METODO_PAGO_LABELS[compra.metodoPago] || compra.metodoPago }}
-                <template v-if="compra.metodoPago === 'TARJETA'"> · {{ compra.companiaTarjeta }} ****{{ compra.ultimos4Tarjeta }}</template>
+                <template v-if="compra.metodoPago === 'TARJETA'"> · {{ compra.companiaTarjeta }} ****{{ compra.ultimos4Tarjeta }}<template v-if="compra.titularidadTarjeta"> · {{ TITULARIDAD_TARJETA_LABELS[compra.titularidadTarjeta] || compra.titularidadTarjeta }}</template></template>
               </span>
             </div>
             <div v-if="compra.site" class="det-field">

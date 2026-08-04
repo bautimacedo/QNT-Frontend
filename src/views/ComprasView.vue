@@ -44,6 +44,11 @@ const METODO_PAGO_LABELS = {
   OTRO: 'Otro',
 }
 
+const TITULARIDAD_TARJETA_LABELS = {
+  CORPORATIVA: 'Corporativa',
+  PERSONAL: 'Personal',
+}
+
 const compras = ref([])
 const tiposEquipo = ref([])
 const loading = ref(false)
@@ -81,6 +86,7 @@ const FORM_DEFAULTS = () => ({
   ivaPorcentaje: '',
   companiaTarjeta: '',
   ultimos4Tarjeta: '',
+  titularidadTarjeta: '',
   descripcion: '',
   observaciones: '',
   items: [newItemDefault()],
@@ -313,6 +319,7 @@ function openEdit(compra) {
     ivaPorcentaje: compra.ivaPorcentaje != null ? String(compra.ivaPorcentaje) : '',
     companiaTarjeta: compra.companiaTarjeta || '',
     ultimos4Tarjeta: compra.ultimos4Tarjeta || '',
+    titularidadTarjeta: compra.titularidadTarjeta || '',
     descripcion: compra.descripcion || '',
     observaciones: compra.observaciones || '',
     items,
@@ -365,6 +372,7 @@ watch(() => formModal.value.metodoPago, (val) => {
   if (val !== 'TARJETA') {
     formModal.value.companiaTarjeta = ''
     formModal.value.ultimos4Tarjeta = ''
+    formModal.value.titularidadTarjeta = ''
   }
 })
 
@@ -390,6 +398,9 @@ function validateForm() {
     const u4 = (f.ultimos4Tarjeta || '').trim()
     if (!/^[0-9]{4}$/.test(u4)) {
       errors.ultimos4Tarjeta = 'Ingresá exactamente 4 dígitos de la tarjeta.'
+    }
+    if (!f.titularidadTarjeta) {
+      errors.titularidadTarjeta = 'Indicá si la tarjeta es corporativa o personal.'
     }
   }
   if (f.tieneIva) {
@@ -433,6 +444,7 @@ function buildBody() {
   if (f.metodoPago === 'TARJETA') {
     body.companiaTarjeta = f.companiaTarjeta?.trim() || null
     body.ultimos4Tarjeta = (f.ultimos4Tarjeta || '').trim().replace(/\D/g, '').slice(0, 4) || null
+    body.titularidadTarjeta = f.titularidadTarjeta || null
   }
   if (f.proveedorId) {
     body.proveedorId = f.proveedorId
@@ -802,6 +814,16 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                   <p v-if="formModal.errors.ultimos4Tarjeta" class="qnt-field-error">{{ formModal.errors.ultimos4Tarjeta }}</p>
                 </div>
               </Transition>
+              <Transition name="slide">
+                <div v-if="formModal.metodoPago === 'TARJETA'" class="qnt-field">
+                  <label>Titularidad de la tarjeta <span class="required">*</span></label>
+                  <select v-model="formModal.titularidadTarjeta" class="qnt-input" :disabled="formModal.loading">
+                    <option value="">Seleccionar…</option>
+                    <option v-for="(label, val) in TITULARIDAD_TARJETA_LABELS" :key="val" :value="val">{{ label }}</option>
+                  </select>
+                  <p v-if="formModal.errors.titularidadTarjeta" class="qnt-field-error">{{ formModal.errors.titularidadTarjeta }}</p>
+                </div>
+              </Transition>
 
               <!-- IVA checkbox + porcentaje -->
               <div class="qnt-field">
@@ -1041,6 +1063,7 @@ onUnmounted(() => { objectUrls.forEach(u => URL.revokeObjectURL(u)) })
                 <span class="detail-row__value">
                   {{ detailModal.compra?.companiaTarjeta || '—' }}
                   <span v-if="detailModal.compra?.ultimos4Tarjeta"> **** {{ detailModal.compra.ultimos4Tarjeta }}</span>
+                  <span v-if="detailModal.compra?.titularidadTarjeta"> · {{ TITULARIDAD_TARJETA_LABELS[detailModal.compra.titularidadTarjeta] || detailModal.compra.titularidadTarjeta }}</span>
                 </span>
               </div>
               <div class="detail-row">
