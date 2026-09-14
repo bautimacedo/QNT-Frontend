@@ -10,13 +10,6 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
       },
-      // Inspector Térmico: contenedor Docker en :8000 que sirve bajo /api.
-      // Reescribimos /api/thermal -> /api para no colisionar con /api/qnt/v1.
-      '/api/thermal': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/thermal/, '/api'),
-      },
     },
   },
   build: {
@@ -27,7 +20,6 @@ export default defineConfig({
           vendor: ['vue', 'vue-router', 'axios'],
           maps:   ['leaflet'],
           pdf:    ['jspdf', 'html2canvas'],
-          konva:  ['konva', 'vue-konva'],
         },
       },
     },

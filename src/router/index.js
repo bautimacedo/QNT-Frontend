@@ -114,6 +114,15 @@ const routes = [
       { path: 'mantenimiento',           name: 'mantenimiento',               component: MantenimientoView          },
       { path: 'logs',                    name: 'logs',                        component: LibrosVueloView            },
       { path: 'pozos',                   name: 'pozos',                       component: PozosView                  },
+      // El Inspector Térmico vive ahora en QNT2. Favoritos viejos a
+      // /home/inspector-termico* van directo allá; el guard es necesario porque
+      // `redirect` de Vue Router no acepta URLs externas. Sin requiresAuth: el
+      // destino tiene su propio login (Keycloak), no hace falta pasar por el de acá.
+      {
+        path: 'inspector-termico/:rest(.*)*',
+        meta: { requiresAuth: false },
+        beforeEnter: () => { window.location.replace('https://thermal.qntdron.com'); return false },
+      },
       { path: 'pozos/:aibId',            name: 'pozo-detalle',                component: PozoDetalleView            },
       { path: 'pozos/:aibId/inspecciones/:id', name: 'inspeccion-aib-detalle', component: InspeccionAibDetalleView  },
       { path: 'testeo-estacion',              name: 'testeo-estacion',          component: TesteoEstacionView         },
@@ -155,6 +164,10 @@ const routes = [
       { path: 'perfil-piloto',           name: 'perfil-piloto',               component: PerfilPilotoView           },
     ],
   },
+
+  // Comodín: cualquier URL que no exista (rutas dadas de baja, typos) vuelve al
+  // resumen en vez de dejar el layout vacío. Tiene que ser la última.
+  { path: '/:pathMatch(.*)*', redirect: '/home' },
 ]
 
 const router = createRouter({
