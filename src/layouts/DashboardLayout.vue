@@ -34,7 +34,6 @@ const routeToTab = {
   'historial-misiones':  'operaciones',
   'calendario':          'operaciones',
   'pozos':               'operaciones',
-  'inspector-termico':   'operaciones',
   'testeo-estacion':     'administracion',
   'meteo':               'operaciones',
   'panel-ejecutivo':     'administracion',
